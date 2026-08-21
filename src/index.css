@@ -26,3 +26,14 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* Generated logo / banner markup is injected straight into preview boxes while
+   still carrying its export dimensions (e.g. width and height of 512). In a
+   sized box the CSS width applies but the height attribute does not, so the
+   markup lays out at 400x512 and the artwork is cut off. Let the box drive the
+   width and derive the height from the viewBox so previews keep their ratio. */
+.artboard-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}

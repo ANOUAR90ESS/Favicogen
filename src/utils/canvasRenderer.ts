@@ -520,7 +520,7 @@ export function generateSvgString(config: LogoConfig, targetSize = 512): string 
   }
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${s} ${s}" width="${targetSize}" height="${targetSize}">
+<svg class="artboard-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${s} ${s}" width="${targetSize}" height="${targetSize}">
   <defs>
     <!-- Background Gradients -->
     <linearGradient id="${bgGradId}" x1="${x1}%" y1="${y1}%" x2="${x2}%" y2="${y2}%">
@@ -1122,7 +1122,7 @@ export function generateFeatureGraphicSvg(
   }
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
+<svg class="artboard-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
   <defs>
     ${bgGradDef}
     <filter id="fg_shadow" x="-20%" y="-20%" width="140%" height="140%">
@@ -1558,7 +1558,7 @@ export function generateSocialBannerSvg(
   }
 
   return `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
+<svg class="artboard-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
   <defs>
     ${bgGradDef}
     <filter id="sb_shadow" x="-20%" y="-20%" width="140%" height="140%">
