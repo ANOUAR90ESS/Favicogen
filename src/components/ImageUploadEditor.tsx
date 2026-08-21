@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { LogoConfig, SupportedLanguage } from '../types';
 import { autoTrimImage } from '../utils/imageCropper';
+import { smartImportImage, readFileAsDataUrl, buildFullBleedImagePatch } from '../utils/smartImport';
 
 interface ImageUploadEditorProps {
   config: LogoConfig;
@@ -36,6 +37,7 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAutoTrimming, setIsAutoTrimming] = useState(false);
   const [trimFeedback, setTrimFeedback] = useState<string | null>(null);
+  const [autoTrimOnImport, setAutoTrimOnImport] = useState(true);
 
   const filters = config.uploadedImageFilters || {
     brightness: 100,
@@ -48,28 +50,50 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
     blur: 0,
   };
 
-  const handleImageFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Upload runs the whole import step: trim the empty border, then place the
+  // picture edge-to-edge as the logo. Previously the image kept the 180px icon
+  // slot and whatever ring/text the old design had, so it landed small and
+  // framed by margins on all four sides.
+  const handleImageFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      if (dataUrl) {
-        onChange({
-          iconType: 'image',
-          uploadedImageSrc: dataUrl,
-          uploadedImageScale: config.uploadedImageScale || 100,
-          uploadedImageOpacity: config.uploadedImageOpacity ?? 1,
-          uploadedImageOffsetX: config.uploadedImageOffsetX || 0,
-          uploadedImageOffsetY: config.uploadedImageOffsetY || 0,
-          uploadedImageRotation: config.uploadedImageRotation || 0,
-          uploadedImageCropShape: config.uploadedImageCropShape || 'squircle',
-          uploadedImageFilters: filters,
-        });
+    setIsAutoTrimming(true);
+    setTrimFeedback(null);
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      const result = await smartImportImage(dataUrl, { autoTrim: autoTrimOnImport });
+
+      onChange({ ...result.patch, uploadedImageFilters: filters });
+
+      if (autoTrimOnImport && result.trimmedPercent > 0) {
+        setTrimFeedback(
+          isAr
+            ? `تم قص الحواف الفارغة (${result.trimmedPercent}%) وملء الإطار بالكامل`
+            : `Empty borders trimmed (${result.trimmedPercent}%) and fitted edge-to-edge`
+        );
+      } else {
+        setTrimFeedback(
+          isAr ? 'تم استيراد الصورة وملء الإطار بالكامل' : 'Image imported and fitted edge-to-edge'
+        );
       }
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('Image import failed:', err);
+      setTrimFeedback(isAr ? 'تعذر قراءة ملف الصورة' : 'Could not read the image file');
+    } finally {
+      setIsAutoTrimming(false);
+      // Let the same file be picked again after a failed or repeated import.
+      e.target.value = '';
+      setTimeout(() => setTrimFeedback(null), 4000);
+    }
+  };
+
+  // Re-fit an already-loaded image to the full frame.
+  const handleFitFullBleed = () => {
+    if (!config.uploadedImageSrc) return;
+    onChange(buildFullBleedImagePatch(config.uploadedImageSrc));
+    setTrimFeedback(isAr ? 'تم ملء الإطار بالكامل' : 'Fitted edge-to-edge');
+    setTimeout(() => setTrimFeedback(null), 3000);
   };
 
   const handleRemoveImage = () => {
@@ -175,6 +199,23 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
                 {isAr ? 'يدعم PNG, JPG, WebP, SVG بأعلى دقة' : 'Supports PNG, JPG, WebP, SVG'}
               </p>
             </div>
+
+            <label
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-2 mt-1 px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                checked={autoTrimOnImport}
+                onChange={(e) => setAutoTrimOnImport(e.target.checked)}
+                className="accent-teal-600 h-3.5 w-3.5"
+              />
+              <span className="text-[11px] font-semibold text-slate-700">
+                {isAr
+                  ? 'قص الحواف الفارغة وملء الإطار تلقائياً'
+                  : 'Auto-trim empty borders & fit edge-to-edge'}
+              </span>
+            </label>
           </div>
         </div>
       ) : (
@@ -236,6 +277,22 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
                 {isAr ? 'إزالة الأطراف' : 'Auto-Trim'}
               </span>
             </div>
+
+            {/* Re-fit the picture edge-to-edge (undo any leftover margins) */}
+            <button
+              id="btn-fit-full-bleed"
+              type="button"
+              onClick={handleFitFullBleed}
+              className="w-full flex items-center justify-center gap-1.5 py-2 px-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-xs transition-all active:scale-95"
+              title={
+                isAr
+                  ? 'جعل الصورة تملأ الإطار بالكامل بدون هوامش على الجوانب'
+                  : 'Make the image fill the whole frame with no side margins'
+              }
+            >
+              <Maximize className="h-3.5 w-3.5" />
+              <span className="truncate">{isAr ? 'ملء الإطار بالكامل' : 'Fit Edge-to-Edge'}</span>
+            </button>
 
             <div className="grid grid-cols-2 gap-2">
               {/* Quick 1-click Auto Trim White Borders */}

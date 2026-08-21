@@ -5,19 +5,14 @@ import {
   Maximize2,
   Grid,
   Crosshair,
-  Copy,
   Check,
   Download,
   Image as ImageIcon,
   Code2,
   Sparkles,
-  UploadCloud,
-  Wand2,
-  Share2,
-  Scissors,
 } from 'lucide-react';
 import { LogoConfig, SupportedLanguage } from '../types';
-import { generateSvgString, renderSvgToBlob } from '../utils/canvasRenderer';
+import { generateSvgString, renderSvgToBlob, downloadBlob } from '../utils/canvasRenderer';
 
 interface CanvasStageProps {
   config: LogoConfig;
@@ -27,7 +22,6 @@ interface CanvasStageProps {
   onOpenMockups: () => void;
   onOpenSocialMediaKit?: () => void;
   onOpenCropTrimModal?: () => void;
-  onOpenImageConverter: () => void;
   onOpenFeatureGraphic?: () => void;
   onOpenUniversalResizer?: () => void;
 }
@@ -40,7 +34,6 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
   onOpenMockups,
   onOpenSocialMediaKit,
   onOpenCropTrimModal,
-  onOpenImageConverter,
   onOpenFeatureGraphic,
   onOpenUniversalResizer,
 }) => {
@@ -71,14 +64,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     try {
       setIsDownloadingQuick(true);
       const blob = await renderSvgToBlob(svgString, size, 'png');
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${(config.text || config.name || 'logo').replace(/\s+/g, '_')}_${size}x${size}.png`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      downloadBlob(blob, `${(config.text || config.name || 'logo').replace(/\s+/g, '_')}_${size}x${size}.png`);
     } catch (e) {
       console.error('Quick PNG download failed:', e);
     } finally {
@@ -88,14 +74,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
   const handleQuickDownloadSvg = () => {
     const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${(config.text || config.name || 'logo').replace(/\s+/g, '_')}.svg`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    downloadBlob(blob, `${(config.text || config.name || 'logo').replace(/\s+/g, '_')}.svg`);
   };
 
   return (
@@ -136,16 +115,6 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
         {/* Guides & Background Viewers */}
         <div className="flex items-center flex-wrap gap-2">
-          {/* Quick AI Image Convert Tooltip Button */}
-          <button
-            onClick={onOpenImageConverter}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50/80 text-indigo-700 hover:bg-indigo-100 text-xs font-bold shadow-2xs transition-all"
-            title={isAr ? 'تحويل أي صورة إلى جميع المقاسات والصيغ' : 'AI Image to Multi-Size Favicon'}
-          >
-            <Wand2 className="h-3.5 w-3.5 text-indigo-600" />
-            <span>{isAr ? 'تحويل صورة بالـ AI' : 'AI Image Converter'}</span>
-          </button>
-
           {/* 'Transparent Background' Toggle Switch */}
           <div
             id="wrapper-transparent-background-toggle"
@@ -443,57 +412,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             <span>PNG 512px</span>
           </button>
 
-          {/* Quick Feature Graphic 1024x500 */}
-          {onOpenFeatureGraphic && (
-            <button
-              id="btn-stage-feature-graphic"
-              onClick={onOpenFeatureGraphic}
-              className="flex items-center gap-1.5 rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 shadow-2xs transition-colors"
-              title={isAr ? 'الرسم المميز لمتجر Google Play (1024 × 500 px)' : 'Google Play Feature Graphic (1024x500)'}
-            >
-              <ImageIcon className="h-3.5 w-3.5 text-emerald-600" />
-              <span>{isAr ? 'رسم مميز 1024×500' : 'Feature Graphic'}</span>
-            </button>
-          )}
-
-          {/* Quick Crop & Auto-Trim Button */}
-          {onOpenCropTrimModal && (
-            <button
-              id="btn-stage-crop-trim"
-              onClick={onOpenCropTrimModal}
-              className="flex items-center gap-1.5 rounded-lg border border-teal-300 bg-teal-50 px-3 py-1.5 text-xs font-bold text-teal-800 hover:bg-teal-100 shadow-2xs transition-colors"
-              title={isAr ? 'قص الحواف البيضاء والشفافة أو تحديد مستطيل يدوي' : 'Trim white margins or manually crop rectangular area'}
-            >
-              <Scissors className="h-3.5 w-3.5 text-teal-600" />
-              <span>{isAr ? 'قص الحواف والمستطيل' : 'Trim & Crop'}</span>
-            </button>
-          )}
-
-          {/* Quick Universal Resizer */}
-          {onOpenUniversalResizer && (
-            <button
-              id="btn-stage-universal-resizer"
-              onClick={onOpenUniversalResizer}
-              className="flex items-center gap-1.5 rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 shadow-2xs transition-colors"
-              title={isAr ? 'تغيير المقاسات لأي أبعاد وأحجام' : 'Universal Image Resizer (All Sizes & Tamaños)'}
-            >
-              <UploadCloud className="h-3.5 w-3.5 text-indigo-600" />
-              <span>{isAr ? 'تغيير المقاسات' : 'All Sizes'}</span>
-            </button>
-          )}
-
-          {/* Quick Social Media Kit (1:1 & 16:9) */}
-          {onOpenSocialMediaKit && (
-            <button
-              id="btn-stage-social-kit"
-              onClick={onOpenSocialMediaKit}
-              className="flex items-center gap-1.5 rounded-lg border border-purple-300 bg-purple-50 px-3 py-1.5 text-xs font-bold text-purple-700 hover:bg-purple-100 shadow-2xs transition-colors"
-              title={isAr ? 'حزمة شبكات التواصل الاجتماعي (1:1 & 16:9)' : 'Social Media Kit (1:1 & 16:9)'}
-            >
-              <Share2 className="h-3.5 w-3.5 text-purple-600" />
-              <span>{isAr ? 'سوشيال ميديا 16:9 و 1:1' : 'Social Kit'}</span>
-            </button>
-          )}
+          {/* Header already carries Feature Graphic / Trim / Resizer / Social Kit.
+              The canvas keeps only its own end-of-flow export action. */}
 
           {/* Open Full Favicon Suite */}
           <button

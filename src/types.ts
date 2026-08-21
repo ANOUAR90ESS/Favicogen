@@ -174,23 +174,6 @@ export interface SavedColorPalette {
   colors: string[];
 }
 
-export interface AIIdeaSuggestion {
-  name: string;
-  tagline: string;
-  iconCategory: string;
-  suggestedIcon: string;
-  bgType: BackgroundType;
-  bgColor1: string;
-  bgColor2: string;
-  primaryColor: string;
-  secondaryColor: string;
-  accentColor: string;
-  fontFamily: string;
-  shapeMask: ShapeMask;
-  layout?: LayoutStyle;
-  description: string;
-}
-
 export interface FeatureGraphicOptions {
   layout: 'center-hero' | 'split-phone' | 'mesh-gradient' | 'minimal-luxury' | 'arabesque' | 'store-spotlight';
   title: string;

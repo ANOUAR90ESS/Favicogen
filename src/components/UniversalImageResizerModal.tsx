@@ -44,7 +44,7 @@ import {
   generateMultiSizeZip,
   convertUnitsToPixels,
 } from '../utils/imageResizer';
-import { generateSvgString } from '../utils/canvasRenderer';
+import { generateSvgString, downloadBlob } from '../utils/canvasRenderer';
 
 interface UniversalImageResizerModalProps {
   isOpen: boolean;
@@ -134,16 +134,43 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
   const [isExportingBatch, setIsExportingBatch] = useState<boolean>(false);
   const [copiedNotification, setCopiedNotification] = useState<boolean>(false);
 
+  // Object URL of the generated studio-logo source, so it can be revoked on replace.
+  const sourceObjectUrlRef = useRef<string | null>(null);
+
+  // Replaces the working source image, releasing any object URL it supersedes.
+  const applySourceImage = (src: string, isObjectUrl: boolean) => {
+    if (sourceObjectUrlRef.current && sourceObjectUrlRef.current !== src) {
+      URL.revokeObjectURL(sourceObjectUrlRef.current);
+    }
+    sourceObjectUrlRef.current = isObjectUrl ? src : null;
+    setSourceImageSrc(src);
+  };
+
+  // Renders the studio logo into a fresh source image for the resizer.
+  const loadStudioLogoAsSource = () => {
+    const svg = generateSvgString(currentLogoConfig, 512);
+    const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+    applySourceImage(URL.createObjectURL(blob), true);
+    setSourceDimensions({ width: 512, height: 512 });
+  };
+
   // Initialize with current logo SVG from studio canvas if no image uploaded yet
   useEffect(() => {
     if (isOpen && !sourceImageSrc) {
-      const svg = generateSvgString(currentLogoConfig, 512);
-      const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      setSourceImageSrc(url);
-      setSourceDimensions({ width: 512, height: 512 });
+      loadStudioLogoAsSource();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, currentLogoConfig, sourceImageSrc]);
+
+  // Release the last generated object URL when the modal unmounts.
+  useEffect(() => {
+    return () => {
+      if (sourceObjectUrlRef.current) {
+        URL.revokeObjectURL(sourceObjectUrlRef.current);
+        sourceObjectUrlRef.current = null;
+      }
+    };
+  }, []);
 
   // Load Image and update original source dimensions
   const handleImageFile = (file: File) => {
@@ -153,7 +180,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
       const result = e.target?.result as string;
       const img = new Image();
       img.onload = () => {
-        setSourceImageSrc(result);
+        applySourceImage(result, false);
         setSourceDimensions({ width: img.naturalWidth || 512, height: img.naturalHeight || 512 });
         // Set initial resize options to match source image
         setOptions((prev) => ({
@@ -267,15 +294,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
       const ext = targetFormat === 'jpeg' ? 'jpg' : targetFormat;
       const fileName = `resized_${width}x${height}_${Date.now()}.${ext}`;
 
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-
+      downloadBlob(blob, fileName);
       confetti({
         particleCount: 50,
         spread: 60,
@@ -300,15 +319,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
         'converted_all_sizes_pack'
       );
 
-      const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `all_sizes_pack_${presetsToExport.length}_files.zip`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-
+      downloadBlob(zipBlob, `all_sizes_pack_${presetsToExport.length}_files.zip`);
       confetti({
         particleCount: 80,
         spread: 70,
@@ -564,13 +575,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
 
                 {/* Reset to current studio logo button */}
                 <button
-                  onClick={() => {
-                    const svg = generateSvgString(currentLogoConfig, 512);
-                    const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
-                    const url = URL.createObjectURL(blob);
-                    setSourceImageSrc(url);
-                    setSourceDimensions({ width: 512, height: 512 });
-                  }}
+                  onClick={loadStudioLogoAsSource}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition-colors"
                   title={isAr ? 'استرجاع الشعار الحالي من مساحة العمل' : 'Reset to current studio canvas logo'}
                 >

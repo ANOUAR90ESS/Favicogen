@@ -5,8 +5,6 @@ import { CanvasStage } from './components/CanvasStage';
 import { FaviconExportModal } from './components/FaviconExportModal';
 import { TemplateGalleryModal } from './components/TemplateGalleryModal';
 import { LiveMockupsModal } from './components/LiveMockupsModal';
-import { AIGeneratorModal } from './components/AIGeneratorModal';
-import { AIImageConverterModal } from './components/AIImageConverterModal';
 import { SavedProjectsModal } from './components/SavedProjectsModal';
 import { FeatureGraphicModal } from './components/FeatureGraphicModal';
 import { UniversalImageResizerModal } from './components/UniversalImageResizerModal';
@@ -20,6 +18,9 @@ import {
   saveProjectToList,
 } from './utils/storage';
 import { generateSvgString } from './utils/canvasRenderer';
+import { smartImportImage, readFileAsDataUrl } from './utils/smartImport';
+
+const HISTORY_LIMIT = 30;
 
 export function App() {
   const [language, setLanguage] = useState<SupportedLanguage>(() => {
@@ -27,9 +28,17 @@ export function App() {
     return (saved as SupportedLanguage) || 'ar';
   });
 
+  const isAr = language === 'ar';
+
   const [config, setConfig] = useState<LogoConfig>(() => loadCurrentProject());
-  const [history, setHistory] = useState<LogoConfig[]>([config]);
-  const [historyIndex, setHistoryIndex] = useState<number>(0);
+
+  // Undo stack and cursor live in one state value so a single pure updater can
+  // move both. Splitting them let StrictMode's double-invoked updaters push a
+  // duplicate entry per edit, which made every undo need two presses.
+  const [history, setHistory] = useState<{ entries: LogoConfig[]; index: number }>(() => ({
+    entries: [config],
+    index: 0,
+  }));
   const [lastSavedAt, setLastSavedAt] = useState<number>(Date.now());
 
   // Modal open states
@@ -42,11 +51,10 @@ export function App() {
   const [isFeatureGraphicOpen, setIsFeatureGraphicOpen] = useState<boolean>(false);
   const [isUniversalResizerOpen, setIsUniversalResizerOpen] = useState<boolean>(false);
   const [isSavedProjectsOpen, setIsSavedProjectsOpen] = useState<boolean>(false);
-  const [isAIGeneratorOpen, setIsAIGeneratorOpen] = useState<boolean>(false);
-  const [isImageConverterOpen, setIsImageConverterOpen] = useState<boolean>(false);
 
-  // Debounced auto-save timer
-  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Latest config, readable from callbacks without re-creating them on every edit.
+  const configRef = useRef<LogoConfig>(config);
+  configRef.current = config;
 
   // Update language setting
   const toggleLanguage = () => {
@@ -55,58 +63,50 @@ export function App() {
     localStorage.setItem('logo_studio_lang', nextLang);
   };
 
+  // Debounced auto-save of whatever is currently on the canvas.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      saveCurrentProject(config);
+      setLastSavedAt(Date.now());
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [config]);
+
   // State change with History support & Partial Patch Safety
   const handleConfigChange = useCallback(
     (newConfigOrPatch: LogoConfig | Partial<LogoConfig>) => {
-      setConfig((prev) => {
-        const merged: LogoConfig = {
-          ...DEFAULT_LOGO_CONFIG,
-          ...prev,
-          ...newConfigOrPatch,
-          updatedAt: Date.now(),
-        };
+      const merged: LogoConfig = {
+        ...DEFAULT_LOGO_CONFIG,
+        ...configRef.current,
+        ...newConfigOrPatch,
+        updatedAt: Date.now(),
+      };
 
-        // Add to history
-        setHistory((prevHistory) => {
-          const next = prevHistory.slice(0, historyIndex + 1);
-          if (next.length > 30) next.shift();
-          return [...next, merged];
-        });
-        setHistoryIndex((prevIdx) => Math.min(prevIdx + 1, 30));
-
-        // Auto-save debounce
-        if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-        autoSaveTimerRef.current = setTimeout(() => {
-          saveCurrentProject(merged);
-          setLastSavedAt(Date.now());
-        }, 500);
-
-        return merged;
+      setConfig(merged);
+      setHistory((prev) => {
+        const entries = prev.entries.slice(0, prev.index + 1);
+        entries.push(merged);
+        if (entries.length > HISTORY_LIMIT) entries.shift();
+        return { entries, index: entries.length - 1 };
       });
     },
-    [historyIndex]
+    []
   );
 
   // Undo / Redo
   const handleUndo = useCallback(() => {
-    if (historyIndex > 0) {
-      const prevIndex = historyIndex - 1;
-      const targetConfig = history[prevIndex];
-      setHistoryIndex(prevIndex);
-      setConfig(targetConfig);
-      saveCurrentProject(targetConfig);
-    }
-  }, [historyIndex, history]);
+    if (history.index <= 0) return;
+    const index = history.index - 1;
+    setHistory({ entries: history.entries, index });
+    setConfig(history.entries[index]);
+  }, [history]);
 
   const handleRedo = useCallback(() => {
-    if (historyIndex < history.length - 1) {
-      const nextIndex = historyIndex + 1;
-      const targetConfig = history[nextIndex];
-      setHistoryIndex(nextIndex);
-      setConfig(targetConfig);
-      saveCurrentProject(targetConfig);
-    }
-  }, [historyIndex, history]);
+    if (history.index >= history.entries.length - 1) return;
+    const index = history.index + 1;
+    setHistory({ entries: history.entries, index });
+    setConfig(history.entries[index]);
+  }, [history]);
 
   // Quick Manual Save
   const handleQuickSave = () => {
@@ -126,16 +126,6 @@ export function App() {
     handleConfigChange(merged);
   };
 
-  // Apply AI Suggestion
-  const handleApplyAISuggestion = (patch: Partial<LogoConfig>) => {
-    const updated: LogoConfig = {
-      ...config,
-      ...patch,
-      id: 'proj_' + Date.now(),
-    };
-    handleConfigChange(updated);
-  };
-
   // New blank project
   const handleNewProject = () => {
     const blank: LogoConfig = {
@@ -143,6 +133,50 @@ export function App() {
       id: 'proj_' + Date.now(),
     };
     handleConfigChange(blank);
+  };
+
+  // ---------------------------------------------------------------------
+  // One-shot pipeline: pick an image -> trim its empty border -> fit it
+  // edge-to-edge -> open the export package. Previously each of those steps
+  // was its own disconnected button.
+  // ---------------------------------------------------------------------
+  const smartImportInputRef = useRef<HTMLInputElement>(null);
+  const [importStatus, setImportStatus] = useState<string | null>(null);
+
+  const handleSmartImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setImportStatus(isAr ? 'جارٍ قص الحواف وتجهيز المقاسات…' : 'Trimming borders & preparing sizes…');
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      const result = await smartImportImage(dataUrl, { autoTrim: true });
+
+      handleConfigChange({
+        ...result.patch,
+        id: 'proj_' + Date.now(),
+        name: file.name.replace(/\.[^.]+$/, '') || 'Imported Logo',
+      });
+
+      setImportStatus(
+        result.trimmedPercent > 0
+          ? isAr
+            ? `تم قص ${result.trimmedPercent}% من الحواف الفارغة — جاهز للتصدير`
+            : `Trimmed ${result.trimmedPercent}% of empty border — ready to export`
+          : isAr
+          ? 'الصورة جاهزة للتصدير'
+          : 'Image ready to export'
+      );
+
+      // Hand straight over to the package export.
+      setIsFaviconExportOpen(true);
+    } catch (err) {
+      console.error('Smart import failed:', err);
+      setImportStatus(isAr ? 'تعذر استيراد الصورة' : 'Could not import the image');
+    } finally {
+      setTimeout(() => setImportStatus(null), 5000);
+    }
   };
 
   // Open interactive Crop & Auto-Trim Modal
@@ -185,7 +219,6 @@ export function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleUndo, handleRedo, config]);
 
-  const isAr = language === 'ar';
   const displayProjectName = config.text || config.name || (isAr ? 'مشروع_بدون_عنوان' : 'Untitled_Design');
 
   return (
@@ -193,12 +226,28 @@ export function App() {
       dir={language === 'ar' ? 'rtl' : 'ltr'}
       className="flex flex-col h-screen w-screen bg-slate-50 text-slate-900 font-sans antialiased overflow-hidden select-none"
     >
+      {/* Hidden picker driving the one-shot image -> package pipeline */}
+      <input
+        type="file"
+        ref={smartImportInputRef}
+        onChange={handleSmartImportFile}
+        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+        className="hidden"
+      />
+
+      {/* Pipeline progress / result toast */}
+      {importStatus && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold shadow-lg animate-in fade-in">
+          {importStatus}
+        </div>
+      )}
+
       {/* Top Main Navigation */}
       <Navbar
         projectName={config.text || config.name || ''}
         onProjectNameChange={(name) => handleConfigChange({ ...config, name, text: name })}
-        canUndo={historyIndex > 0}
-        canRedo={historyIndex < history.length - 1}
+        canUndo={history.index > 0}
+        canRedo={history.index < history.entries.length - 1}
         onUndo={handleUndo}
         onRedo={handleRedo}
         onNewProject={handleNewProject}
@@ -206,12 +255,11 @@ export function App() {
         onOpenMockups={() => setIsMockupsOpen(true)}
         onOpenSocialMediaKit={() => setIsSocialMediaKitOpen(true)}
         onOpenCropTrim={() => handleOpenCropTrim()}
+        onSmartImport={() => smartImportInputRef.current?.click()}
         onOpenFaviconExport={() => setIsFaviconExportOpen(true)}
         onOpenFeatureGraphic={() => setIsFeatureGraphicOpen(true)}
         onOpenUniversalResizer={() => setIsUniversalResizerOpen(true)}
         onOpenSavedProjects={() => setIsSavedProjectsOpen(true)}
-        onOpenAIGenerator={() => setIsAIGeneratorOpen(true)}
-        onOpenImageConverter={() => setIsImageConverterOpen(true)}
         onQuickSave={handleQuickSave}
         lastSavedAt={lastSavedAt}
         language={language}
@@ -240,8 +288,7 @@ export function App() {
             onOpenMockups={() => setIsMockupsOpen(true)}
             onOpenSocialMediaKit={() => setIsSocialMediaKitOpen(true)}
             onOpenCropTrimModal={() => handleOpenCropTrim()}
-            onOpenImageConverter={() => setIsImageConverterOpen(true)}
-            onOpenFeatureGraphic={() => setIsFeatureGraphicOpen(true)}
+                onOpenFeatureGraphic={() => setIsFeatureGraphicOpen(true)}
             onOpenUniversalResizer={() => setIsUniversalResizerOpen(true)}
           />
         </main>
@@ -311,23 +358,6 @@ export function App() {
         onClose={() => setIsMockupsOpen(false)}
         config={config}
         language={language}
-      />
-
-      {/* 4. AI Generator (Gemini 3.7 Flash) */}
-      <AIGeneratorModal
-        isOpen={isAIGeneratorOpen}
-        onClose={() => setIsAIGeneratorOpen(false)}
-        currentConfig={config}
-        onApplySuggestion={handleApplyAISuggestion}
-        language={language}
-      />
-
-      {/* 5. AI Image to Multi-Size Favicon Converter */}
-      <AIImageConverterModal
-        isOpen={isImageConverterOpen}
-        onClose={() => setIsImageConverterOpen(false)}
-        language={language}
-        onApplyConfig={(newCfg) => handleConfigChange(newCfg)}
       />
 
       {/* 6. Saved Projects Vault */}
