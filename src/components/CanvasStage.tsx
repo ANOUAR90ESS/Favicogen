@@ -5,13 +5,11 @@ import {
   Maximize2,
   Grid,
   Crosshair,
-  Copy,
   Check,
   Download,
   Image as ImageIcon,
   Code2,
   Sparkles,
-  Wand2,
 } from 'lucide-react';
 import { LogoConfig, SupportedLanguage } from '../types';
 import { generateSvgString, renderSvgToBlob, downloadBlob } from '../utils/canvasRenderer';
@@ -24,7 +22,6 @@ interface CanvasStageProps {
   onOpenMockups: () => void;
   onOpenSocialMediaKit?: () => void;
   onOpenCropTrimModal?: () => void;
-  onOpenImageConverter: () => void;
   onOpenFeatureGraphic?: () => void;
   onOpenUniversalResizer?: () => void;
 }
@@ -37,7 +34,6 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
   onOpenMockups,
   onOpenSocialMediaKit,
   onOpenCropTrimModal,
-  onOpenImageConverter,
   onOpenFeatureGraphic,
   onOpenUniversalResizer,
 }) => {
@@ -119,16 +115,6 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
         {/* Guides & Background Viewers */}
         <div className="flex items-center flex-wrap gap-2">
-          {/* Quick AI Image Convert Tooltip Button */}
-          <button
-            onClick={onOpenImageConverter}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50/80 text-indigo-700 hover:bg-indigo-100 text-xs font-bold shadow-2xs transition-all"
-            title={isAr ? 'تحويل أي صورة إلى جميع المقاسات والصيغ' : 'AI Image to Multi-Size Favicon'}
-          >
-            <Wand2 className="h-3.5 w-3.5 text-indigo-600" />
-            <span>{isAr ? 'تحويل صورة بالـ AI' : 'AI Image Converter'}</span>
-          </button>
-
           {/* 'Transparent Background' Toggle Switch */}
           <div
             id="wrapper-transparent-background-toggle"

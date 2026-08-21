@@ -5,8 +5,6 @@ import { CanvasStage } from './components/CanvasStage';
 import { FaviconExportModal } from './components/FaviconExportModal';
 import { TemplateGalleryModal } from './components/TemplateGalleryModal';
 import { LiveMockupsModal } from './components/LiveMockupsModal';
-import { AIGeneratorModal } from './components/AIGeneratorModal';
-import { AIImageConverterModal } from './components/AIImageConverterModal';
 import { SavedProjectsModal } from './components/SavedProjectsModal';
 import { FeatureGraphicModal } from './components/FeatureGraphicModal';
 import { UniversalImageResizerModal } from './components/UniversalImageResizerModal';
@@ -53,8 +51,6 @@ export function App() {
   const [isFeatureGraphicOpen, setIsFeatureGraphicOpen] = useState<boolean>(false);
   const [isUniversalResizerOpen, setIsUniversalResizerOpen] = useState<boolean>(false);
   const [isSavedProjectsOpen, setIsSavedProjectsOpen] = useState<boolean>(false);
-  const [isAIGeneratorOpen, setIsAIGeneratorOpen] = useState<boolean>(false);
-  const [isImageConverterOpen, setIsImageConverterOpen] = useState<boolean>(false);
 
   // Latest config, readable from callbacks without re-creating them on every edit.
   const configRef = useRef<LogoConfig>(config);
@@ -128,16 +124,6 @@ export function App() {
       name: template.nameAr,
     };
     handleConfigChange(merged);
-  };
-
-  // Apply AI Suggestion
-  const handleApplyAISuggestion = (patch: Partial<LogoConfig>) => {
-    const updated: LogoConfig = {
-      ...config,
-      ...patch,
-      id: 'proj_' + Date.now(),
-    };
-    handleConfigChange(updated);
   };
 
   // New blank project
@@ -274,8 +260,6 @@ export function App() {
         onOpenFeatureGraphic={() => setIsFeatureGraphicOpen(true)}
         onOpenUniversalResizer={() => setIsUniversalResizerOpen(true)}
         onOpenSavedProjects={() => setIsSavedProjectsOpen(true)}
-        onOpenAIGenerator={() => setIsAIGeneratorOpen(true)}
-        onOpenImageConverter={() => setIsImageConverterOpen(true)}
         onQuickSave={handleQuickSave}
         lastSavedAt={lastSavedAt}
         language={language}
@@ -304,8 +288,7 @@ export function App() {
             onOpenMockups={() => setIsMockupsOpen(true)}
             onOpenSocialMediaKit={() => setIsSocialMediaKitOpen(true)}
             onOpenCropTrimModal={() => handleOpenCropTrim()}
-            onOpenImageConverter={() => setIsImageConverterOpen(true)}
-            onOpenFeatureGraphic={() => setIsFeatureGraphicOpen(true)}
+                onOpenFeatureGraphic={() => setIsFeatureGraphicOpen(true)}
             onOpenUniversalResizer={() => setIsUniversalResizerOpen(true)}
           />
         </main>
@@ -375,23 +358,6 @@ export function App() {
         onClose={() => setIsMockupsOpen(false)}
         config={config}
         language={language}
-      />
-
-      {/* 4. AI Generator (Gemini 3.7 Flash) */}
-      <AIGeneratorModal
-        isOpen={isAIGeneratorOpen}
-        onClose={() => setIsAIGeneratorOpen(false)}
-        currentConfig={config}
-        onApplySuggestion={handleApplyAISuggestion}
-        language={language}
-      />
-
-      {/* 5. AI Image to Multi-Size Favicon Converter */}
-      <AIImageConverterModal
-        isOpen={isImageConverterOpen}
-        onClose={() => setIsImageConverterOpen(false)}
-        language={language}
-        onApplyConfig={(newCfg) => handleConfigChange(newCfg)}
       />
 
       {/* 6. Saved Projects Vault */}
