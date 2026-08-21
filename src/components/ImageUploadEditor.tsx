@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Upload,
   Image as ImageIcon,
@@ -12,22 +12,30 @@ import {
   Sun,
   Contrast,
   RefreshCw,
+  Scissors,
+  Check,
+  Loader2,
 } from 'lucide-react';
 import { LogoConfig, SupportedLanguage } from '../types';
+import { autoTrimImage } from '../utils/imageCropper';
 
 interface ImageUploadEditorProps {
   config: LogoConfig;
   onChange: (patch: Partial<LogoConfig>) => void;
   language: SupportedLanguage;
+  onOpenCropTrimModal?: (src?: string) => void;
 }
 
 export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
   config,
   onChange,
   language,
+  onOpenCropTrimModal,
 }) => {
   const isAr = language === 'ar';
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isAutoTrimming, setIsAutoTrimming] = useState(false);
+  const [trimFeedback, setTrimFeedback] = useState<string | null>(null);
 
   const filters = config.uploadedImageFilters || {
     brightness: 100,
@@ -69,6 +77,47 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
       iconType: 'library',
       uploadedImageSrc: undefined,
     });
+  };
+
+  // Perform quick automatic white/corner border trimming
+  const handleQuickAutoTrim = async () => {
+    if (!config.uploadedImageSrc) return;
+    setIsAutoTrimming(true);
+    setTrimFeedback(null);
+    try {
+      const result = await autoTrimImage(config.uploadedImageSrc, {
+        mode: 'auto',
+        tolerance: 18,
+        padding: 0,
+      });
+
+      if (result.trimResult.foundSubject && result.trimResult.trimSavedPixels > 0) {
+        onChange({
+          uploadedImageSrc: result.dataUrl,
+        });
+        const savedPct = Math.round(
+          (result.trimResult.trimSavedPixels /
+            (result.trimResult.originalWidth * result.trimResult.originalHeight)) *
+            100
+        );
+        setTrimFeedback(
+          isAr
+            ? `تم قص الأطراف البيضاء بنجاح (حذف ${savedPct}% هوامش فارغة)`
+            : `White borders trimmed (${savedPct}% empty margins removed)`
+        );
+      } else {
+        setTrimFeedback(
+          isAr
+            ? 'الصورة نظيفة بالفعل ولا تحتوي على هوامش بيضاء إضافية'
+            : 'Image is already tight with no extra white borders'
+        );
+      }
+    } catch (err) {
+      console.error('Trim error', err);
+    } finally {
+      setIsAutoTrimming(false);
+      setTimeout(() => setTrimFeedback(null), 4000);
+    }
   };
 
   const updateFilters = (patch: Partial<typeof filters>) => {
@@ -174,6 +223,56 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
+          </div>
+
+          {/* Smart Trim & Crop Action Box */}
+          <div className="p-3 bg-gradient-to-r from-teal-50 to-indigo-50 border border-teal-200 rounded-xl space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black text-teal-900 flex items-center gap-1.5">
+                <Scissors className="h-3.5 w-3.5 text-teal-600" />
+                {isAr ? 'قص وضبط حواف الصورة (Trim & Crop)' : 'Smart Border Trimmer & Crop'}
+              </span>
+              <span className="text-[9px] bg-teal-200 text-teal-900 font-bold px-1.5 py-0.5 rounded">
+                {isAr ? 'إزالة الأطراف' : 'Auto-Trim'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {/* Quick 1-click Auto Trim White Borders */}
+              <button
+                id="btn-quick-auto-trim"
+                type="button"
+                onClick={handleQuickAutoTrim}
+                disabled={isAutoTrimming}
+                className="flex items-center justify-center gap-1.5 py-2 px-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg shadow-xs transition-all active:scale-95 disabled:opacity-50"
+                title={isAr ? 'حذف الأطراف البيضاء والشفافة المحيطة بالشعار تلقائياً' : 'Automatically trim white and empty surrounding borders'}
+              >
+                {isAutoTrimming ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3.5 w-3.5" />
+                )}
+                <span className="truncate">{isAr ? 'قص الحواف البيضاء' : 'Auto-Trim White'}</span>
+              </button>
+
+              {/* Interactive Rectangle Crop Modal Trigger */}
+              <button
+                id="btn-open-manual-crop"
+                type="button"
+                onClick={() => onOpenCropTrimModal && onOpenCropTrimModal(config.uploadedImageSrc)}
+                className="flex items-center justify-center gap-1.5 py-2 px-2 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 text-xs font-bold rounded-lg shadow-2xs transition-all active:scale-95"
+                title={isAr ? 'فتح أداة القص اليدوي بمستطيل تفاعلي' : 'Open interactive rectangle cropping tool'}
+              >
+                <Crop className="h-3.5 w-3.5 text-indigo-600" />
+                <span className="truncate">{isAr ? 'قص يدوي بمستطيل' : 'Manual Rectangle'}</span>
+              </button>
+            </div>
+
+            {trimFeedback && (
+              <p className="text-[10px] text-teal-800 font-medium bg-white/80 p-1.5 rounded border border-teal-200/80 animate-in fade-in">
+                {trimFeedback}
+              </p>
+            )}
           </div>
 
           {/* Crop Shape Mask */}

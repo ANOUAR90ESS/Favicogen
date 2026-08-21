@@ -20,6 +20,8 @@ import {
   Sliders,
   CheckCircle2,
   Loader2,
+  Scissors,
+  Crop,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { LogoConfig, SupportedLanguage, FaviconSpec } from '../types';
@@ -32,6 +34,8 @@ import {
   generateWebmanifestJson,
   createIcoFile,
 } from '../utils/canvasRenderer';
+import { autoTrimImage } from '../utils/imageCropper';
+import { ImageCropTrimModal } from './ImageCropTrimModal';
 
 interface AIImageConverterModalProps {
   isOpen: boolean;
@@ -93,6 +97,32 @@ export const AIImageConverterModal: React.FC<AIImageConverterModalProps> = ({
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [activeFormat, setActiveFormat] = useState<'all' | 'png' | 'svg' | 'webp' | 'ico' | 'jpeg'>('all');
   const [customCropShape, setCustomCropShape] = useState<'squircle' | 'circle' | 'square' | 'none'>('squircle');
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [isTrimming, setIsTrimming] = useState(false);
+  const [trimFeedback, setTrimFeedback] = useState<string | null>(null);
+
+  const handleAutoTrimUploadedImage = async () => {
+    if (!uploadedImageSrc) return;
+    setIsTrimming(true);
+    setTrimFeedback(null);
+    try {
+      const res = await autoTrimImage(uploadedImageSrc, { mode: 'auto', tolerance: 18, padding: 0 });
+      if (res.trimResult.foundSubject && res.trimResult.trimSavedPixels > 0) {
+        setUploadedImageSrc(res.dataUrl);
+        const savedPct = Math.round(
+          (res.trimResult.trimSavedPixels / (res.trimResult.originalWidth * res.trimResult.originalHeight)) * 100
+        );
+        setTrimFeedback(isAr ? `تم إزالة الحواف البيضاء بنجاح (${savedPct}% هوامش محذوفة)` : `White borders removed (${savedPct}% saved)`);
+      } else {
+        setTrimFeedback(isAr ? 'الصورة محكمة بالفعل ولا توجد حواف بيضاء زائدة' : 'Image is already tightly trimmed');
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsTrimming(false);
+      setTimeout(() => setTrimFeedback(null), 3500);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -476,7 +506,26 @@ export const AIImageConverterModal: React.FC<AIImageConverterModalProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={handleAutoTrimUploadedImage}
+                      disabled={isTrimming}
+                      className="px-2.5 py-1.5 text-xs font-bold text-teal-800 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                      title={isAr ? 'قص الحواف البيضاء والشفافة المحيطة تلقائياً' : 'Auto trim white / empty borders'}
+                    >
+                      {isTrimming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Scissors className="h-3.5 w-3.5 text-teal-600" />}
+                      <span>{isAr ? 'قص الأطراف البيضاء' : 'Auto-Trim'}</span>
+                    </button>
+
+                    <button
+                      onClick={() => setIsCropModalOpen(true)}
+                      className="px-2.5 py-1.5 text-xs font-bold text-slate-800 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg transition-colors flex items-center gap-1.5"
+                      title={isAr ? 'قص يدوي بمستطيل تفاعلي' : 'Manual rectangle crop'}
+                    >
+                      <Crop className="h-3.5 w-3.5 text-indigo-600" />
+                      <span>{isAr ? 'قص مستطيل' : 'Crop Rect'}</span>
+                    </button>
+
                     <input
                       type="file"
                       ref={fileInputRef}
@@ -488,7 +537,7 @@ export const AIImageConverterModal: React.FC<AIImageConverterModalProps> = ({
                       onClick={() => fileInputRef.current?.click()}
                       className="px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
                     >
-                      {isAr ? 'رفع صورة أخرى' : 'Upload Different'}
+                      {isAr ? 'صورة أخرى' : 'Upload Different'}
                     </button>
                     <button
                       onClick={handleApplyToStudio}
@@ -499,6 +548,13 @@ export const AIImageConverterModal: React.FC<AIImageConverterModalProps> = ({
                     </button>
                   </div>
                 </div>
+
+                {trimFeedback && (
+                  <div className="p-2 bg-teal-50 border border-teal-200 rounded-lg text-xs font-bold text-teal-800 animate-in fade-in flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-teal-600" />
+                    <span>{trimFeedback}</span>
+                  </div>
+                )}
 
                 {/* AI Detected Palette & Mode Selection */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
@@ -737,6 +793,21 @@ export const AIImageConverterModal: React.FC<AIImageConverterModalProps> = ({
           )}
         </div>
       </div>
+
+      {/* Image Crop & Trim Modal */}
+      {isCropModalOpen && uploadedImageSrc && (
+        <ImageCropTrimModal
+          isOpen={isCropModalOpen}
+          onClose={() => setIsCropModalOpen(false)}
+          initialImageSrc={uploadedImageSrc}
+          language={language}
+          onApplyCrop={(croppedDataUrl) => {
+            setUploadedImageSrc(croppedDataUrl);
+            setTrimFeedback(isAr ? 'تم تطبيق القص الجديد بنجاح!' : 'Cropped image applied successfully!');
+            setTimeout(() => setTrimFeedback(null), 3000);
+          }}
+        />
+      )}
     </div>
   );
 };

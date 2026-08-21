@@ -37,6 +37,7 @@ interface ControlPanelProps {
   config: LogoConfig;
   onChange: (newConfig: LogoConfig) => void;
   language: SupportedLanguage;
+  onOpenCropTrimModal?: (src?: string) => void;
 }
 
 const POPULAR_PALETTES = [
@@ -64,6 +65,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   config,
   onChange,
   language,
+  onOpenCropTrimModal,
 }) => {
   const isAr = language === 'ar';
   const [activeTab, setActiveTab] = useState<'icon' | 'text' | 'bg' | 'layout'>('icon');
@@ -214,6 +216,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 config={config}
                 onChange={(patch) => updateConfig(patch)}
                 language={language}
+                onOpenCropTrimModal={onOpenCropTrimModal}
               />
             )}
 

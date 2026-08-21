@@ -17,6 +17,7 @@ import {
   AlertCircle,
   X,
   Share2,
+  Scissors,
 } from 'lucide-react';
 import { SupportedLanguage } from '../types';
 
@@ -31,6 +32,7 @@ interface NavbarProps {
   onOpenTemplates: () => void;
   onOpenMockups: () => void;
   onOpenSocialMediaKit: () => void;
+  onOpenCropTrim?: () => void;
   onOpenFaviconExport: () => void;
   onOpenFeatureGraphic: () => void;
   onOpenUniversalResizer: () => void;
@@ -54,6 +56,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenTemplates,
   onOpenMockups,
   onOpenSocialMediaKit,
+  onOpenCropTrim,
   onOpenFaviconExport,
   onOpenFeatureGraphic,
   onOpenUniversalResizer,
@@ -189,6 +192,19 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Eye className="h-3.5 w-3.5 text-slate-600" />
             <span className="hidden md:inline">{isAr ? 'معاينة واقعية' : 'Live Mockups'}</span>
           </button>
+
+          {/* Smart Crop & Trim Margins Button */}
+          {onOpenCropTrim && (
+            <button
+              id="btn-nav-crop-trim"
+              onClick={onOpenCropTrim}
+              className="flex items-center gap-1.5 rounded-lg border border-teal-300 bg-teal-50/90 px-3 py-1.5 text-xs font-bold text-teal-800 hover:bg-teal-100 hover:border-teal-400 shadow-2xs transition-all hover:scale-105 active:scale-95"
+              title={isAr ? 'قص الحواف البيضاء والشفافة أو تحديد مستطيل يدوي' : 'Trim white margins or manually crop rectangular area'}
+            >
+              <Scissors className="h-3.5 w-3.5 text-teal-600" />
+              <span className="hidden sm:inline">{isAr ? 'قص الحواف' : 'Trim & Crop'}</span>
+            </button>
+          )}
 
           {/* Social Media Kit (1:1 & 16:9) Button */}
           <button

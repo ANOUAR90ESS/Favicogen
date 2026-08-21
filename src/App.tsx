@@ -11,6 +11,7 @@ import { SavedProjectsModal } from './components/SavedProjectsModal';
 import { FeatureGraphicModal } from './components/FeatureGraphicModal';
 import { UniversalImageResizerModal } from './components/UniversalImageResizerModal';
 import { SocialMediaKitModal } from './components/SocialMediaKitModal';
+import { ImageCropTrimModal } from './components/ImageCropTrimModal';
 import { LogoConfig, SupportedLanguage, Template } from './types';
 import { DEFAULT_LOGO_CONFIG } from './utils/templates';
 import {
@@ -35,6 +36,8 @@ export function App() {
   const [isTemplatesOpen, setIsTemplatesOpen] = useState<boolean>(false);
   const [isMockupsOpen, setIsMockupsOpen] = useState<boolean>(false);
   const [isSocialMediaKitOpen, setIsSocialMediaKitOpen] = useState<boolean>(false);
+  const [isCropTrimModalOpen, setIsCropTrimModalOpen] = useState<boolean>(false);
+  const [cropImageSource, setCropImageSource] = useState<string | null>(null);
   const [isFaviconExportOpen, setIsFaviconExportOpen] = useState<boolean>(false);
   const [isFeatureGraphicOpen, setIsFeatureGraphicOpen] = useState<boolean>(false);
   const [isUniversalResizerOpen, setIsUniversalResizerOpen] = useState<boolean>(false);
@@ -142,6 +145,21 @@ export function App() {
     handleConfigChange(blank);
   };
 
+  // Open interactive Crop & Auto-Trim Modal
+  const handleOpenCropTrim = (customSrc?: string) => {
+    if (customSrc) {
+      setCropImageSource(customSrc);
+    } else if (config.uploadedImageSrc) {
+      setCropImageSource(config.uploadedImageSrc);
+    } else {
+      const svg = generateSvgString(config, 512);
+      const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      setCropImageSource(url);
+    }
+    setIsCropTrimModalOpen(true);
+  };
+
   // Keyboard Shortcuts (Ctrl+Z, Ctrl+Y, Ctrl+S, Ctrl+E)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -187,6 +205,7 @@ export function App() {
         onOpenTemplates={() => setIsTemplatesOpen(true)}
         onOpenMockups={() => setIsMockupsOpen(true)}
         onOpenSocialMediaKit={() => setIsSocialMediaKitOpen(true)}
+        onOpenCropTrim={() => handleOpenCropTrim()}
         onOpenFaviconExport={() => setIsFaviconExportOpen(true)}
         onOpenFeatureGraphic={() => setIsFeatureGraphicOpen(true)}
         onOpenUniversalResizer={() => setIsUniversalResizerOpen(true)}
@@ -207,6 +226,7 @@ export function App() {
             config={config}
             onChange={handleConfigChange}
             language={language}
+            onOpenCropTrimModal={handleOpenCropTrim}
           />
         </aside>
 
@@ -219,6 +239,7 @@ export function App() {
             onOpenFaviconExport={() => setIsFaviconExportOpen(true)}
             onOpenMockups={() => setIsMockupsOpen(true)}
             onOpenSocialMediaKit={() => setIsSocialMediaKitOpen(true)}
+            onOpenCropTrimModal={() => handleOpenCropTrim()}
             onOpenImageConverter={() => setIsImageConverterOpen(true)}
             onOpenFeatureGraphic={() => setIsFeatureGraphicOpen(true)}
             onOpenUniversalResizer={() => setIsUniversalResizerOpen(true)}
@@ -317,6 +338,26 @@ export function App() {
         onNewProject={handleNewProject}
         language={language}
       />
+
+      {/* 7. Image Auto-Trim & Manual Crop Modal */}
+      {isCropTrimModalOpen && (
+        <ImageCropTrimModal
+          isOpen={isCropTrimModalOpen}
+          onClose={() => setIsCropTrimModalOpen(false)}
+          initialImageSrc={cropImageSource || config.uploadedImageSrc || ''}
+          language={language}
+          onApplyCrop={(croppedDataUrl) => {
+            handleConfigChange({
+              iconType: 'image',
+              uploadedImageSrc: croppedDataUrl,
+              uploadedImageScale: 100,
+              uploadedImageOffsetX: 0,
+              uploadedImageOffsetY: 0,
+            });
+            setIsCropTrimModalOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

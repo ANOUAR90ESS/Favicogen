@@ -14,6 +14,7 @@ import {
   UploadCloud,
   Wand2,
   Share2,
+  Scissors,
 } from 'lucide-react';
 import { LogoConfig, SupportedLanguage } from '../types';
 import { generateSvgString, renderSvgToBlob } from '../utils/canvasRenderer';
@@ -25,6 +26,7 @@ interface CanvasStageProps {
   onOpenFaviconExport: () => void;
   onOpenMockups: () => void;
   onOpenSocialMediaKit?: () => void;
+  onOpenCropTrimModal?: () => void;
   onOpenImageConverter: () => void;
   onOpenFeatureGraphic?: () => void;
   onOpenUniversalResizer?: () => void;
@@ -37,6 +39,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
   onOpenFaviconExport,
   onOpenMockups,
   onOpenSocialMediaKit,
+  onOpenCropTrimModal,
   onOpenImageConverter,
   onOpenFeatureGraphic,
   onOpenUniversalResizer,
@@ -450,6 +453,19 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             >
               <ImageIcon className="h-3.5 w-3.5 text-emerald-600" />
               <span>{isAr ? 'رسم مميز 1024×500' : 'Feature Graphic'}</span>
+            </button>
+          )}
+
+          {/* Quick Crop & Auto-Trim Button */}
+          {onOpenCropTrimModal && (
+            <button
+              id="btn-stage-crop-trim"
+              onClick={onOpenCropTrimModal}
+              className="flex items-center gap-1.5 rounded-lg border border-teal-300 bg-teal-50 px-3 py-1.5 text-xs font-bold text-teal-800 hover:bg-teal-100 shadow-2xs transition-colors"
+              title={isAr ? 'قص الحواف البيضاء والشفافة أو تحديد مستطيل يدوي' : 'Trim white margins or manually crop rectangular area'}
+            >
+              <Scissors className="h-3.5 w-3.5 text-teal-600" />
+              <span>{isAr ? 'قص الحواف والمستطيل' : 'Trim & Crop'}</span>
             </button>
           )}
 
