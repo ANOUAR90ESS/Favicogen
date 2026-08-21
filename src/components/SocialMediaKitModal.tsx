@@ -28,7 +28,7 @@ import {
   generateSvgString,
   generateSocialBannerSvg,
   renderSvgToBlob,
-  renderSocialCanvasToBlob,
+  rasterizeSvg,
   generateSocialMediaKitZip,
   downloadBlob,
 } from '../utils/canvasRenderer';
@@ -111,7 +111,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
           const blob = new Blob([bannerSvg], { type: 'image/svg+xml;charset=utf-8' });
           downloadBlob(blob, filename);
         } else {
-          const blob = await renderSocialCanvasToBlob(bannerSvg, preset.width, preset.height, 'png');
+          const blob = await rasterizeSvg(bannerSvg, preset.width, preset.height, 'png');
           downloadBlob(blob, filename);
         }
       }

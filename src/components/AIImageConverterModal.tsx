@@ -33,6 +33,7 @@ import {
   generateHtmlHeadSnippet,
   generateWebmanifestJson,
   createIcoFile,
+  downloadBlob,
 } from '../utils/canvasRenderer';
 import { autoTrimImage } from '../utils/imageCropper';
 import { ImageCropTrimModal } from './ImageCropTrimModal';
@@ -330,15 +331,7 @@ export const AIImageConverterModal: React.FC<AIImageConverterModalProps> = ({
     setIsExportingZip(true);
     try {
       const zipBlob = await generateFaviconZip(currentConfig);
-      const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${(currentConfig.text || 'favicon').toLowerCase()}-full-package.zip`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
+      downloadBlob(zipBlob, `${(currentConfig.text || 'favicon').toLowerCase()}-full-package.zip`);
       confetti({
         particleCount: 80,
         spread: 70,
@@ -358,35 +351,20 @@ export const AIImageConverterModal: React.FC<AIImageConverterModalProps> = ({
   const handleDownloadSingle = async (size: number, format: 'png' | 'jpeg' | 'webp' | 'svg' | 'ico') => {
     if (format === 'svg') {
       const blob = new Blob([svgCode], { type: 'image/svg+xml;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${currentConfig.text || 'logo'}-${size}x${size}.svg`;
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadBlob(blob, `${currentConfig.text || 'logo'}-${size}x${size}.svg`);
       return;
     }
 
     if (format === 'ico') {
       const pngBlob = await renderSvgToBlob(svgCode, 32, 'png');
       const icoBlob = await createIcoFile([{ size: 32, blob: pngBlob }]);
-      const url = URL.createObjectURL(icoBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'favicon.ico';
-      a.click();
-      URL.revokeObjectURL(url);
+      downloadBlob(icoBlob, 'favicon.ico');
       return;
     }
 
     const blob = await renderSvgToBlob(svgCode, size, format);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
     const ext = format === 'jpeg' ? 'jpg' : format;
-    a.download = `${currentConfig.text || 'logo'}-${size}x${size}.${ext}`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(blob, `${currentConfig.text || 'logo'}-${size}x${size}.${ext}`);
   };
 
   const handleApplyToStudio = () => {

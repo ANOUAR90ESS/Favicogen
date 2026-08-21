@@ -33,6 +33,7 @@ interface NavbarProps {
   onOpenMockups: () => void;
   onOpenSocialMediaKit: () => void;
   onOpenCropTrim?: () => void;
+  onSmartImport?: () => void;
   onOpenFaviconExport: () => void;
   onOpenFeatureGraphic: () => void;
   onOpenUniversalResizer: () => void;
@@ -57,6 +58,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenMockups,
   onOpenSocialMediaKit,
   onOpenCropTrim,
+  onSmartImport,
   onOpenFaviconExport,
   onOpenFeatureGraphic,
   onOpenUniversalResizer,
@@ -148,6 +150,26 @@ export const Navbar: React.FC<NavbarProps> = ({
               <RotateCw className="h-4 w-4" />
             </button>
           </div>
+
+          {/* One-shot pipeline: image -> auto-trim -> full-bleed -> package */}
+          {onSmartImport && (
+            <button
+              id="btn-smart-import"
+              onClick={onSmartImport}
+              className="flex items-center gap-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition-all hover:scale-105 active:scale-95"
+              title={
+                isAr
+                  ? 'ارفع صورة: يقص الحواف البيضاء تلقائياً، يملأ الإطار، ثم يفتح حزمة التصدير بكل المقاسات'
+                  : 'Upload an image: auto-trims white borders, fits edge-to-edge, then opens the full size package'
+              }
+            >
+              <Wand2 className="h-4 w-4" />
+              <span>{isAr ? 'صورة ← حزمة كاملة' : 'Image → Full Package'}</span>
+              <span className="hidden xl:inline-block text-[9px] bg-white/25 px-1 py-0.2 rounded font-black">
+                1-CLICK
+              </span>
+            </button>
+          )}
 
           {/* Universal Image Resizer to Any Dimension & Tamaño */}
           <button

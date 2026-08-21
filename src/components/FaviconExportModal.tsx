@@ -24,7 +24,8 @@ import {
   generateHtmlHeadSnippet,
   generateWebmanifestJson,
   generateFeatureGraphicSvg,
-  renderFeatureGraphicToBlob,
+  rasterizeSvg,
+  downloadBlob,
 } from '../utils/canvasRenderer';
 
 interface FaviconExportModalProps {
@@ -64,15 +65,7 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
     try {
       setIsZipping(true);
       const zipBlob = await generateFaviconZip(config);
-      const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `favicon-package-${brandName.replace(/\s+/g, '_')}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-
+      downloadBlob(zipBlob, `favicon-package-${brandName.replace(/\s+/g, '_')}.zip`);
       // Trigger celebratory confetti
       confetti({
         particleCount: 80,
@@ -94,14 +87,7 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
       if (format === 'svg') {
         const cleanName = fileName.replace(/\.png$/i, '.svg');
         const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = cleanName;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
+        downloadBlob(blob, cleanName);
         return;
       }
 
@@ -109,28 +95,14 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
         const cleanName = fileName.replace(/\.png$/i, '.ico');
         const pngBlob = await renderSvgToBlob(svgString, size, 'png');
         const icoBlob = await createIcoFile([{ size, blob: pngBlob }]);
-        const url = URL.createObjectURL(icoBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = cleanName;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
+        downloadBlob(icoBlob, cleanName);
         return;
       }
 
       const ext = format === 'jpeg' ? 'jpg' : format;
       const cleanName = fileName.replace(/\.png$/i, `.${ext}`);
       const blob = await renderSvgToBlob(svgString, size, format);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = cleanName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      downloadBlob(blob, cleanName);
     } catch (err) {
       console.error('Failed to download single file:', err);
     } finally {
@@ -256,13 +228,8 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
                     showRatingStars: true,
                     showGlowEffect: true,
                   });
-                  const blob = await renderFeatureGraphicToBlob(svg, 'png');
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `google_play_feature_graphic_${(config.text || 'app').replace(/\s+/g, '_')}_1024x500.png`;
-                  a.click();
-                  URL.revokeObjectURL(url);
+                  const blob = await rasterizeSvg(svg, 1024, 500, 'png');
+                  downloadBlob(blob, `google_play_feature_graphic_${(config.text || 'app').replace(/\s+/g, '_')}_1024x500.png`);
                 }}
                 className="px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-colors shadow-2xs"
               >
@@ -281,13 +248,8 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
                     showRatingStars: true,
                     showGlowEffect: true,
                   });
-                  const blob = await renderFeatureGraphicToBlob(svg, 'jpeg');
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `google_play_feature_graphic_${(config.text || 'app').replace(/\s+/g, '_')}_1024x500.jpg`;
-                  a.click();
-                  URL.revokeObjectURL(url);
+                  const blob = await rasterizeSvg(svg, 1024, 500, 'jpeg');
+                  downloadBlob(blob, `google_play_feature_graphic_${(config.text || 'app').replace(/\s+/g, '_')}_1024x500.jpg`);
                 }}
                 className="px-3 py-1.5 rounded-lg bg-white border border-emerald-300 hover:bg-emerald-100 text-emerald-900 text-xs font-bold transition-colors shadow-2xs"
               >

@@ -1,6 +1,6 @@
 import JSZip from 'jszip';
 import { UniversalResizeOptions, ResizePreset } from '../types';
-import { createIcoFile, getShapePathD } from './canvasRenderer';
+import { createIcoFile } from './canvasRenderer';
 
 /**
  * Loads an image from a URL or base64 DataURI safely
@@ -10,7 +10,7 @@ export async function loadImageElement(src: string): Promise<HTMLImageElement> {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
-    img.onerror = (e) => reject(new Error('Failed to load image element'));
+    img.onerror = () => reject(new Error('Failed to load image element'));
     img.src = src;
   });
 }
@@ -57,16 +57,23 @@ export async function renderResizedImageToBlob(
   ctx.imageSmoothingQuality = 'high';
 
   // 1. Draw Background
-  if (options.backgroundStyle === 'solid') {
+  // JPEG carries no alpha channel, so a "transparent" background would
+  // rasterize to black. Fall back to an opaque ground for that format.
+  const backgroundStyle =
+    options.format === 'jpeg' && options.backgroundStyle === 'transparent'
+      ? 'solid'
+      : options.backgroundStyle;
+
+  if (backgroundStyle === 'solid') {
     ctx.fillStyle = options.backgroundColor || '#ffffff';
     ctx.fillRect(0, 0, targetWidth, targetHeight);
-  } else if (options.backgroundStyle === 'gradient') {
+  } else if (backgroundStyle === 'gradient') {
     const grad = ctx.createLinearGradient(0, 0, targetWidth, targetHeight);
     grad.addColorStop(0, options.backgroundColor || '#4f46e5');
     grad.addColorStop(1, options.backgroundColor2 || '#06b6d4');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, targetWidth, targetHeight);
-  } else if (options.backgroundStyle === 'blur-fill') {
+  } else if (backgroundStyle === 'blur-fill') {
     // Draw enlarged, blurred version of the source image as background
     ctx.save();
     ctx.filter = 'blur(30px) brightness(0.8)';

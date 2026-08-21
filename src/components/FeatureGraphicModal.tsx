@@ -20,7 +20,8 @@ import confetti from 'canvas-confetti';
 import { LogoConfig, FeatureGraphicOptions, SupportedLanguage } from '../types';
 import {
   generateFeatureGraphicSvg,
-  renderFeatureGraphicToBlob,
+  rasterizeSvg,
+  downloadBlob,
 } from '../utils/canvasRenderer';
 
 interface FeatureGraphicModalProps {
@@ -80,16 +81,8 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
       const cleanTitle = (options.title || 'feature-graphic').replace(/\s+/g, '_');
       const fileName = `google_play_feature_graphic_${cleanTitle}_1024x500.${format === 'jpeg' ? 'jpg' : 'png'}`;
 
-      const blob = await renderFeatureGraphicToBlob(svgCode, format, 0.96);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-
+      const blob = await rasterizeSvg(svgCode, 1024, 500, format, 0.96);
+      downloadBlob(blob, fileName);
       // Trigger celebration confetti
       confetti({
         particleCount: 70,

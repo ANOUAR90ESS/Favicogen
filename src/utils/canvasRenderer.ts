@@ -1,5 +1,12 @@
 import JSZip from 'jszip';
-import { LogoConfig, FaviconSpec, ShapeMask } from '../types';
+import {
+  LogoConfig,
+  FaviconSpec,
+  ShapeMask,
+  FeatureGraphicOptions,
+  SocialMediaPreset,
+  SocialBannerOptions,
+} from '../types';
 import { ICON_LIBRARY } from './iconLibrary';
 
 export const FAVICON_SPECS: FaviconSpec[] = [
@@ -81,6 +88,20 @@ export const FAVICON_SPECS: FaviconSpec[] = [
 /**
  * Generates SVG Clip Path definition based on selected shape mask
  */
+/**
+ * Escapes text that is interpolated into generated SVG markup.
+ * SVG is parsed as strict XML, so an unescaped "&" or "<" in a brand name
+ * makes the whole document unparseable and every raster export fails.
+ */
+export function escapeXml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 export function getShapePathD(shape: ShapeMask, size: number, radius = 48): string {
   const s = size;
   const half = s / 2;
@@ -243,6 +264,16 @@ export function generateSvgString(config: LogoConfig, targetSize = 512): string 
         <path d="M 0 10 Q 10 0, 20 10 T 40 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-opacity="${config.patternOpacity || 0.15}" />
       </pattern>
     `;
+  } else if (config.pattern === 'circuit') {
+    const op = config.patternOpacity || 0.15;
+    patternDef = `
+      <pattern id="pattern_circuit" x="0" y="0" width="48" height="48" patternUnits="userSpaceOnUse">
+        <path d="M 6 6 H 24 V 24 H 42 M 6 42 V 30 H 24 M 30 42 V 30 H 42" fill="none" stroke="currentColor" stroke-width="1.4" stroke-opacity="${op}" />
+        <circle cx="24" cy="24" r="2.4" fill="currentColor" fill-opacity="${op}" />
+        <circle cx="6" cy="6" r="2" fill="currentColor" fill-opacity="${op}" />
+        <circle cx="42" cy="30" r="2" fill="currentColor" fill-opacity="${op}" />
+      </pattern>
+    `;
   }
 
   // Image Filter Definition (for uploaded image editing: brightness, contrast, hue, saturation, etc.)
@@ -257,22 +288,53 @@ export function generateSvgString(config: LogoConfig, targetSize = 512): string 
     blur: 0,
   };
 
-  const brightnessScale = (imgF.brightness || 100) / 100;
-  const contrastScale = (imgF.contrast || 100) / 100;
-  const saturationScale = (imgF.saturation || 100) / 100;
+  const brightnessScale = (imgF.brightness ?? 100) / 100;
+  const contrastScale = (imgF.contrast ?? 100) / 100;
+  const saturationScale = (imgF.saturation ?? 100) / 100;
   const hueDeg = imgF.hueRotate || 0;
   const blurVal = imgF.blur || 0;
+  const grayscaleAmt = Math.min(1, Math.max(0, (imgF.grayscale || 0) / 100));
+  const sepiaAmt = Math.min(1, Math.max(0, (imgF.sepia || 0) / 100));
+  const invertAmt = Math.min(1, Math.max(0, (imgF.invert || 0) / 100));
+
+  // Contrast is `slope * x + intercept` around mid-grey; a bare diagonal scale
+  // is brightness, not contrast, so the intercept has to be carried explicitly.
+  const slope = contrastScale * brightnessScale;
+  const intercept = 0.5 - contrastScale * 0.5;
+  const linearRgb = `<feComponentTransfer>
+        <feFuncR type="linear" slope="${slope}" intercept="${intercept}" />
+        <feFuncG type="linear" slope="${slope}" intercept="${intercept}" />
+        <feFuncB type="linear" slope="${slope}" intercept="${intercept}" />
+      </feComponentTransfer>`;
+
+  // Sepia matrix interpolated between identity (0) and full sepia (1).
+  const sepiaMatrix = (a: number) =>
+    [
+      0.393 + 0.607 * (1 - a), 0.769 - 0.769 * (1 - a), 0.189 - 0.189 * (1 - a), 0, 0,
+      0.349 - 0.349 * (1 - a), 0.686 + 0.314 * (1 - a), 0.168 - 0.168 * (1 - a), 0, 0,
+      0.272 - 0.272 * (1 - a), 0.534 - 0.534 * (1 - a), 0.131 + 0.869 * (1 - a), 0, 0,
+      0, 0, 0, 1, 0,
+    ]
+      .map((v) => Math.round(v * 10000) / 10000)
+      .join(' ');
 
   const imageFilterDef = `
-    <filter id="${imageFilterId}">
+    <filter id="${imageFilterId}" color-interpolation-filters="sRGB">
       ${blurVal > 0 ? `<feGaussianBlur stdDeviation="${blurVal}" />` : ''}
-      <feColorMatrix type="matrix" values="
-        ${contrastScale * brightnessScale} 0 0 0 0
-        0 ${contrastScale * brightnessScale} 0 0 0
-        0 0 ${contrastScale * brightnessScale} 0 0
-        0 0 0 1 0" />
+      ${linearRgb}
       <feColorMatrix type="saturate" values="${saturationScale}" />
       ${hueDeg !== 0 ? `<feColorMatrix type="hueRotate" values="${hueDeg}" />` : ''}
+      ${grayscaleAmt > 0 ? `<feColorMatrix type="saturate" values="${1 - grayscaleAmt}" />` : ''}
+      ${sepiaAmt > 0 ? `<feColorMatrix type="matrix" values="${sepiaMatrix(sepiaAmt)}" />` : ''}
+      ${
+        invertAmt > 0
+          ? `<feComponentTransfer>
+        <feFuncR type="table" tableValues="${invertAmt} ${1 - invertAmt}" />
+        <feFuncG type="table" tableValues="${invertAmt} ${1 - invertAmt}" />
+        <feFuncB type="table" tableValues="${invertAmt} ${1 - invertAmt}" />
+      </feComponentTransfer>`
+          : ''
+      }
     </filter>
   `;
 
@@ -368,12 +430,12 @@ export function generateSvgString(config: LogoConfig, targetSize = 512): string 
       iconElement = `
         <g transform="translate(${iconX - halfSize}, ${iconY - halfSize}) rotate(${imgRot} ${halfSize} ${halfSize})" opacity="${imgOpacity}" ${imageClipPath}>
           <image
-            href="${config.uploadedImageSrc}"
+            href="${escapeXml(config.uploadedImageSrc)}"
             x="${imgOffsetX}"
             y="${imgOffsetY}"
             width="${imgW}"
             height="${imgH}"
-            preserveAspectRatio="xMidYMid slice"
+            preserveAspectRatio="xMidYMid meet"
             filter="url(#${imageFilterId})"
           />
         </g>
@@ -389,7 +451,7 @@ export function generateSvgString(config: LogoConfig, targetSize = 512): string 
     } else if (config.iconType === 'emoji' && config.emojiChar) {
       iconElement = `
         <text x="${iconX}" y="${iconY + size * 0.35}" text-anchor="middle" font-size="${size}" transform="${rotateTransform}" ${filterAttr}>
-          ${config.emojiChar}
+          ${escapeXml(config.emojiChar)}
         </text>
       `;
     } else if (iconItem) {
@@ -429,17 +491,17 @@ export function generateSvgString(config: LogoConfig, targetSize = 512): string 
 
     if (config.textCurve !== 'straight' && curveDefs) {
       textElement = `
-        <text font-family="${config.fontFamily || 'Cairo'}, system-ui, sans-serif" font-size="${config.fontSize || 42}" font-weight="${config.fontWeight || 700}" fill="${textFill}" ${strokeAttr} ${shadowFilter} ${letterSpacing}>
+        <text font-family="${escapeXml(config.fontFamily || 'Cairo')}, system-ui, sans-serif" font-size="${config.fontSize || 42}" font-weight="${config.fontWeight || 700}" fill="${textFill}" ${strokeAttr} ${shadowFilter} ${letterSpacing}>
           <textPath href="#${curvePathId}" startOffset="50%" text-anchor="middle">
-            ${rawText}
+            ${escapeXml(rawText)}
           </textPath>
         </text>
       `;
     } else {
       const rot = config.textRotation ? `transform="rotate(${config.textRotation} ${textX} ${textY})"` : '';
       textElement = `
-        <text x="${textX}" y="${textY}" text-anchor="${isIconLeft ? 'start' : 'middle'}" dominant-baseline="middle" font-family="${config.fontFamily || 'Cairo'}, system-ui, sans-serif" font-size="${config.fontSize || 42}" font-weight="${config.fontWeight || 700}" fill="${textFill}" ${strokeAttr} ${shadowFilter} ${letterSpacing} ${rot}>
-          ${rawText}
+        <text x="${textX}" y="${textY}" text-anchor="${isIconLeft ? 'start' : 'middle'}" dominant-baseline="middle" font-family="${escapeXml(config.fontFamily || 'Cairo')}, system-ui, sans-serif" font-size="${config.fontSize || 42}" font-weight="${config.fontWeight || 700}" fill="${textFill}" ${strokeAttr} ${shadowFilter} ${letterSpacing} ${rot}>
+          ${escapeXml(rawText)}
         </text>
       `;
     }
@@ -451,8 +513,8 @@ export function generateSvgString(config: LogoConfig, targetSize = 512): string 
     const rawTagline = config.taglineUppercase ? (config.tagline || '').toUpperCase() : (config.tagline || '');
     const tSpacing = config.taglineLetterSpacing ? `letter-spacing="${config.taglineLetterSpacing}px"` : 'letter-spacing="2px"';
     taglineElement = `
-      <text x="${taglineX}" y="${taglineY}" text-anchor="${isIconLeft ? 'start' : 'middle'}" dominant-baseline="middle" font-family="${config.taglineFontFamily || 'Tajawal'}, system-ui, sans-serif" font-size="${config.taglineFontSize || 18}" font-weight="${config.taglineFontWeight || 500}" fill="${config.taglineColor || '#94a3b8'}" ${tSpacing}>
-        ${rawTagline}
+      <text x="${taglineX}" y="${taglineY}" text-anchor="${isIconLeft ? 'start' : 'middle'}" dominant-baseline="middle" font-family="${escapeXml(config.taglineFontFamily || 'Tajawal')}, system-ui, sans-serif" font-size="${config.taglineFontSize || 18}" font-weight="${config.taglineFontWeight || 500}" fill="${config.taglineColor || '#94a3b8'}" ${tSpacing}>
+        ${escapeXml(rawTagline)}
       </text>
     `;
   }
@@ -522,24 +584,26 @@ export function generateSvgString(config: LogoConfig, targetSize = 512): string 
 }
 
 /**
- * Renders an SVG string onto an HTML5 canvas at a specified size and returns a Blob
+ * Rasterizes an SVG string onto a canvas of any dimensions and returns a Blob.
+ * Single implementation behind every raster export in the app (favicons,
+ * feature graphics, social banners, one-off downloads).
  */
-export async function renderSvgToBlob(
+export async function rasterizeSvg(
   svgString: string,
-  targetSize: number,
+  width: number,
+  height: number,
   format: 'png' | 'jpeg' | 'webp' = 'png',
   quality = 0.95
 ): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
-    canvas.width = targetSize;
-    canvas.height = targetSize;
+    canvas.width = Math.max(1, Math.round(width));
+    canvas.height = Math.max(1, Math.round(height));
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       return reject(new Error('Canvas 2D context not available'));
     }
 
-    // Enable high quality image smoothing
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 
@@ -548,11 +612,21 @@ export async function renderSvgToBlob(
     const img = new Image();
 
     img.onload = () => {
-      ctx.clearRect(0, 0, targetSize, targetSize);
-      ctx.drawImage(img, 0, 0, targetSize, targetSize);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // JPEG has no alpha channel: without an opaque ground, transparent
+      // areas rasterize to black instead of white.
+      if (format === 'jpeg') {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       URL.revokeObjectURL(url);
 
-      const mimeType = format === 'jpeg' ? 'image/jpeg' : format === 'webp' ? 'image/webp' : 'image/png';
+      const mimeType =
+        format === 'jpeg' ? 'image/jpeg' : format === 'webp' ? 'image/webp' : 'image/png';
+
       canvas.toBlob(
         (b) => {
           if (b) resolve(b);
@@ -563,13 +637,25 @@ export async function renderSvgToBlob(
       );
     };
 
-    img.onerror = (err) => {
+    img.onerror = () => {
       URL.revokeObjectURL(url);
-      reject(err);
+      reject(new Error('Failed to rasterize SVG (the generated markup is not valid XML)'));
     };
 
     img.src = url;
   });
+}
+
+/**
+ * Convenience wrapper for the square icon case (favicons, avatars, app icons).
+ */
+export async function renderSvgToBlob(
+  svgString: string,
+  targetSize: number,
+  format: 'png' | 'jpeg' | 'webp' = 'png',
+  quality = 0.95
+): Promise<Blob> {
+  return rasterizeSvg(svgString, targetSize, targetSize, format, quality);
 }
 
 /**
@@ -633,8 +719,8 @@ export function generateHtmlHeadSnippet(brandName = 'My App', themeColor = '#0f1
 <link rel="shortcut icon" href="/favicon.ico" />
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 <link rel="manifest" href="/site.webmanifest" />
-<meta name="apple-mobile-web-app-title" content="${brandName}" />
-<meta name="application-name" content="${brandName}" />
+<meta name="apple-mobile-web-app-title" content="${escapeXml(brandName)}" />
+<meta name="application-name" content="${escapeXml(brandName)}" />
 <meta name="theme-color" content="${themeColor}" />`;
 }
 
@@ -733,7 +819,6 @@ export async function generateFaviconZip(config: LogoConfig): Promise<Blob> {
   return await zip.generateAsync({ type: 'blob' });
 }
 
-import { FeatureGraphicOptions } from '../types';
 
 /**
  * Generates exact 1024x500 Google Play Store Feature Graphic SVG
@@ -852,17 +937,17 @@ export function generateFeatureGraphicSvg(
       <g transform="translate(512, 290)">
         <rect x="-130" y="0" width="260" height="32" rx="16" fill="${cardBg}" stroke="${cardBorder}" stroke-width="1.5" />
         <text x="0" y="21" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="${textColor}" letter-spacing="0.5">
-          ${badgeText}
+          ${escapeXml(badgeText)}
         </text>
       </g>
 
       <!-- Title & Subtitle -->
       <text x="512" y="375" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="44" font-weight="900" fill="${textColor}" letter-spacing="-0.5" filter="url(#fg_subtle_shadow)">
-        ${title}
+        ${escapeXml(title)}
       </text>
 
       <text x="512" y="420" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="500" fill="${subtextColor}" max-width="700">
-        ${subtitle}
+        ${escapeXml(subtitle)}
       </text>
 
       <!-- Play Store Official Pill (Optional) -->
@@ -885,17 +970,17 @@ export function generateFeatureGraphicSvg(
         <!-- Pill Badge -->
         <rect x="0" y="0" width="220" height="30" rx="15" fill="${cardBg}" stroke="${cardBorder}" stroke-width="1.5" />
         <text x="110" y="20" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="${textColor}">
-          ${badgeText}
+          ${escapeXml(badgeText)}
         </text>
 
         <!-- Big Bold Title -->
         <text x="0" y="85" font-family="system-ui, -apple-system, sans-serif" font-size="52" font-weight="900" fill="${textColor}" letter-spacing="-1">
-          ${title}
+          ${escapeXml(title)}
         </text>
 
         <!-- Subtitle -->
         <text x="0" y="130" font-family="system-ui, sans-serif" font-size="20" font-weight="500" fill="${subtextColor}">
-          ${subtitle}
+          ${escapeXml(subtitle)}
         </text>
 
         <!-- Rating Stars Bar -->
@@ -976,17 +1061,17 @@ export function generateFeatureGraphicSvg(
       <g transform="translate(512, 285)">
         <path d="M -140 0 L 140 0 L 125 28 L -125 28 Z" fill="${cardBg}" stroke="${cardBorder}" stroke-width="1.5" />
         <text x="0" y="20" text-anchor="middle" font-family="'Cairo', 'Tajawal', system-ui, sans-serif" font-size="13" font-weight="700" fill="${textColor}">
-          ${badgeText}
+          ${escapeXml(badgeText)}
         </text>
       </g>
 
       <!-- Arabic & English Title -->
       <text x="512" y="375" text-anchor="middle" font-family="'Cairo', 'Tajawal', system-ui, sans-serif" font-size="46" font-weight="900" fill="${textColor}">
-        ${title}
+        ${escapeXml(title)}
       </text>
 
       <text x="512" y="420" text-anchor="middle" font-family="'Cairo', 'Tajawal', system-ui, sans-serif" font-size="18" font-weight="600" fill="${subtextColor}">
-        ${subtitle}
+        ${escapeXml(subtitle)}
       </text>
     `;
   }
@@ -1012,18 +1097,18 @@ export function generateFeatureGraphicSvg(
         <g transform="translate(350, 210)">
           <rect x="-100" y="0" width="200" height="26" rx="13" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.25)" />
           <text x="0" y="18" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" font-weight="700" fill="${textColor}">
-            ${badgeText}
+            ${escapeXml(badgeText)}
           </text>
         </g>
 
         <!-- Title -->
         <text x="350" y="280" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="40" font-weight="900" fill="${textColor}">
-          ${title}
+          ${escapeXml(title)}
         </text>
 
         <!-- Subtitle -->
         <text x="350" y="320" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" font-weight="500" fill="${subtextColor}">
-          ${subtitle}
+          ${escapeXml(subtitle)}
         </text>
 
         <!-- Rating Stars -->
@@ -1059,57 +1144,6 @@ export function generateFeatureGraphicSvg(
 </svg>
 `.trim();
 }
-
-/**
- * Renders the Feature Graphic SVG onto a 1024x500 Canvas and returns PNG or JPEG Blob
- */
-export async function renderFeatureGraphicToBlob(
-  svgString: string,
-  format: 'png' | 'jpeg' = 'png',
-  quality = 0.95
-): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 500;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      return reject(new Error('Canvas 2D context not available'));
-    }
-
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-
-    const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const img = new Image();
-
-    img.onload = () => {
-      ctx.clearRect(0, 0, 1024, 500);
-      ctx.drawImage(img, 0, 0, 1024, 500);
-      URL.revokeObjectURL(url);
-
-      const mimeType = format === 'jpeg' ? 'image/jpeg' : 'image/png';
-      canvas.toBlob(
-        (b) => {
-          if (b) resolve(b);
-          else reject(new Error('Failed to create canvas blob'));
-        },
-        mimeType,
-        quality
-      );
-    };
-
-    img.onerror = (err) => {
-      URL.revokeObjectURL(url);
-      reject(err);
-    };
-
-    img.src = url;
-  });
-}
-
-import { SocialMediaPreset, SocialBannerOptions } from '../types';
 
 export const SOCIAL_MEDIA_PRESETS: SocialMediaPreset[] = [
   // 1:1 Profile Avatars
@@ -1424,18 +1458,18 @@ export function generateSocialBannerSvg(
         <g transform="translate(${cx}, ${Math.max(60, logoY + logoTargetSize + 30)})">
           <rect x="-140" y="-16" width="280" height="32" rx="16" fill="${cardBg}" stroke="${cardBorder}" stroke-width="1.5" />
           <text x="0" y="5" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(12, Math.min(16, w * 0.015))}" font-weight="700" fill="${textColor}" letter-spacing="1">
-            ${badgeText}
+            ${escapeXml(badgeText)}
           </text>
         </g>
       ` : ''}
 
       <!-- Title & Subtitle -->
       <text x="${cx}" y="${Math.min(h - 80, logoY + logoTargetSize + (options.showBadge ? 95 : 65))}" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(24, Math.min(68, w * 0.042))}" font-weight="900" fill="${textColor}" letter-spacing="-0.5" filter="url(#sb_subtle_shadow)">
-        ${title}
+        ${escapeXml(title)}
       </text>
 
       <text x="${cx}" y="${Math.min(h - 40, logoY + logoTargetSize + (options.showBadge ? 145 : 115))}" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(14, Math.min(26, w * 0.018))}" font-weight="500" fill="${subtextColor}">
-        ${subtitle}
+        ${escapeXml(subtitle)}
       </text>
     `;
   }
@@ -1463,16 +1497,16 @@ export function generateSocialBannerSvg(
         ${options.showBadge ? `
           <rect x="0" y="-85" width="220" height="28" rx="14" fill="${cardBg}" stroke="${cardBorder}" stroke-width="1.5" />
           <text x="110" y="-66" text-anchor="middle" font-family="system-ui, sans-serif" font-size="${Math.max(11, Math.min(14, w * 0.012))}" font-weight="700" fill="${textColor}">
-            ${badgeText}
+            ${escapeXml(badgeText)}
           </text>
         ` : ''}
 
         <text x="0" y="-15" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(26, Math.min(64, w * 0.04))}" font-weight="900" fill="${textColor}" letter-spacing="-1">
-          ${title}
+          ${escapeXml(title)}
         </text>
 
         <text x="0" y="32" font-family="system-ui, sans-serif" font-size="${Math.max(14, Math.min(24, w * 0.016))}" font-weight="500" fill="${subtextColor}">
-          ${subtitle}
+          ${escapeXml(subtitle)}
         </text>
 
         <!-- Social Action Buttons Callout -->
@@ -1551,63 +1585,6 @@ export function generateSocialBannerSvg(
 }
 
 /**
- * Renders any dimension SVG to Canvas Blob (PNG/JPEG/WEBP)
- */
-export async function renderSocialCanvasToBlob(
-  svgString: string,
-  width: number,
-  height: number,
-  format: 'png' | 'jpeg' | 'webp' = 'png',
-  quality = 0.95
-): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      return reject(new Error('Canvas 2D context not available'));
-    }
-
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-
-    const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const img = new Image();
-
-    img.onload = () => {
-      ctx.clearRect(0, 0, width, height);
-      ctx.drawImage(img, 0, 0, width, height);
-      URL.revokeObjectURL(url);
-
-      const mimeType =
-        format === 'jpeg'
-          ? 'image/jpeg'
-          : format === 'webp'
-          ? 'image/webp'
-          : 'image/png';
-
-      canvas.toBlob(
-        (b) => {
-          if (b) resolve(b);
-          else reject(new Error('Failed to create canvas blob'));
-        },
-        mimeType,
-        quality
-      );
-    };
-
-    img.onerror = (err) => {
-      URL.revokeObjectURL(url);
-      reject(err);
-    };
-
-    img.src = url;
-  });
-}
-
-/**
  * Generates full Social Media Kit ZIP package with organized folders
  */
 export async function generateSocialMediaKitZip(
@@ -1673,7 +1650,7 @@ Included in this package:
       preset.width,
       preset.height
     );
-    const pngBlob = await renderSocialCanvasToBlob(bannerSvg, preset.width, preset.height, 'png');
+    const pngBlob = await rasterizeSvg(bannerSvg, preset.width, preset.height, 'png');
     if (bannerFolder) {
       bannerFolder.file(`${preset.id}_${preset.width}x${preset.height}.png`, pngBlob);
     }
