@@ -1,0 +1,6 @@
+{
+  "name": "Logo & Favicon Studio",
+  "description": "A powerful, intuitive Logo and Favicon creator supporting multi-format exports (SVG, PNG, JPG, WebP, ICO), universal image resizing, Social Media Kit (1:1 profile avatars & 16:9 channel banners), automatic multi-size favicon package generation (16px to 512px), Google Play Feature Graphic (1024x500), customizable templates, live realistic mockups, and auto-save.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
