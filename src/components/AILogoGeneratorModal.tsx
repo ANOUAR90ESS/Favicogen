@@ -37,78 +37,70 @@ interface AILogoGeneratorModalProps {
 const AI_STYLE_PRESETS = [
   {
     id: 'minimal',
-    nameAr: 'شعار مينيمالي أنيق',
-    nameEn: 'Minimalist Vector',
-    desc: 'خطوط واضحة وأشكال هندسية راقية',
+    nameKey: 'aiGeneratorModal.styleMinimalName',
+    descKey: 'aiGeneratorModal.styleMinimalDesc',
     icon: '✨',
-    badge: 'الأكثر شعبية',
+    badgeKey: 'aiGeneratorModal.styleMinimalBadge',
   },
   {
     id: 'modern-3d',
-    nameAr: 'ثلاثي الأبعاد حديث 3D',
-    nameEn: 'Modern 3D Glossy',
-    desc: 'إضاءة سينمائية وتدرجات لونية غنية',
+    nameKey: 'aiGeneratorModal.style3dName',
+    descKey: 'aiGeneratorModal.style3dDesc',
     icon: '🔮',
-    badge: 'تطبيقات وأيقونات',
+    badgeKey: 'aiGeneratorModal.style3dBadge',
   },
   {
     id: 'luxury-gold',
-    nameAr: 'فخامة ملكية & ذهبي',
-    nameEn: 'Luxury Gold Emblem',
-    desc: 'تطريز ذهبي وزخارف فاخرة على خلفية داكنة',
+    nameKey: 'aiGeneratorModal.styleGoldName',
+    descKey: 'aiGeneratorModal.styleGoldDesc',
     icon: '👑',
-    badge: 'براندات فاخرة',
+    badgeKey: 'aiGeneratorModal.styleGoldBadge',
   },
   {
     id: 'cyberpunk',
-    nameAr: 'سايبر بانك & نيون',
-    nameEn: 'Cyberpunk Neon',
-    desc: 'ألوان نيون مشعة وطابع مستقبلي للألعاب',
+    nameKey: 'aiGeneratorModal.styleCyberName',
+    descKey: 'aiGeneratorModal.styleCyberDesc',
     icon: '⚡',
-    badge: 'ستريمرز ويوتيوب',
+    badgeKey: 'aiGeneratorModal.styleCyberBadge',
   },
   {
     id: 'arabesque',
-    nameAr: 'زخرفة عربية وإسلامية',
-    nameEn: 'Arabesque Modern',
-    desc: 'خط عربي حديث وزخارف أندلسية راقية',
+    nameKey: 'aiGeneratorModal.styleArabesqueName',
+    descKey: 'aiGeneratorModal.styleArabesqueDesc',
     icon: '🌙',
-    badge: 'هوية عربية',
+    badgeKey: 'aiGeneratorModal.styleArabesqueBadge',
   },
   {
     id: 'flat-vector',
-    nameAr: 'فيكتور مسطح Flat Design',
-    nameEn: 'Flat Clean Vector',
-    desc: 'ألوان مشرقة وهوية بصرية سويسرية نقية',
+    nameKey: 'aiGeneratorModal.styleFlatName',
+    descKey: 'aiGeneratorModal.styleFlatDesc',
     icon: '🎯',
-    badge: 'شركات وتقنية',
+    badgeKey: 'aiGeneratorModal.styleFlatBadge',
   },
   {
     id: 'mascot',
-    nameAr: 'ماسكوت وشخصيات ألعاب',
-    nameEn: 'Gaming Mascot',
-    desc: 'شخصيات كرتونية ديناميكية لقنوات الألعاب',
+    nameKey: 'aiGeneratorModal.styleMascotName',
+    descKey: 'aiGeneratorModal.styleMascotDesc',
     icon: '🎮',
-    badge: 'قنوات جيمنج',
+    badgeKey: 'aiGeneratorModal.styleMascotBadge',
   },
   {
     id: 'youtube-banner',
-    nameAr: 'خلفية قناة يوتيوب بانورامية',
-    nameEn: 'YouTube Channel Header',
-    desc: 'تصميم عريض 16:9 مخصص كخلفية لغلاف القناة',
+    nameKey: 'aiGeneratorModal.styleBannerName',
+    descKey: 'aiGeneratorModal.styleBannerDesc',
     icon: '📺',
-    badge: 'بانر 16:9',
+    badgeKey: 'aiGeneratorModal.styleBannerBadge',
   },
 ];
 
 const PROMPT_SUGGESTIONS = [
-  'شعار صقر ذهبي متناسق هندسياً لقناة ألعاب ويوتيوب فاخرة',
-  'أيقونة قطرة قهوة مع ورقة شجر بأسلوب فيكتور مينيمالي أنيق',
-  'رمز ذكاء اصطناعي عصري برأس إلكتروني ودوائر نيون زرقاء',
-  'شعار حرف عربي مزخرف بتقنية ثلاثية الأبعاد وذهب لامع',
-  'درع محارب سايبر بانك مستقبلي مع خوذة نيون لقناة جيمنج',
-  'أيقونة كاميرا مع موجات صوتية سينمائية لصناع محتوى يوتيوب',
-  'شعار شركة ناشئة هندسي على شكل مكعب متداخل متدرج الألوان',
+  'aiGeneratorModal.promptFalcon',
+  'aiGeneratorModal.promptCoffee',
+  'aiGeneratorModal.promptAi',
+  'aiGeneratorModal.promptArabicLetter',
+  'aiGeneratorModal.promptCyberShield',
+  'aiGeneratorModal.promptCamera',
+  'aiGeneratorModal.promptStartup',
 ];
 
 export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
@@ -150,7 +142,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
-        setErrorMsg(t('aiGeneratorModal.referenceImageIsToo'));
+        setErrorMsg('aiGeneratorModal.referenceImageIsToo');
         return;
       }
       setReferenceFileName(file.name);
@@ -165,7 +157,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
 
   const handleEnhancePrompt = async () => {
     if (!prompt.trim()) {
-      setErrorMsg(t('aiGeneratorModal.pleaseTypeInitialPrompt'));
+      setErrorMsg('aiGeneratorModal.pleaseTypeInitialPrompt');
       return;
     }
     setIsEnhancing(true);
@@ -188,12 +180,12 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
           setPrompt(data.data.enhancedPromptEn);
         }
         setEnhancedSuggestions(data.data);
-        showToast(t('aiGeneratorModal.promptEnhancedSmartBranding'));
+        showToast('aiGeneratorModal.promptEnhancedSmartBranding');
       } else {
-        setErrorMsg(data.error || (t('aiGeneratorModal.failedEnhancePrompt')));
+        setErrorMsg(data.error || ('aiGeneratorModal.failedEnhancePrompt'));
       }
     } catch {
-      setErrorMsg(t('aiGeneratorModal.errorCommunicatingAiService'));
+      setErrorMsg('aiGeneratorModal.errorCommunicatingAiService');
     } finally {
       setIsEnhancing(false);
     }
@@ -222,7 +214,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
-      setErrorMsg(t('aiGeneratorModal.pleaseEnterLogoPrompt'));
+      setErrorMsg('aiGeneratorModal.pleaseEnterLogoPrompt');
       return;
     }
 
@@ -250,17 +242,17 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
         // Auto-apply immediately to studio state
         applyGeneratedLogoToStudio(data.imageUrl, data.enhancedSuggestions);
 
-        showToast(t('aiGeneratorModal.logoCreatedAppliedStudio'));
+        showToast('aiGeneratorModal.logoCreatedAppliedStudio');
 
         // Smooth scroll to result area
         setTimeout(() => {
           resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }, 150);
       } else {
-        setErrorMsg(data.error || (t('aiGeneratorModal.failedGenerateImagePlease')));
+        setErrorMsg(data.error || ('aiGeneratorModal.failedGenerateImagePlease'));
       }
     } catch (err: any) {
-      setErrorMsg(err.message || (t('aiGeneratorModal.anErrorOccurredWhile')));
+      setErrorMsg(err.message || ('aiGeneratorModal.anErrorOccurredWhile'));
     } finally {
       setIsGenerating(false);
     }
@@ -325,7 +317,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      label={t('aiGeneratorModal.aiLogoGenerator')}
+      label={'aiGeneratorModal.aiLogoGenerator'}
       className="relative w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
       overlayClassName="z-50 p-3 sm:p-6"
     >
@@ -338,14 +330,14 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-bold text-white tracking-wide">
-                  {t('aiGeneratorModal.aiLogoYoutubeKit')}
+                  {'aiGeneratorModal.aiLogoYoutubeKit'}
                 </h2>
                 <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-pink-300 border border-pink-500/30">
                   Gemini AI 3.1
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                {t('aiGeneratorModal.generatedDesignsAreInstantly')}
+                {'aiGeneratorModal.generatedDesignsAreInstantly'}
               </p>
             </div>
           </div>
@@ -374,7 +366,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
             {/* Aspect Ratio Selector */}
             <div>
               <label className="block text-xs font-bold text-slate-300 mb-2 uppercase tracking-wider">
-                {t('aiGeneratorModal.outputTypeAspectRatio')}
+                {'aiGeneratorModal.outputTypeAspectRatio'}
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <button
@@ -393,8 +385,8 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                     1:1
                   </div>
                   <div className={isAr ? 'text-right' : 'text-left'}>
-                    <div className="font-bold text-xs">{t('aiGeneratorModal.logoAppIconFavicon')}</div>
-                    <div className="text-[11px] opacity-75">1024 × 1024 px ({t('aiGeneratorModal.square')})</div>
+                    <div className="font-bold text-xs">{'aiGeneratorModal.logoAppIconFavicon'}</div>
+                    <div className="text-[11px] opacity-75">1024 × 1024 px ({'aiGeneratorModal.square'})</div>
                   </div>
                 </button>
 
@@ -416,9 +408,9 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                   <div className={isAr ? 'text-right' : 'text-left'}>
                     <div className="font-bold text-xs flex items-center gap-1.5">
                       <Youtube className="w-3.5 h-3.5 text-red-500 inline shrink-0" />
-                      <span>{t('aiGeneratorModal.youtubeChannelBanner')}</span>
+                      <span>{'aiGeneratorModal.youtubeChannelBanner'}</span>
                     </div>
-                    <div className="text-[11px] opacity-75">2560 × 1440 px ({t('aiGeneratorModal.landscape')})</div>
+                    <div className="text-[11px] opacity-75">2560 × 1440 px ({'aiGeneratorModal.landscape'})</div>
                   </div>
                 </button>
               </div>
@@ -428,7 +420,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <span>{t('aiGeneratorModal.logoDescriptionPrompt')}</span>
+                  <span>{'aiGeneratorModal.logoDescriptionPrompt'}</span>
                   <span className="text-rose-400">*</span>
                 </label>
                 <button
@@ -438,7 +430,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                   className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-purple-500/15 text-purple-300 hover:bg-purple-500/25 border border-purple-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   <Wand2 className={`w-3.5 h-3.5 ${isEnhancing ? 'animate-spin' : ''}`} />
-                  {isEnhancing ? (t('aiGeneratorModal.enhancing')) : (t('aiGeneratorModal.smartPromptAi'))}
+                  {isEnhancing ? ('aiGeneratorModal.enhancing') : ('aiGeneratorModal.smartPromptAi')}
                 </button>
               </div>
 
@@ -447,7 +439,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder={
-                    t('aiGeneratorModal.eGModernGolden')
+                    'aiGeneratorModal.eGModernGolden'
                   }
                   rows={3}
                   className="w-full bg-slate-950/70 border border-slate-700/80 rounded-xl p-3 text-xs sm:text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition resize-none leading-relaxed"
@@ -457,17 +449,17 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
               {/* Suggestions chips */}
               <div className="space-y-1">
                 <span className="text-[11px] text-slate-400 block font-medium">
-                  {t('aiGeneratorModal.quickPromptIdeasClick')}
+                  {'aiGeneratorModal.quickPromptIdeasClick'}
                 </span>
                 <div className="flex flex-wrap gap-1.5 max-h-16 overflow-y-auto pr-1">
-                  {PROMPT_SUGGESTIONS.map((sug, idx) => (
+                  {PROMPT_SUGGESTIONS.map((sugKey, idx) => (
                     <button
                       key={idx}
                       type="button"
-                      onClick={() => setPrompt(sug)}
+                      onClick={() => setPrompt(t(sugKey))}
                       className="text-[11px] px-2.5 py-1 bg-slate-800/70 hover:bg-slate-700/80 text-slate-300 hover:text-white rounded-lg border border-slate-700/50 transition truncate max-w-full text-right cursor-pointer"
                     >
-                      {sug}
+                      {t(sugKey)}
                     </button>
                   ))}
                 </div>
@@ -479,10 +471,10 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
               <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <ImageIcon className="w-3.5 h-3.5 text-indigo-400" />
-                  {t('aiGeneratorModal.optionalReferenceImage')}
+                  {'aiGeneratorModal.optionalReferenceImage'}
                 </span>
                 <span className="text-[10px] font-normal text-slate-400">
-                  {t('aiGeneratorModal.aiGuidesStyleColor')}
+                  {'aiGeneratorModal.aiGuidesStyleColor'}
                 </span>
               </label>
 
@@ -496,10 +488,10 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                     />
                     <div className="truncate">
                       <p className="text-xs font-semibold text-white truncate max-w-xs">
-                        {referenceFileName || (t('aiGeneratorModal.referenceImage'))}
+                        {referenceFileName || ('aiGeneratorModal.referenceImage')}
                       </p>
                       <span className="text-[10px] text-emerald-400 flex items-center gap-1">
-                        <Check className="w-3 h-3" /> {t('aiGeneratorModal.readyAiGeneration')}
+                        <Check className="w-3 h-3" /> {'aiGeneratorModal.readyAiGeneration'}
                       </span>
                     </div>
                   </div>
@@ -510,7 +502,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                       setReferenceFileName('');
                     }}
                     className="p-1.5 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition cursor-pointer"
-                    title={t('aiGeneratorModal.removeReference')}
+                    title={'aiGeneratorModal.removeReference'}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -522,7 +514,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                 >
                   <Upload className="w-4 h-4 text-slate-400" />
                   <div className="text-xs text-slate-300">
-                    <span className="font-semibold text-indigo-400">{t('aiGeneratorModal.uploadReferencePhoto')}</span> {t('aiGeneratorModal.pngJpgSvg')}
+                    <span className="font-semibold text-indigo-400">{'aiGeneratorModal.uploadReferencePhoto'}</span> {'aiGeneratorModal.pngJpgSvg'}
                   </div>
                 </div>
               )}
@@ -538,7 +530,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
             {/* Style Presets Grid */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
-                {t('aiGeneratorModal.artisticDesignStyle')}
+                {'aiGeneratorModal.artisticDesignStyle'}
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-44 overflow-y-auto pr-1">
                 {AI_STYLE_PRESETS.map((st) => (
@@ -559,8 +551,8 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                       )}
                     </div>
                     <div>
-                      <div className="text-xs font-bold text-white truncate">{isAr ? st.nameAr : st.nameEn}</div>
-                      <div className="text-[10px] text-slate-400 truncate">{st.badge}</div>
+                      <div className="text-xs font-bold text-white truncate">{t(st.nameKey)}</div>
+                      <div className="text-[10px] text-slate-400 truncate">{t(st.badgeKey)}</div>
                     </div>
                   </button>
                 ))}
@@ -585,12 +577,12 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
               {isGenerating ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>{t('aiGeneratorModal.generatingGeminiAi')}</span>
+                  <span>{'aiGeneratorModal.generatingGeminiAi'}</span>
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  <span>{t('aiGeneratorModal.generateOpenStudio')}</span>
+                  <span>{'aiGeneratorModal.generateOpenStudio'}</span>
                 </>
               )}
             </button>
@@ -604,12 +596,12 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
             <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
               <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                 <Palette className="w-4 h-4 text-pink-400" />
-                {t('aiGeneratorModal.generatedOutputPreview')}
+                {'aiGeneratorModal.generatedOutputPreview'}
               </span>
               {generatedImage && (
                 <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 flex items-center gap-1">
                   <Check className="w-3 h-3" />
-                  {t('aiGeneratorModal.appliedStudio')}
+                  {'aiGeneratorModal.appliedStudio'}
                 </span>
               )}
             </div>
@@ -624,10 +616,10 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs sm:text-sm font-bold text-white">
-                      {t('aiGeneratorModal.generatingHighResAssets')}
+                      {'aiGeneratorModal.generatingHighResAssets'}
                     </p>
                     <p className="text-[11px] text-slate-400">
-                      {t('aiGeneratorModal.logoWillBeApplied')}
+                      {'aiGeneratorModal.logoWillBeApplied'}
                     </p>
                   </div>
                 </div>
@@ -643,7 +635,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                   <div className="absolute bottom-2 left-2 right-2 bg-slate-900/85 backdrop-blur-xs border border-slate-700 text-white px-3 py-1.5 rounded-lg text-[11px] font-semibold flex items-center justify-between opacity-95">
                     <span className="flex items-center gap-1 text-emerald-400">
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      {t('aiGeneratorModal.readyMainEditor')}
+                      {'aiGeneratorModal.readyMainEditor'}
                     </span>
                     <span className="text-[10px] text-slate-400">
                       {aspectRatio === '16:9' ? '2560x1440' : '1024x1024'}
@@ -656,10 +648,10 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                     <ImageIcon className="w-6 h-6" />
                   </div>
                   <p className="text-xs font-medium text-slate-300">
-                    {t('aiGeneratorModal.typePromptClickGenerate')}
+                    {'aiGeneratorModal.typePromptClickGenerate'}
                   </p>
                   <p className="text-[11px] text-slate-500">
-                    {t('aiGeneratorModal.logoWillOpenDirectly')}
+                    {'aiGeneratorModal.logoWillOpenDirectly'}
                   </p>
                 </div>
               )}
@@ -675,7 +667,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                   className="w-full py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 transition cursor-pointer"
                 >
                   <Layers className="w-4 h-4 shrink-0" />
-                  <span>{t('aiGeneratorModal.openEditStudioCanvas')}</span>
+                  <span>{'aiGeneratorModal.openEditStudioCanvas'}</span>
                 </button>
 
                 {/* 2. Secondary Export Grid */}
@@ -685,10 +677,10 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                     type="button"
                     onClick={handleExportFullPackage}
                     className="py-2 px-3 rounded-xl font-bold text-xs bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 flex items-center justify-center gap-1.5 transition cursor-pointer"
-                    title={t('aiGeneratorModal.exportFullFaviconMulti')}
+                    title={'aiGeneratorModal.exportFullFaviconMulti'}
                   >
                     <PackageCheck className="w-4 h-4 text-indigo-400 shrink-0" />
-                    <span className="truncate">{t('aiGeneratorModal.exportFullPackage')}</span>
+                    <span className="truncate">{'aiGeneratorModal.exportFullPackage'}</span>
                   </button>
 
                   {/* YouTube Branding Kit */}
@@ -696,10 +688,10 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                     type="button"
                     onClick={handleOpenYouTubeStudio}
                     className="py-2 px-3 rounded-xl font-bold text-xs bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30 flex items-center justify-center gap-1.5 transition cursor-pointer"
-                    title={t('aiGeneratorModal.openYoutubeBrandingStudio')}
+                    title={'aiGeneratorModal.openYoutubeBrandingStudio'}
                   >
                     <Youtube className="w-4 h-4 text-red-400 shrink-0" />
-                    <span className="truncate">{t('aiGeneratorModal.youtubeKit')}</span>
+                    <span className="truncate">{'aiGeneratorModal.youtubeKit'}</span>
                   </button>
 
                   {/* Google Play Feature Graphic */}
@@ -707,10 +699,10 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                     type="button"
                     onClick={handleOpenFeatureGraphicStudio}
                     className="py-2 px-3 rounded-xl font-bold text-xs bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 flex items-center justify-center gap-1.5 transition cursor-pointer"
-                    title={t('aiGeneratorModal.googlePlayFeatureGraphic')}
+                    title={'aiGeneratorModal.googlePlayFeatureGraphic'}
                   >
                     <Smartphone className="w-4 h-4 text-amber-400 shrink-0" />
-                    <span className="truncate">{t('aiGeneratorModal.playStoreGraphic')}</span>
+                    <span className="truncate">{'aiGeneratorModal.playStoreGraphic'}</span>
                   </button>
 
                   {/* Direct PNG Download */}
@@ -718,10 +710,10 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                     type="button"
                     onClick={handleDownloadDirect}
                     className="py-2 px-3 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center gap-1.5 transition cursor-pointer"
-                    title={t('aiGeneratorModal.directPngDownload')}
+                    title={'aiGeneratorModal.directPngDownload'}
                   >
                     <Download className="w-4 h-4 text-slate-300 shrink-0" />
-                    <span className="truncate">{t('aiGeneratorModal.downloadPng')}</span>
+                    <span className="truncate">{'aiGeneratorModal.downloadPng'}</span>
                   </button>
                 </div>
               </div>
@@ -731,16 +723,16 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
             {enhancedSuggestions && (
               <div className="p-2.5 bg-slate-900 border border-purple-500/20 rounded-xl space-y-1 text-xs">
                 <div className="text-[11px] font-bold text-purple-300 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" /> {t('aiGeneratorModal.smartBrandingSuggestionsApplied')}
+                  <Sparkles className="w-3 h-3" /> {'aiGeneratorModal.smartBrandingSuggestionsApplied'}
                 </div>
                 {enhancedSuggestions.suggestedTitle && (
                   <div className="text-slate-300 text-[11px]">
-                    <span className="text-slate-400 font-semibold">{t('aiGeneratorModal.title2')}</span> {enhancedSuggestions.suggestedTitle}
+                    <span className="text-slate-400 font-semibold">{'aiGeneratorModal.title2'}</span> {enhancedSuggestions.suggestedTitle}
                   </div>
                 )}
                 {enhancedSuggestions.suggestedColors && (
                   <div className="flex items-center gap-1.5 pt-0.5">
-                    <span className="text-slate-400 text-[10px]">{t('aiGeneratorModal.colors')}</span>
+                    <span className="text-slate-400 text-[10px]">{'aiGeneratorModal.colors'}</span>
                     <div className="flex gap-1">
                       {enhancedSuggestions.suggestedColors.map((c, i) => (
                         <div
@@ -763,7 +755,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-[11px] sm:text-xs">
-              {t('aiGeneratorModal.syncedStudioEngineAssets')}
+              {'aiGeneratorModal.syncedStudioEngineAssets'}
             </span>
           </div>
 
@@ -774,7 +766,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                 onClick={handleOpenDirectInStudio}
                 className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition cursor-pointer"
               >
-                {t('aiGeneratorModal.goStudio')}
+                {'aiGeneratorModal.goStudio'}
               </button>
             )}
             <button
@@ -782,7 +774,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
               onClick={onClose}
               className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium transition cursor-pointer"
             >
-              {t('aiGeneratorModal.close')}
+              {'aiGeneratorModal.close'}
             </button>
           </div>
         </div>

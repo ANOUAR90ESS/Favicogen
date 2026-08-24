@@ -685,13 +685,13 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {[
-                      { label: '1:1 (مربع)', rw: 1, rh: 1 },
-                      { label: '16:9 (عريض)', rw: 16, rh: 9 },
-                      { label: '9:16 (ستوري)', rw: 9, rh: 16 },
+                      { label: t('universalResizerModal.ratioSquare'), rw: 1, rh: 1 },
+                      { label: t('universalResizerModal.ratioWide'), rw: 16, rh: 9 },
+                      { label: t('universalResizerModal.ratioStory'), rw: 9, rh: 16 },
                       { label: '1024:500 (Play)', rw: 1024, rh: 500 },
                       { label: '4:3', rw: 4, rh: 3 },
-                      { label: '4:5 (إنستغرام)', rw: 4, rh: 5 },
-                      { label: '1.91:1 (مشاركة)', rw: 191, rh: 100 },
+                      { label: t('universalResizerModal.ratioInstagram'), rw: 4, rh: 5 },
+                      { label: t('universalResizerModal.ratioShare'), rw: 191, rh: 100 },
                     ].map((r, idx) => (
                       <button
                         key={idx}
@@ -712,10 +712,10 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                   </label>
                   <div className="grid grid-cols-4 gap-1.5">
                     {[
-                      { id: 'contain', nameAr: 'احتواء', nameEn: 'Contain' },
-                      { id: 'cover', nameAr: 'قص وملء', nameEn: 'Cover' },
-                      { id: 'stretch', nameAr: 'تمديد', nameEn: 'Stretch' },
-                      { id: 'pad', nameAr: 'حشو', nameEn: 'Padding' },
+                      { id: 'contain', nameAr: t('universalResizerModal.fitContain'), nameEn: 'Contain' },
+                      { id: 'cover', nameAr: t('universalResizerModal.fitCover'), nameEn: 'Cover' },
+                      { id: 'stretch', nameAr: t('universalResizerModal.fitStretch'), nameEn: 'Stretch' },
+                      { id: 'pad', nameAr: t('universalResizerModal.fitPad'), nameEn: 'Padding' },
                     ].map((fit) => (
                       <button
                         key={fit.id}
@@ -740,10 +740,10 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                   </label>
                   <div className="grid grid-cols-4 gap-1.5 mb-2">
                     {[
-                      { id: 'transparent', nameAr: 'شفاف', nameEn: 'Transparent' },
-                      { id: 'solid', nameAr: 'لون مصمت', nameEn: 'Solid' },
-                      { id: 'blur-fill', nameAr: 'ضبابي مموه', nameEn: 'Blur Fill' },
-                      { id: 'gradient', nameAr: 'تدرج لوني', nameEn: 'Gradient' },
+                      { id: 'transparent', nameAr: t('universalResizerModal.bgTransparent'), nameEn: 'Transparent' },
+                      { id: 'solid', nameAr: t('universalResizerModal.bgSolid'), nameEn: 'Solid' },
+                      { id: 'blur-fill', nameAr: t('universalResizerModal.bgBlur'), nameEn: 'Blur Fill' },
+                      { id: 'gradient', nameAr: t('universalResizerModal.bgGradient'), nameEn: 'Gradient' },
                     ].map((bg) => (
                       <button
                         key={bg.id}
@@ -804,10 +804,10 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                   </label>
                   <div className="grid grid-cols-4 gap-1.5">
                     {[
-                      { id: 'none', nameAr: 'مستطيل / مربع', nameEn: 'None' },
-                      { id: 'rounded', nameAr: 'حواف مستديرة', nameEn: 'Rounded' },
-                      { id: 'squircle', nameAr: 'سكويركل آبل', nameEn: 'Squircle' },
-                      { id: 'circle', nameAr: 'دائري', nameEn: 'Circle' },
+                      { id: 'none', nameAr: t('universalResizerModal.shapeRect'), nameEn: 'None' },
+                      { id: 'rounded', nameAr: t('universalResizerModal.shapeRounded'), nameEn: 'Rounded' },
+                      { id: 'squircle', nameAr: t('universalResizerModal.shapeSquircle'), nameEn: 'Squircle' },
+                      { id: 'circle', nameAr: t('universalResizerModal.shapeCircle'), nameEn: 'Circle' },
                     ].map((shape) => (
                       <button
                         key={shape.id}
@@ -933,7 +933,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                 {/* Category Filter Pills */}
                 <div className="flex flex-wrap gap-1">
                   {[
-                    { id: 'all', nameAr: 'الكل', nameEn: 'All' },
+                    { id: 'all', nameAr: t('universalResizerModal.categoryAll'), nameEn: 'All' },
                     { id: 'google-play', nameAr: 'Google Play', nameEn: 'Google Play' },
                     { id: 'app-store', nameAr: 'App Store', nameEn: 'App Store' },
                     { id: 'web-favicon', nameAr: 'Web & Favicons', nameEn: 'Web & Favicons' },
@@ -1087,7 +1087,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                     {isExportingBatch
                       ? t('universalResizerModal.generatingZipArchive')
                       : isAr
-                      ? `تحميل حزمة المقاسات المحددة (${selectedPresetIds.length} ملفات .ZIP)`
+                      ? t('universalResizerModal.downloadSelected', { count: selectedPresetIds.length })
                       : `Download Selected Sizes (${selectedPresetIds.length} Assets .ZIP)`}
                   </span>
                 </button>
