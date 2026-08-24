@@ -79,7 +79,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
   return (
     <div className="flex flex-col h-full w-full bg-slate-100 relative select-none">
       {/* Top Stage Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 p-3 border-b border-slate-200 bg-white shrink-0">
+      <div className="flex items-center justify-between gap-2 p-2 sm:p-3 border-b border-slate-200 bg-white shrink-0 overflow-x-auto scrollbar-none [&>*]:shrink-0">
         {/* Stage Zoom Controls */}
         <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg p-1">
           <button
@@ -113,7 +113,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         </div>
 
         {/* Guides & Background Viewers */}
-        <div className="flex items-center flex-wrap gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {/* 'Transparent Background' Toggle Switch */}
           <div
             id="wrapper-transparent-background-toggle"
@@ -254,7 +254,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
 
       {/* Main Canvas Display Area */}
       <div
-        className={`flex-1 flex flex-col items-center justify-center p-6 sm:p-10 overflow-auto min-h-[380px] relative ${
+        className={`canvas-query flex-1 flex flex-col items-center justify-start p-3 sm:tall:p-10 overflow-auto min-h-0 relative ${
           stageBg === 'dark'
             ? 'bg-slate-900'
             : stageBg === 'white'
@@ -271,7 +271,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             transformOrigin: 'center center',
             transition: 'transform 0.15s ease-out',
           }}
-          className={`relative flex items-center justify-center shadow-xl rounded-2xl border p-2 ${
+          className={`relative m-auto flex max-w-full max-h-full items-center justify-center shadow-xl rounded-2xl border p-1.5 sm:p-2 ${
             config.bgType === 'transparent'
               ? 'bg-[linear-gradient(45deg,#e2e8f0_25%,transparent_25%),linear-gradient(-45deg,#e2e8f0_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#e2e8f0_75%),linear-gradient(-45deg,transparent_75%,#e2e8f0_75%)] [background-size:16px_16px] [background-position:0_0,0_8px,8px_-8px,-8px_0] bg-white border-slate-300'
               : 'bg-white border-slate-200/80'
@@ -280,7 +280,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
           {/* Main SVG Render Container */}
           <div
             id="logo-svg-canvas-container"
-            className="w-[320px] h-[320px] sm:w-[380px] sm:h-[380px] md:w-[400px] md:h-[400px] relative drop-shadow-md flex items-center justify-center rounded-xl overflow-hidden"
+            className="w-[min(320px,92cqw,92cqh)] h-[min(320px,92cqw,92cqh)] sm:w-[min(380px,92cqw,92cqh)] sm:h-[min(380px,92cqw,92cqh)] md:w-[min(400px,92cqw,92cqh)] md:h-[min(400px,92cqw,92cqh)] relative drop-shadow-md flex items-center justify-center rounded-xl overflow-hidden"
             dangerouslySetInnerHTML={{ __html: svgString }}
           />
 
@@ -304,7 +304,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         </div>
 
         {/* Live Multi-Size Preview Badges (16px, 32px, 128px) */}
-        <div className="mt-8 flex items-end gap-6 sm:gap-8 select-none">
+        <div className="mt-8 hidden sm:tall:flex items-end gap-6 sm:gap-8 select-none">
           <div className="flex flex-col items-center gap-1.5 opacity-60 hover:opacity-100 transition-opacity">
             <div
               className={`w-4 h-4 border border-slate-300 rounded shadow-2xs flex items-center justify-center overflow-hidden ${
@@ -344,10 +344,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
       </div>
 
       {/* Bottom Stage Action Bar */}
-      <div className="border-t border-slate-200 bg-white p-3 flex flex-wrap items-center justify-between gap-3 shrink-0">
+      <div className="border-t border-slate-200 bg-white p-2 sm:p-3 flex items-center justify-between gap-3 shrink-0 overflow-x-auto scrollbar-none [&>*]:shrink-0">
         {/* Canvas Dimension & Mode Info */}
         <div className="flex items-center gap-2 text-xs text-slate-500">
-          <span className="inline-flex items-center rounded-md bg-slate-100 border border-slate-200 px-2.5 py-1 font-mono text-[11px] font-bold text-slate-700">
+          <span className="inline-flex shrink-0 whitespace-nowrap items-center rounded-md bg-slate-100 border border-slate-200 px-2.5 py-1 font-mono text-[11px] font-bold text-slate-700">
             512 × 512 px (Vector Master)
           </span>
           <span className="hidden sm:inline text-slate-300">•</span>
@@ -363,7 +363,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
         </div>
 
         {/* Quick Export & Actions */}
-        <div className="flex items-center flex-wrap gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {/* Copy SVG Code */}
           <button
             id="btn-copy-svg"

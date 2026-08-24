@@ -527,9 +527,9 @@ export function App() {
       />
 
       {/* Main Studio Workspace: Sidebar Controls + Interactive Canvas Stage */}
-      <div className="flex flex-1 flex-col md:flex-row overflow-hidden relative p-2 sm:p-3 gap-2.5 sm:gap-3 bg-slate-100/70">
+      <div className="flex flex-1 min-h-0 flex-col md:flex-row max-md:landscape:flex-row overflow-hidden relative p-2 sm:p-3 gap-2.5 sm:gap-3 bg-slate-100/70">
         {/* Sidebar Customizer Controls */}
-        <aside className="w-full md:w-[380px] lg:w-[410px] h-[45vh] md:h-full shrink-0 order-2 md:order-1 z-10 rounded-2xl overflow-hidden shadow-xs border border-slate-200/80 bg-white">
+        <aside className="w-full max-md:landscape:w-[45%] md:w-[380px] lg:w-[410px] max-md:portrait:basis-[38%] shrink-0 min-h-0 order-2 md:order-1 max-md:landscape:order-1 z-10 rounded-2xl overflow-hidden shadow-xs border border-slate-200/80 bg-white">
           <ControlPanel
             config={config}
             onChange={handleConfigChange}
@@ -539,7 +539,7 @@ export function App() {
         </aside>
 
         {/* Center Live Stage Preview */}
-        <main className="flex-1 h-[55vh] md:h-full order-1 md:order-2 overflow-hidden rounded-2xl shadow-xs border border-slate-200/80 bg-white flex flex-col">
+        <main className="flex-1 min-h-0 min-w-0 order-1 md:order-2 max-md:landscape:order-2 overflow-hidden rounded-2xl shadow-xs border border-slate-200/80 bg-white flex flex-col">
           <CanvasStage
             config={config}
             language={language}

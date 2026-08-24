@@ -49,8 +49,8 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       label={t('policyModal.privacyGooglePlayPolicies')}
-      className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]"
-      overlayClassName="z-50 p-3 sm:p-6"
+      className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-full"
+      overlayClassName="z-50"
     >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 bg-slate-50/90 shrink-0">

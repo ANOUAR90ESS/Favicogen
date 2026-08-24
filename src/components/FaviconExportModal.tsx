@@ -148,8 +148,8 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       label={t('faviconModal.title')}
-      className="flex flex-col w-full max-w-4xl max-h-[90vh] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden"
-      overlayClassName="z-50 p-3 sm:p-6 bg-slate-900/60"
+      className="flex flex-col w-full max-w-4xl max-h-full bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden"
+      overlayClassName="z-50 bg-slate-900/60"
     >
         {/* Modal Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 bg-slate-50/80">

@@ -415,8 +415,8 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       label={t('imageCropTrimModal.cropTrimImage')}
-      className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]"
-      overlayClassName="z-50 p-3 sm:p-5 bg-slate-950/80 overflow-y-auto"
+      className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-full"
+      overlayClassName="z-50 bg-slate-950/80 overflow-y-auto"
     >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 bg-slate-50/90 shrink-0">

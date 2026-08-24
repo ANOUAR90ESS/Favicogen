@@ -369,8 +369,8 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
       isOpen={isOpen}
       onClose={onClose}
       label={t('universalResizerModal.universalImageResizer')}
-      className="flex flex-col w-full max-w-7xl max-h-[95vh] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden"
-      overlayClassName="z-50 p-2 sm:p-4 md:p-6 bg-slate-900/75"
+      className="flex flex-col w-full max-w-7xl max-h-full bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden"
+      overlayClassName="z-50 bg-slate-900/75"
     >
         {/* Modal Top Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 bg-slate-50/90">
