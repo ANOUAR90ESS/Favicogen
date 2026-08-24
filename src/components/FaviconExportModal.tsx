@@ -384,7 +384,7 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-500 line-clamp-1">{spec.description}</p>
+                    <p className="text-[11px] text-slate-500 line-clamp-1">{isAr ? spec.descriptionAr : spec.descriptionEn}</p>
                   </div>
                 </div>
 
