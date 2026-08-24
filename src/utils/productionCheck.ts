@@ -23,12 +23,20 @@ export interface ProductionCheckReport {
     failures: number;
   };
   checks: ComplianceCheckResult[];
-  developerEmail: string;
 }
 
-export function runProductionComplianceCheck(): ProductionCheckReport {
+/** True when the resource responds; used instead of asserting it exists. */
+async function headRequestSucceeds(url: string): Promise<boolean> {
+  try {
+    const response = await fetch(url, { method: 'HEAD' });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+export async function runProductionComplianceCheck(): Promise<ProductionCheckReport> {
   const checks: ComplianceCheckResult[] = [];
-  const developerEmail = 'anwarasbas2018@gmail.com';
 
   // 1. Meta Tags & HTML Head Validation
   const title = document.title || '';
@@ -148,63 +156,69 @@ export function runProductionComplianceCheck(): ProductionCheckReport {
   }
 
   // 3. Privacy Policy & Legal Declarations
-  checks.push({
-    id: 'privacy-policy-file',
-    name: 'Privacy Policy Markdown & Link',
-    category: 'privacy',
-    status: 'pass',
-    details: 'Privacy Policy available at /legal/PRIVACY_POLICY.md and integrated into in-app modal.',
-  });
+  // These used to be hard-coded `pass` entries that asserted the documents
+  // existed without looking. One of them reported the privacy policy was
+  // reachable while its link was in fact 404ing on a case-sensitive host.
+  const legalPaths = ['/legal/PRIVACY_POLICY.md', '/legal/TERMS_OF_SERVICE.md'];
+  for (const legalPath of legalPaths) {
+    const reachable = await headRequestSucceeds(legalPath);
+    checks.push({
+      id: `legal-${legalPath}`,
+      name: `Legal document reachable (${legalPath})`,
+      category: 'privacy',
+      status: reachable ? 'pass' : 'fail',
+      details: reachable
+        ? `${legalPath} responds successfully.`
+        : `${legalPath} did not respond. The in-app modal will show text the published URL does not serve.`,
+      recommendation: reachable ? undefined : `Publish the file at ${legalPath}.`,
+    });
+  }
 
-  checks.push({
-    id: 'terms-service-file',
-    name: 'Terms of Service & Commercial Rights',
-    category: 'privacy',
-    status: 'pass',
-    details: 'Terms of Service available at /legal/TERMS_OF_SERVICE.md granting 100% commercial ownership.',
-  });
+  // 4. Manifest and its declared icons
+  const manifestHref = manifestLink?.getAttribute('href');
+  if (manifestHref) {
+    try {
+      const response = await fetch(manifestHref);
+      const manifest = await response.json();
+      const icons: Array<{ src?: string; sizes?: string }> = manifest.icons || [];
 
-  checks.push({
-    id: 'developer-contact',
-    name: 'Developer Email Declaration',
-    category: 'privacy',
-    status: 'pass',
-    details: `Official developer email registered: ${developerEmail}`,
-  });
+      const missing: string[] = [];
+      for (const icon of icons) {
+        if (icon.src && !(await headRequestSucceeds(icon.src))) missing.push(icon.src);
+      }
 
-  // 4. Google Play Asset Resolution Standards
-  checks.push({
-    id: 'hi-res-icon-spec',
-    name: 'Google Play App Icon (512x512)',
-    category: 'assets',
-    status: 'pass',
-    details: 'Built-in 512x512 high-resolution PNG export engine complies with 32-bit PNG Play Store requirements.',
-  });
+      checks.push({
+        id: 'manifest-icons',
+        name: 'Manifest icons resolve',
+        category: 'assets',
+        status: missing.length === 0 ? 'pass' : 'fail',
+        details:
+          missing.length === 0
+            ? `All ${icons.length} declared icons resolve.`
+            : `Declared but missing: ${missing.join(', ')}. Browsers will refuse to offer installation.`,
+        recommendation: missing.length === 0 ? undefined : 'Add the missing icon files to public/.',
+      });
 
-  checks.push({
-    id: 'feature-graphic-spec',
-    name: 'Feature Graphic (1024x500)',
-    category: 'assets',
-    status: 'pass',
-    details: 'Dedicated 1024x500 Feature Graphic Generator modal complies with Play Store banner specifications.',
-  });
-
-  // 5. Data Safety & COPPA Compliance
-  checks.push({
-    id: 'data-safety-client-side',
-    name: 'Client-Side Processing Declaration',
-    category: 'policies',
-    status: 'pass',
-    details: 'No user images or credentials stored on external database servers (Client-Side First).',
-  });
-
-  checks.push({
-    id: 'coppa-compliance',
-    name: 'COPPA / Children Privacy Compliance',
-    category: 'policies',
-    status: 'pass',
-    details: 'App does not harvest children data or require invasive device telemetry.',
-  });
+      const has512 = icons.some((icon) => icon.sizes?.includes('512'));
+      checks.push({
+        id: 'manifest-512',
+        name: 'Google Play 512x512 icon declared',
+        category: 'assets',
+        status: has512 ? 'pass' : 'warn',
+        details: has512
+          ? 'A 512x512 icon is declared in the manifest.'
+          : 'No 512x512 icon in the manifest; Play Store submissions require one.',
+      });
+    } catch (err) {
+      checks.push({
+        id: 'manifest-parse',
+        name: 'Manifest parses',
+        category: 'manifest',
+        status: 'fail',
+        details: `Could not read ${manifestHref}: ${String(err)}`,
+      });
+    }
+  }
 
   // Calculation
   const failures = checks.filter((c) => c.status === 'fail').length;
@@ -221,7 +235,6 @@ export function runProductionComplianceCheck(): ProductionCheckReport {
       failures,
     },
     checks,
-    developerEmail,
   };
 
   // Console Output Formatting
@@ -250,8 +263,6 @@ export function runProductionComplianceCheck(): ProductionCheckReport {
     console.groupEnd();
   }
 
-  console.info(`📧 Registered Developer Contact: ${developerEmail}`);
-  console.info(`📜 Legal Documentation: /legal/PRIVACY_POLICY.md & /legal/TERMS_OF_SERVICE.md`);
   console.groupEnd();
 
   return report;

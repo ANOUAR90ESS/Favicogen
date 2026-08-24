@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, LayoutGrid, Search, Sparkles } from 'lucide-react';
 import { LogoConfig, SupportedLanguage, Template } from '../types';
@@ -38,7 +38,7 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
     { id: 'badges', nameAr: 'شارات وأختام', nameEn: 'Badges & Seals' },
   ];
 
-  const filteredTemplates = TEMPLATES.filter((tpl) => {
+  const filteredTemplates = useMemo(() => TEMPLATES.filter((tpl) => {
     const matchesCat = selectedCategory === 'all' || tpl.category === selectedCategory;
     const matchesSearch =
       !searchQuery ||
@@ -46,7 +46,22 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
       tpl.nameEn.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tpl.category.includes(searchQuery.toLowerCase());
     return matchesCat && matchesSearch;
-  });
+  }), [selectedCategory, searchQuery]);
+
+  // Each preview is a full SVG render; without this they were regenerated for
+  // every template on every keystroke in the search field.
+  const previews = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const template of filteredTemplates) {
+      const previewConfig: LogoConfig = {
+        ...currentConfig,
+        ...template.config,
+        id: template.id,
+      };
+      map[template.id] = generateSvgString(previewConfig, 300);
+    }
+    return map;
+  }, [filteredTemplates, currentConfig]);
 
   return (
     <Modal
@@ -115,12 +130,7 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar bg-slate-50/30">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredTemplates.map((template) => {
-              const previewConfig: LogoConfig = {
-                ...currentConfig,
-                ...template.config,
-                id: template.id,
-              };
-              const svgPreview = generateSvgString(previewConfig, 300);
+              const svgPreview = previews[template.id];
 
               return (
                 <div

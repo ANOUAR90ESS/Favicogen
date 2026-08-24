@@ -53,9 +53,11 @@ export function App() {
     document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
   }, [language]);
 
-  // Production and Google Play compliance check on application mount
+  // Development-only. Shipping this to users logged a report nobody reads and
+  // put the developer's email in the production bundle.
   useEffect(() => {
-    runProductionComplianceCheck();
+    if (!import.meta.env.DEV) return;
+    void runProductionComplianceCheck();
   }, []);
 
   const [config, setConfig] = useState<LogoConfig>(DEFAULT_LOGO_CONFIG);
@@ -513,7 +515,7 @@ export function App() {
             className="flex items-center gap-1 font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200 transition-colors cursor-pointer"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            <span>{isAr ? '🔒 سياسة الخصوصية و Google Play' : '🔒 Privacy & Google Play'}</span>
+            <span>🔒 {t('nav.privacyAndPlay')}</span>
           </button>
           <span className="hidden md:inline text-slate-400 font-mono">v1.5.0</span>
         </div>

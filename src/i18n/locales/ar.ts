@@ -46,6 +46,7 @@ export const ar = {
     savedSuccessfully: 'تم الحفظ بنجاح',
   },
   nav: {
+    privacyAndPlay: 'سياسة الخصوصية و Google Play',
     smartImport: 'استيراد ذكي',
     appTitle: 'استوديو الشعارات والأيقونات',
     appSubtitle: 'منصة احترافية لتصميم الهوية البصرية والأيقونات',

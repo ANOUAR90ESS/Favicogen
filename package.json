@@ -1,5 +1,5 @@
 {
-  "name": "react-example",
+  "name": "favicogen",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -40,5 +40,6 @@
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.3"
-  }
+  },
+  "description": "Professional logo, favicon and brand asset studio."
 }

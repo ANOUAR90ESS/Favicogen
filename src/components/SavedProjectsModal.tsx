@@ -18,6 +18,7 @@ import {
 } from '../utils/storage';
 import { generateSvgString } from '../utils/canvasRenderer';
 import { parseLogoConfig } from '../utils/configSchema';
+import { sanitizeSvgDocument } from '../utils/svgSanitizer';
 import { Modal } from './Modal';
 
 interface SavedProjectsModalProps {
@@ -169,7 +170,11 @@ export const SavedProjectsModal: React.FC<SavedProjectsModalProps> = ({
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {projects.map((item) => {
-                const svgThumbnail = generateSvgString(item.config, 200);
+                // The thumbnail was already rendered when the project was saved;
+                // regenerating it on every render wasted the stored copy.
+                const svgThumbnail =
+                  sanitizeSvgDocument(item.thumbnailSvg || '') ||
+                  generateSvgString(item.config, 200);
                 const dateStr = new Date(item.updatedAt).toLocaleDateString(
                   isAr ? 'ar-EG' : 'en-US',
                   {

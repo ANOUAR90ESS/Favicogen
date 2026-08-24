@@ -46,6 +46,7 @@ export const en = {
     savedSuccessfully: 'Saved Successfully',
   },
   nav: {
+    privacyAndPlay: 'Privacy & Google Play',
     smartImport: 'Smart Import',
     appTitle: 'Logo & Favicon Studio',
     appSubtitle: 'Professional Branding & Icon Suite',
