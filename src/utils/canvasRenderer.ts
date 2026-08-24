@@ -168,13 +168,34 @@ export function getShapePathD(shape: ShapeMask, size: number, radius = 48): stri
 /**
  * Generates an SVG string representation from the LogoConfig
  */
+/**
+ * Every `id` inside a generated SVG is namespaced with one of these.
+ *
+ * The uid used to be derived from `config.id`, which meant two SVGs rendered
+ * from the same config — a preset grid, the social kit's several banner
+ * sizes, the mockups modal showing one logo eight times — emitted identical
+ * gradient, clip-path and filter ids into one document. The browser resolves
+ * `url(#id)` against the first match in the document, so every copy after the
+ * first silently borrowed the first one's definitions.
+ *
+ * A per-call counter guarantees uniqueness no matter how many renders share a
+ * config or a page.
+ */
+let renderCounter = 0;
+
+function nextRenderId(configId?: string): string {
+  const base = configId ? configId.replace(/[^a-zA-Z0-9_-]/g, '') : 'logo';
+  renderCounter += 1;
+  return `${base}_${renderCounter.toString(36)}`;
+}
+
 export function generateSvgString(config: LogoConfig, targetSize = 512): string {
   const s = 512; // Base coordinate space
   const iconItem = ICON_LIBRARY.find((i) => i.key === config.iconKey);
   const shapePath = getShapePathD(config.shapeMask, s, config.borderRadius);
 
   // Background Gradient / Pattern definitions
-  const uid = config.id ? config.id.replace(/[^a-zA-Z0-9_-]/g, '') : 'main';
+  const uid = nextRenderId(config.id);
   const bgGradId = `bgGrad_${uid}`;
   const iconGradId = `iconGrad_${uid}`;
   const textGradId = `textGrad_${uid}`;
@@ -243,32 +264,32 @@ export function generateSvgString(config: LogoConfig, targetSize = 512): string 
   let patternDef = '';
   if (config.pattern === 'dots') {
     patternDef = `
-      <pattern id="pattern_dots" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+      <pattern id="pattern_dots_${uid}" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
         <circle cx="12" cy="12" r="2" fill="currentColor" fill-opacity="${config.patternOpacity || 0.15}" />
       </pattern>
     `;
   } else if (config.pattern === 'grid') {
     patternDef = `
-      <pattern id="pattern_grid" x="0" y="0" width="32" height="32" patternUnits="userSpaceOnUse">
+      <pattern id="pattern_grid_${uid}" x="0" y="0" width="32" height="32" patternUnits="userSpaceOnUse">
         <path d="M 32 0 L 0 0 0 32" fill="none" stroke="currentColor" stroke-width="1.2" stroke-opacity="${config.patternOpacity || 0.15}" />
       </pattern>
     `;
   } else if (config.pattern === 'stripes') {
     patternDef = `
-      <pattern id="pattern_stripes" width="20" height="20" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+      <pattern id="pattern_stripes_${uid}" width="20" height="20" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
         <line x1="0" y1="0" x2="0" y2="20" stroke="currentColor" stroke-width="3" stroke-opacity="${config.patternOpacity || 0.15}" />
       </pattern>
     `;
   } else if (config.pattern === 'waves') {
     patternDef = `
-      <pattern id="pattern_waves" x="0" y="0" width="40" height="20" patternUnits="userSpaceOnUse">
+      <pattern id="pattern_waves_${uid}" x="0" y="0" width="40" height="20" patternUnits="userSpaceOnUse">
         <path d="M 0 10 Q 10 0, 20 10 T 40 10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-opacity="${config.patternOpacity || 0.15}" />
       </pattern>
     `;
   } else if (config.pattern === 'circuit') {
     const op = config.patternOpacity || 0.15;
     patternDef = `
-      <pattern id="pattern_circuit" x="0" y="0" width="48" height="48" patternUnits="userSpaceOnUse">
+      <pattern id="pattern_circuit_${uid}" x="0" y="0" width="48" height="48" patternUnits="userSpaceOnUse">
         <path d="M 6 6 H 24 V 24 H 42 M 6 42 V 30 H 24 M 30 42 V 30 H 42" fill="none" stroke="currentColor" stroke-width="1.4" stroke-opacity="${op}" />
         <circle cx="24" cy="24" r="2.4" fill="currentColor" fill-opacity="${op}" />
         <circle cx="6" cy="6" r="2" fill="currentColor" fill-opacity="${op}" />
@@ -366,7 +387,7 @@ export function generateSvgString(config: LogoConfig, targetSize = 512): string 
     bgElement = `
       <g clip-path="url(#${clipId})">
         <path d="${shapePath}" fill="${fill}" />
-        ${config.pattern !== 'none' ? `<rect width="${s}" height="${s}" fill="url(#pattern_${config.pattern})" color="#ffffff" />` : ''}
+        ${config.pattern !== 'none' ? `<rect width="${s}" height="${s}" fill="url(#pattern_${config.pattern}_${uid})" color="#ffffff" />` : ''}
         ${config.innerGlow ? `<path d="${shapePath}" fill="none" stroke="${config.innerGlowColor || '#ffffff'}" stroke-width="8" stroke-opacity="0.25" filter="blur(6px)" />` : ''}
       </g>
     `;
@@ -1029,6 +1050,23 @@ ${includePlayStoreFeature ? '- google-play-feature-graphic-1024x500.png / .jpg :
 /**
  * Generates exact 1024x500 Google Play Store Feature Graphic SVG
  */
+/**
+ * Rewrites every `id` in a generated SVG, and every reference to one, so the
+ * document can sit next to other copies of itself without their definitions
+ * colliding.
+ *
+ * The feature-graphic and social-banner generators emit fixed ids (`fg_*`,
+ * `sb_*`), and the social kit renders one banner per preset from the same
+ * config — so before this, every banner after the first resolved
+ * `url(#sb_bgGrad)` against the first banner's gradient.
+ */
+function namespaceSvgIds(svg: string, uid: string): string {
+  return svg
+    .replace(/\bid="([A-Za-z_][\w-]*)"/g, `id="$1_${uid}"`)
+    .replace(/url\(#([A-Za-z_][\w-]*)\)/g, `url(#$1_${uid})`)
+    .replace(/\bhref="#([A-Za-z_][\w-]*)"/g, `href="#$1_${uid}"`);
+}
+
 export function generateFeatureGraphicSvg(
   config: LogoConfig,
   options: FeatureGraphicOptions
@@ -1327,7 +1365,7 @@ export function generateFeatureGraphicSvg(
     `;
   }
 
-  return `
+  return namespaceSvgIds(`
 <svg class="artboard-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
   <defs>
     ${bgGradDef}
@@ -1348,7 +1386,7 @@ export function generateFeatureGraphicSvg(
   <!-- Layout Elements -->
   ${layoutContent}
 </svg>
-`.trim();
+`.trim(), nextRenderId());
 }
 
 export const SOCIAL_MEDIA_PRESETS: SocialMediaPreset[] = [
@@ -1857,7 +1895,7 @@ export function generateSocialBannerSvg(
     }
   }
 
-  return `
+  return namespaceSvgIds(`
 <svg class="artboard-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
   <defs>
     ${bgGradDef}
@@ -1881,7 +1919,7 @@ export function generateSocialBannerSvg(
   <!-- Safe Zone Visualizer -->
   ${safeZoneOverlay}
 </svg>
-`.trim();
+`.trim(), nextRenderId());
 }
 
 /**

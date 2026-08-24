@@ -1,5 +1,12 @@
 import { loadImageElement } from './imageResizer';
 
+/**
+ * Ceiling on how many pixels the trim detector will examine. Roughly a
+ * 900×900 image — plenty to locate an empty margin, and small enough that the
+ * scan stays imperceptible even on a phone.
+ */
+const MAX_SCAN_PIXELS = 800_000;
+
 export interface CropRect {
   x: number;
   y: number;
@@ -36,37 +43,59 @@ export function detectTrimBounds(
   const tolerance = (tolerancePct / 100) * 255;
   const padding = Math.max(0, options.padding ?? 0);
 
-  let canvas: HTMLCanvasElement;
-  let ctx: CanvasRenderingContext2D | null;
+  const sourceWidth =
+    canvasOrImg instanceof HTMLCanvasElement
+      ? canvasOrImg.width
+      : canvasOrImg.naturalWidth || canvasOrImg.width;
+  const sourceHeight =
+    canvasOrImg instanceof HTMLCanvasElement
+      ? canvasOrImg.height
+      : canvasOrImg.naturalHeight || canvasOrImg.height;
 
-  if (canvasOrImg instanceof HTMLCanvasElement) {
-    canvas = canvasOrImg;
-    ctx = canvas.getContext('2d', { willReadFrequently: true });
-  } else {
-    canvas = document.createElement('canvas');
-    canvas.width = canvasOrImg.naturalWidth || canvasOrImg.width;
-    canvas.height = canvasOrImg.naturalHeight || canvasOrImg.height;
-    ctx = canvas.getContext('2d', { willReadFrequently: true });
-    if (ctx) {
-      ctx.drawImage(canvasOrImg, 0, 0);
-    }
-  }
-
-  const width = canvas.width;
-  const height = canvas.height;
-
-  if (!ctx || width === 0 || height === 0) {
+  if (sourceWidth === 0 || sourceHeight === 0) {
     return {
       x: 0,
       y: 0,
-      width,
-      height,
-      originalWidth: width,
-      originalHeight: height,
+      width: sourceWidth,
+      height: sourceHeight,
+      originalWidth: sourceWidth,
+      originalHeight: sourceHeight,
       foundSubject: false,
       trimSavedPixels: 0,
     };
   }
+
+  // A full-resolution scan is O(W×H) on the main thread: a 4000×3000 photo is
+  // 12 million iterations and freezes the UI for seconds, and this runs
+  // automatically on every import. Scanning a bounded copy costs at most
+  // MAX_SCAN_PIXELS regardless of the source, and the bounds it finds are
+  // scaled back up and rounded outward so the crop never eats into the subject.
+  const scanScale = Math.min(
+    1,
+    Math.sqrt(MAX_SCAN_PIXELS / (sourceWidth * sourceHeight))
+  );
+  const width = Math.max(1, Math.round(sourceWidth * scanScale));
+  const height = Math.max(1, Math.round(sourceHeight * scanScale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+  if (!ctx) {
+    return {
+      x: 0,
+      y: 0,
+      width: sourceWidth,
+      height: sourceHeight,
+      originalWidth: sourceWidth,
+      originalHeight: sourceHeight,
+      foundSubject: false,
+      trimSavedPixels: 0,
+    };
+  }
+
+  ctx.drawImage(canvasOrImg, 0, 0, width, height);
 
   const imgData = ctx.getImageData(0, 0, width, height);
   const data = imgData.data;
@@ -156,24 +185,34 @@ export function detectTrimBounds(
     return {
       x: 0,
       y: 0,
-      width,
-      height,
-      originalWidth: width,
-      originalHeight: height,
+      width: sourceWidth,
+      height: sourceHeight,
+      originalWidth: sourceWidth,
+      originalHeight: sourceHeight,
       foundSubject: false,
       trimSavedPixels: 0,
     };
   }
 
-  // Apply padding
-  const clampedMinX = Math.max(0, minX - padding);
-  const clampedMinY = Math.max(0, minY - padding);
-  const clampedMaxX = Math.min(width - 1, maxX + padding);
-  const clampedMaxY = Math.min(height - 1, maxY + padding);
+  // Back to source coordinates. One scan pixel covers 1/scanScale source
+  // pixels, so the bounds are rounded outward by that much before padding is
+  // applied — trimming slightly less is harmless, clipping the subject is not.
+  const inverse = 1 / scanScale;
+  const slack = Math.ceil(inverse);
+
+  const sourceMinX = Math.floor(minX * inverse) - slack;
+  const sourceMinY = Math.floor(minY * inverse) - slack;
+  const sourceMaxX = Math.ceil((maxX + 1) * inverse) - 1 + slack;
+  const sourceMaxY = Math.ceil((maxY + 1) * inverse) - 1 + slack;
+
+  const clampedMinX = Math.max(0, sourceMinX - padding);
+  const clampedMinY = Math.max(0, sourceMinY - padding);
+  const clampedMaxX = Math.min(sourceWidth - 1, sourceMaxX + padding);
+  const clampedMaxY = Math.min(sourceHeight - 1, sourceMaxY + padding);
 
   const finalWidth = clampedMaxX - clampedMinX + 1;
   const finalHeight = clampedMaxY - clampedMinY + 1;
-  const totalPixels = width * height;
+  const totalPixels = sourceWidth * sourceHeight;
   const croppedPixels = finalWidth * finalHeight;
 
   return {
@@ -181,8 +220,8 @@ export function detectTrimBounds(
     y: clampedMinY,
     width: finalWidth,
     height: finalHeight,
-    originalWidth: width,
-    originalHeight: height,
+    originalWidth: sourceWidth,
+    originalHeight: sourceHeight,
     foundSubject: true,
     trimSavedPixels: Math.max(0, totalPixels - croppedPixels),
   };

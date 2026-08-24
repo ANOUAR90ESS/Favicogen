@@ -35,6 +35,8 @@ import { smartImportImage } from './utils/smartImport';
 import { runProductionComplianceCheck } from './utils/productionCheck';
 
 const HISTORY_LIMIT = 30;
+/** Edits to one field closer together than this collapse into a single step. */
+const HISTORY_COALESCE_MS = 700;
 
 export function App() {
   const { t, i18n } = useTranslation();
@@ -130,7 +132,12 @@ export function App() {
     return () => clearTimeout(timer);
   }, [config, isRestoring]);
 
-  // State change with History support & Partial Patch Safety
+  // Typing in a text field fires one change per keystroke. Without coalescing,
+  // a 30-character brand name consumed the entire undo stack and Ctrl+Z became
+  // useless, so consecutive edits that touch the same single field within a
+  // short window replace the previous entry instead of appending to it.
+  const lastEditRef = useRef<{ key: string; at: number } | null>(null);
+
   const handleConfigChange = useCallback(
     (newConfigOrPatch: LogoConfig | Partial<LogoConfig>) => {
       const merged: LogoConfig = {
@@ -140,9 +147,29 @@ export function App() {
         updatedAt: Date.now(),
       };
 
+      // A patch touching exactly one field is a candidate for coalescing;
+      // anything wider (a template, an import) is always its own step.
+      const touched = Object.keys(newConfigOrPatch).filter((key) => key !== 'updatedAt');
+      const editKey = touched.length === 1 ? touched[0] : null;
+      const now = Date.now();
+      const previous = lastEditRef.current;
+      const coalesce =
+        editKey !== null &&
+        previous !== null &&
+        previous.key === editKey &&
+        now - previous.at < HISTORY_COALESCE_MS;
+
+      lastEditRef.current = editKey ? { key: editKey, at: now } : null;
+
       setConfig(merged);
       setHistory((prev) => {
         const entries = prev.entries.slice(0, prev.index + 1);
+
+        if (coalesce && entries.length > 1) {
+          entries[entries.length - 1] = merged;
+          return { entries, index: entries.length - 1 };
+        }
+
         entries.push(merged);
         if (entries.length > HISTORY_LIMIT) entries.shift();
         return { entries, index: entries.length - 1 };
@@ -153,6 +180,7 @@ export function App() {
 
   // Undo / Redo
   const handleUndo = useCallback(() => {
+    lastEditRef.current = null;
     if (history.index <= 0) return;
     const index = history.index - 1;
     setHistory({ entries: history.entries, index });
@@ -160,6 +188,7 @@ export function App() {
   }, [history]);
 
   const handleRedo = useCallback(() => {
+    lastEditRef.current = null;
     if (history.index >= history.entries.length - 1) return;
     const index = history.index + 1;
     setHistory({ entries: history.entries, index });
@@ -269,7 +298,20 @@ export function App() {
   };
 
   // Open interactive Crop & Auto-Trim Modal
+  // Object URLs created for the crop modal are tracked so they can be released;
+  // previously each open leaked one for the lifetime of the page.
+  const cropObjectUrlRef = useRef<string | null>(null);
+
+  const releaseCropObjectUrl = useCallback(() => {
+    if (cropObjectUrlRef.current) {
+      URL.revokeObjectURL(cropObjectUrlRef.current);
+      cropObjectUrlRef.current = null;
+    }
+  }, []);
+
   const handleOpenCropTrim = (customSrc?: string) => {
+    releaseCropObjectUrl();
+
     if (customSrc) {
       setCropImageSource(customSrc);
     } else if (config.uploadedImageSrc) {
@@ -278,10 +320,15 @@ export function App() {
       const svg = generateSvgString(config, 512);
       const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(blob);
+      cropObjectUrlRef.current = url;
       setCropImageSource(url);
     }
+
     setIsCropTrimModalOpen(true);
   };
+
+  // Release the last one when the app unmounts.
+  useEffect(() => releaseCropObjectUrl, [releaseCropObjectUrl]);
 
   // Keyboard Shortcuts (Shift+S for Quick Save, Ctrl+S, Ctrl+Z, Ctrl+Y, Ctrl+E)
   useEffect(() => {
@@ -581,7 +628,10 @@ export function App() {
       {isCropTrimModalOpen && (
         <ImageCropTrimModal
           isOpen={isCropTrimModalOpen}
-          onClose={() => setIsCropTrimModalOpen(false)}
+          onClose={() => {
+            setIsCropTrimModalOpen(false);
+            releaseCropObjectUrl();
+          }}
           initialImageSrc={cropImageSource || config.uploadedImageSrc || ''}
           language={language}
           onApplyCrop={(croppedDataUrl) => {
@@ -593,6 +643,7 @@ export function App() {
               uploadedImageOffsetY: 0,
             });
             setIsCropTrimModalOpen(false);
+            releaseCropObjectUrl();
           }}
         />
       )}
