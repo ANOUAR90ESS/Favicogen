@@ -248,6 +248,14 @@ export const en = {
     },
   },
   stage: {
+    // Short labels for the buttons; the longer strings below are tooltips.
+    labelTransparent: 'Transparent',
+    labelChecker: 'Checker',
+    labelSlate: 'Slate',
+    labelWhite: 'White',
+    labelDark: 'Dark',
+    labelGrid: 'Grid',
+    labelSafeZone: 'Safe zone',
     downloadSvgBtn: 'Export SVG',
     whiteBg: 'White stage',
     slateBg: 'Slate stage',

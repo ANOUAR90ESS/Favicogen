@@ -248,6 +248,14 @@ export const ar = {
     },
   },
   stage: {
+    // Short labels for the buttons; the longer strings below are tooltips.
+    labelTransparent: 'شفاف',
+    labelChecker: 'رقعة',
+    labelSlate: 'رمادي',
+    labelWhite: 'أبيض',
+    labelDark: 'داكن',
+    labelGrid: 'شبكة',
+    labelSafeZone: 'منطقة آمنة',
     downloadSvgBtn: 'تصدير SVG',
     whiteBg: 'خلفية بيضاء',
     slateBg: 'خلفية رمادية',

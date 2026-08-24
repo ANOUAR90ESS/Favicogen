@@ -171,7 +171,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                     : 'border-slate-400 bg-slate-800'
                 }`}
               />
-              <span>{t('stage.transparentBg')}</span>
+              <span>{t('stage.labelTransparent')}</span>
             </span>
           </div>
 
@@ -186,7 +186,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
               }`}
               title={t('stage.transparencyToggle')}
             >
-              <span>{t('stage.transparencyToggle')}</span>
+              <span>{t('stage.labelChecker')}</span>
             </button>
             <button
               onClick={() => setStageBg('slate')}
@@ -197,7 +197,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
               }`}
               title={t('stage.slateBg')}
             >
-              {t('stage.slateBg')}
+              {t('stage.labelSlate')}
             </button>
             <button
               onClick={() => setStageBg('white')}
@@ -208,7 +208,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
               }`}
               title={t('stage.whiteBg')}
             >
-              {t('stage.whiteBg')}
+              {t('stage.labelWhite')}
             </button>
             <button
               onClick={() => setStageBg('dark')}
@@ -219,7 +219,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
               }`}
               title={t('stage.darkToggle')}
             >
-              {t('stage.darkToggle')}
+              {t('stage.labelDark')}
             </button>
           </div>
 
@@ -234,7 +234,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             title={t('stage.gridToggle')}
           >
             <Grid className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{t('stage.gridToggle')}</span>
+            <span className="hidden sm:inline">{t('stage.labelGrid')}</span>
           </button>
 
           <button
@@ -247,7 +247,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             title={t('stage.safeZoneToggle')}
           >
             <Crosshair className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{t('stage.safeZoneToggle')}</span>
+            <span className="hidden sm:inline">{t('stage.labelSafeZone')}</span>
           </button>
         </div>
       </div>
