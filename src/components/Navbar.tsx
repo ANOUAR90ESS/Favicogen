@@ -99,10 +99,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, []);
 
   return (
-    <header className="sticky top-0 z-40 w-full h-14 bg-white border-b border-slate-200 shadow-2xs px-3 sm:px-5 flex items-center justify-between shrink-0">
-      <div className="mx-auto flex w-full items-center justify-between gap-2.5">
+    <header className="sticky top-0 z-40 w-full min-h-14 bg-white border-b border-slate-200 shadow-2xs px-3 sm:px-5 py-1.5 md:py-0 flex items-center justify-between shrink-0">
+      <div className="mx-auto flex w-full flex-wrap md:flex-nowrap items-center justify-between gap-x-2.5 gap-y-1.5">
         {/* Left / Brand Identity */}
-        <div className="flex items-center gap-2.5 min-w-0 shrink max-md:max-w-[42%]">
+        <div className="order-1 flex items-center gap-2.5 min-w-0 shrink max-md:max-w-[42%]">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white font-bold shadow-2xs shrink-0">
             <Layers className="h-4 w-4 text-white" />
           </div>
@@ -136,7 +136,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Center Primary Action Buttons - Sleek & Organized */}
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none min-w-0 flex-1 justify-start md:justify-center [&>*]:shrink-0">
+        <div className="order-2 max-md:tall:order-3 max-md:tall:basis-full flex items-center gap-1.5 overflow-x-auto scrollbar-none min-w-0 flex-1 justify-start md:justify-center [&>*]:shrink-0">
           {/* History Undo / Redo & New Project */}
           <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 shadow-2xs">
             <button
@@ -198,11 +198,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             id="btn-social-media-kit"
             onClick={onOpenSocialMediaKit}
-            className="hidden md:flex items-center gap-1 rounded-lg border border-purple-200 bg-purple-50/70 hover:bg-purple-100/80 px-2 py-1 text-xs font-bold text-purple-700 transition-colors cursor-pointer"
+            className="flex items-center gap-1 rounded-lg border border-purple-200 bg-purple-50/70 hover:bg-purple-100/80 px-2 py-1 text-xs font-bold text-purple-700 transition-colors cursor-pointer"
             title={t('nav.socialKit')}
           >
             <Share2 className="h-3.5 w-3.5 text-purple-600" />
-            <span>{t('nav.socialKit')}</span>
+            <span className="hidden md:tall:inline">{t('nav.socialKit')}</span>
           </button>
 
           {/* Crop & 90° Corner Rounder Button */}
@@ -233,10 +233,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             id="btn-templates"
             onClick={onOpenTemplates}
-            className="hidden sm:flex items-center gap-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
+            className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700 transition-colors cursor-pointer"
+            title={t('nav.templates')}
           >
             <LayoutGrid className="h-3.5 w-3.5 text-indigo-600" />
-            <span>{t('nav.templates')}</span>
+            <span className="hidden md:tall:inline">{t('nav.templates')}</span>
           </button>
 
           {/* Quick Save */}
@@ -320,7 +321,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Right / Export and Language */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="order-3 max-md:tall:order-2 flex items-center gap-1.5 shrink-0">
           {/* Segmented Language Switcher */}
           <div className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 shadow-2xs">
             <button
@@ -361,10 +362,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             id="btn-export-favicon-pack"
             onClick={onOpenFaviconExport}
             className="flex items-center gap-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 px-3 py-1 text-xs font-bold text-white shadow-2xs transition-colors cursor-pointer"
-            title={t('faviconModal.title')}
+            title={t('nav.exportFavicon')}
+            aria-label={t('nav.exportFavicon')}
           >
             <Download className="h-3.5 w-3.5" />
-            <span className="font-sans font-bold">{t('nav.exportFavicon')}</span>
+            <span className="hidden sm:inline font-sans font-bold">{t('nav.exportFavicon')}</span>
           </button>
         </div>
       </div>
