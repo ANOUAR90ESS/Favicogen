@@ -1,6 +1,6 @@
 {
   "name": "Logo & Favicon Studio",
-  "description": "A Logo and Favicon creator: smart auto-trimming of empty borders, interactive rectangle cropping, multi-format exports (SVG, PNG, JPG, WebP, ICO), universal image resizing, Social Media Kit (1:1 profile avatars & 16:9 banners), automatic multi-size favicon package generation (16px to 512px), Google Play Feature Graphic (1024x500), customizable templates, live realistic mockups, and auto-save. Runs fully offline in the browser.",
+  "description": "Professional Logo & Favicon creator featuring AI Logo & YouTube Banner generation from prompt + reference image, smart auto-trimming of empty borders, interactive rectangle cropping, multi-format exports (SVG, PNG, JPG, WebP, ICO), dedicated YouTube channel branding kit (2560x1440 banner, avatar, watermark, safe zones), universal image resizing, Social Media Kit (1:1 profile avatars & 16:9 banners), automatic multi-size favicon package generation (16px to 512px), Google Play Feature Graphic (1024x500), customizable templates, live realistic mockups, and auto-save.",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

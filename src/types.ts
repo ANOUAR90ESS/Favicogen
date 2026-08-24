@@ -144,6 +144,26 @@ export interface LogoConfig {
   
   // Layout Preset
   layout: LayoutStyle;
+
+  // Watermark Configuration
+  watermark?: WatermarkConfig;
+}
+
+export type WatermarkPosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center' | 'tile';
+export type WatermarkType = 'text' | 'logo' | 'custom-image';
+
+export interface WatermarkConfig {
+  enabled: boolean;
+  type: WatermarkType;
+  text: string;
+  customImageSrc?: string;
+  opacity: number; // 0.05 to 1.0 (default 0.25)
+  position: WatermarkPosition;
+  size: number; // scale / size
+  rotation: number; // -180 to 180 (e.g. -30 for diagonal)
+  color: string;
+  fontFamily: string;
+  fontSize: number;
 }
 
 export interface FaviconSpec {
@@ -252,17 +272,54 @@ export interface SocialMediaPreset {
 }
 
 export interface SocialBannerOptions {
-  layout: 'center-hero' | 'split-hero' | 'minimal-clean' | 'mesh-gradient' | 'brand-luxury' | 'badge-callout';
+  layout: 'center-hero' | 'split-hero' | 'minimal-clean' | 'mesh-gradient' | 'brand-luxury' | 'badge-callout' | 'youtube-channel' | 'streamer-gamer';
   title?: string;
   subtitle?: string;
-  bgTheme: 'brand' | 'dark' | 'light' | 'sunset' | 'emerald' | 'cyberpunk' | 'transparent';
+  bgTheme: 'brand' | 'dark' | 'light' | 'sunset' | 'emerald' | 'cyberpunk' | 'transparent' | 'youtube-red' | 'royal-gold';
   customBgColor1?: string;
   customBgColor2?: string;
   showBadge?: boolean;
   badgeText?: string;
   showGlowEffect?: boolean;
   showSafeZone?: boolean;
+  channelHandle?: string; // e.g. @MyChannel
+  uploadSchedule?: string; // e.g. "فيديوهات جديدة كل أسبوع"
+  socialLinks?: string; // e.g. "TikTok • Instagram • X"
+  customBannerImageSrc?: string;
+}
+
+export interface YouTubeKitConfig {
+  channelName: string;
+  channelHandle: string;
+  channelTagline: string;
+  uploadSchedule: string;
+  subscriberCountMock: string;
+  theme: 'youtube-red' | 'dark-obsidian' | 'brand-match' | 'cyber-neon' | 'sunset-glow' | 'emerald-clean' | 'gold-prestige';
+  layout: 'center-focus' | 'split-socials' | 'clean-minimal' | 'gamer-creator';
+  showSafeZones: boolean;
+  showSubscribeButton: boolean;
+  showSocialBadges: boolean;
+  showVerifiedBadge: boolean;
+}
+
+export interface AIGenerationRequest {
+  prompt: string;
+  referenceImage?: string;
+  style?: string;
+  aspectRatio?: '1:1' | '16:9' | '4:3' | '9:16';
+  target?: 'logo' | 'banner' | 'avatar';
+}
+
+export interface AIGenerationResponse {
+  success: boolean;
+  imageUrl?: string;
+  prompt?: string;
+  style?: string;
+  error?: string;
+  details?: string;
+  isApiKeyMissing?: boolean;
 }
 
 export type SupportedLanguage = 'ar' | 'en';
+
 

@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import { CheckCircle2, X } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { ControlPanel } from './components/ControlPanel';
 import { CanvasStage } from './components/CanvasStage';
@@ -10,6 +12,9 @@ import { FeatureGraphicModal } from './components/FeatureGraphicModal';
 import { UniversalImageResizerModal } from './components/UniversalImageResizerModal';
 import { SocialMediaKitModal } from './components/SocialMediaKitModal';
 import { ImageCropTrimModal } from './components/ImageCropTrimModal';
+import { AILogoGeneratorModal } from './components/AILogoGeneratorModal';
+import { YouTubeKitModal } from './components/YouTubeKitModal';
+import { GooglePlayPolicyModal } from './components/GooglePlayPolicyModal';
 import { LogoConfig, SupportedLanguage, Template } from './types';
 import { DEFAULT_LOGO_CONFIG } from './utils/templates';
 import {
@@ -19,22 +24,28 @@ import {
 } from './utils/storage';
 import { generateSvgString } from './utils/canvasRenderer';
 import { smartImportImage, readFileAsDataUrl } from './utils/smartImport';
+import { runProductionComplianceCheck } from './utils/productionCheck';
 
 const HISTORY_LIMIT = 30;
 
 export function App() {
-  const [language, setLanguage] = useState<SupportedLanguage>(() => {
-    const saved = localStorage.getItem('logo_studio_lang');
-    return (saved as SupportedLanguage) || 'ar';
-  });
-
+  const { t, i18n } = useTranslation();
+  const language = (i18n.language as SupportedLanguage) || 'en';
   const isAr = language === 'ar';
+
+  useEffect(() => {
+    document.documentElement.lang = language;
+    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+  }, [language]);
+
+  // Production and Google Play compliance check on application mount
+  useEffect(() => {
+    runProductionComplianceCheck();
+  }, []);
 
   const [config, setConfig] = useState<LogoConfig>(() => loadCurrentProject());
 
-  // Undo stack and cursor live in one state value so a single pure updater can
-  // move both. Splitting them let StrictMode's double-invoked updaters push a
-  // duplicate entry per edit, which made every undo need two presses.
+  // Undo stack and cursor live in one state value
   const [history, setHistory] = useState<{ entries: LogoConfig[]; index: number }>(() => ({
     entries: [config],
     index: 0,
@@ -45,21 +56,29 @@ export function App() {
   const [isTemplatesOpen, setIsTemplatesOpen] = useState<boolean>(false);
   const [isMockupsOpen, setIsMockupsOpen] = useState<boolean>(false);
   const [isSocialMediaKitOpen, setIsSocialMediaKitOpen] = useState<boolean>(false);
+  const [isYouTubeKitOpen, setIsYouTubeKitOpen] = useState<boolean>(false);
+  const [isAIGeneratorOpen, setIsAIGeneratorOpen] = useState<boolean>(false);
   const [isCropTrimModalOpen, setIsCropTrimModalOpen] = useState<boolean>(false);
   const [cropImageSource, setCropImageSource] = useState<string | null>(null);
   const [isFaviconExportOpen, setIsFaviconExportOpen] = useState<boolean>(false);
   const [isFeatureGraphicOpen, setIsFeatureGraphicOpen] = useState<boolean>(false);
   const [isUniversalResizerOpen, setIsUniversalResizerOpen] = useState<boolean>(false);
   const [isSavedProjectsOpen, setIsSavedProjectsOpen] = useState<boolean>(false);
+  const [isGooglePlayPolicyOpen, setIsGooglePlayPolicyOpen] = useState<boolean>(false);
+  const [saveToast, setSaveToast] = useState<{
+    id: number;
+    title: string;
+    projectName: string;
+  } | null>(null);
 
   // Latest config, readable from callbacks without re-creating them on every edit.
   const configRef = useRef<LogoConfig>(config);
   configRef.current = config;
 
-  // Update language setting
+  // Toggle language with i18next and persistence
   const toggleLanguage = () => {
     const nextLang = language === 'ar' ? 'en' : 'ar';
-    setLanguage(nextLang);
+    i18n.changeLanguage(nextLang);
     localStorage.setItem('logo_studio_lang', nextLang);
   };
 
@@ -109,11 +128,31 @@ export function App() {
   }, [history]);
 
   // Quick Manual Save
-  const handleQuickSave = () => {
-    const thumb = generateSvgString(config, 200);
-    saveProjectToList(config, thumb);
-    setLastSavedAt(Date.now());
-  };
+  const handleQuickSave = useCallback(() => {
+    const currentConf = configRef.current;
+    const thumb = generateSvgString(currentConf, 200);
+    saveProjectToList(currentConf, thumb);
+    const now = Date.now();
+    setLastSavedAt(now);
+
+    setSaveToast({
+      id: now,
+      title: t('common.saveSuccess'),
+      projectName:
+        currentConf.text ||
+        currentConf.name ||
+        t('common.untitled'),
+    });
+  }, [t]);
+
+  // Auto dismiss save toast
+  useEffect(() => {
+    if (!saveToast) return;
+    const timer = setTimeout(() => {
+      setSaveToast(null);
+    }, 2800);
+    return () => clearTimeout(timer);
+  }, [saveToast]);
 
   // Apply Template
   const handleSelectTemplate = (template: Template) => {
@@ -121,7 +160,7 @@ export function App() {
       ...config,
       ...template.config,
       id: 'proj_' + Date.now(),
-      name: template.nameAr,
+      name: isAr ? template.nameAr : template.nameEn,
     };
     handleConfigChange(merged);
   };
@@ -137,8 +176,7 @@ export function App() {
 
   // ---------------------------------------------------------------------
   // One-shot pipeline: pick an image -> trim its empty border -> fit it
-  // edge-to-edge -> open the export package. Previously each of those steps
-  // was its own disconnected button.
+  // edge-to-edge -> open the export package.
   // ---------------------------------------------------------------------
   const smartImportInputRef = useRef<HTMLInputElement>(null);
   const [importStatus, setImportStatus] = useState<string | null>(null);
@@ -148,7 +186,7 @@ export function App() {
     e.target.value = '';
     if (!file) return;
 
-    setImportStatus(isAr ? 'جارٍ قص الحواف وتجهيز المقاسات…' : 'Trimming borders & preparing sizes…');
+    setImportStatus(t('navbar.smartImport'));
     try {
       const dataUrl = await readFileAsDataUrl(file);
       const result = await smartImportImage(dataUrl, { autoTrim: true });
@@ -161,12 +199,8 @@ export function App() {
 
       setImportStatus(
         result.trimmedPercent > 0
-          ? isAr
-            ? `تم قص ${result.trimmedPercent}% من الحواف الفارغة — جاهز للتصدير`
-            : `Trimmed ${result.trimmedPercent}% of empty border — ready to export`
-          : isAr
-          ? 'الصورة جاهزة للتصدير'
-          : 'Image ready to export'
+          ? `${t('imageEditor.cropTrim')} (${result.trimmedPercent}%)`
+          : t('common.ready')
       );
 
       // Hand straight over to the package export.
@@ -194,22 +228,58 @@ export function App() {
     setIsCropTrimModalOpen(true);
   };
 
-  // Keyboard Shortcuts (Ctrl+Z, Ctrl+Y, Ctrl+S, Ctrl+E)
+  // Keyboard Shortcuts (Shift+S for Quick Save, Ctrl+S, Ctrl+Z, Ctrl+Y, Ctrl+E)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        handleUndo();
-      } else if (
-        (e.metaKey || e.ctrlKey) &&
-        (e.key === 'y' || (e.key === 'z' && e.shiftKey))
+      const target = e.target as HTMLElement | null;
+      const isInput =
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable);
+
+      // Global Shift + S shortcut for Quick Save
+      if (
+        e.shiftKey &&
+        (e.key === 'S' || e.key === 's') &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey
       ) {
-        e.preventDefault();
-        handleRedo();
-      } else if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        if (!isInput) {
+          e.preventDefault();
+          handleQuickSave();
+          return;
+        }
+      }
+
+      // Standard Ctrl+S / Cmd+S for Quick Save
+      if ((e.metaKey || e.ctrlKey) && (e.key === 's' || e.key === 'S') && !e.shiftKey) {
         e.preventDefault();
         handleQuickSave();
-      } else if ((e.metaKey || e.ctrlKey) && e.key === 'e') {
+        return;
+      }
+
+      // Undo (Ctrl/Cmd + Z)
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'Z') && !e.shiftKey) {
+        if (!isInput) {
+          e.preventDefault();
+          handleUndo();
+        }
+      }
+      // Redo (Ctrl/Cmd + Y or Ctrl/Cmd + Shift + Z)
+      else if (
+        (e.metaKey || e.ctrlKey) &&
+        (e.key === 'y' || e.key === 'Y' || ((e.key === 'z' || e.key === 'Z') && e.shiftKey))
+      ) {
+        if (!isInput) {
+          e.preventDefault();
+          handleRedo();
+        }
+      }
+      // Favicon Export (Ctrl/Cmd + E)
+      else if ((e.metaKey || e.ctrlKey) && (e.key === 'e' || e.key === 'E')) {
         e.preventDefault();
         setIsFaviconExportOpen(true);
       }
@@ -217,9 +287,9 @@ export function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleUndo, handleRedo, config]);
+  }, [handleUndo, handleRedo, handleQuickSave]);
 
-  const displayProjectName = config.text || config.name || (isAr ? 'مشروع_بدون_عنوان' : 'Untitled_Design');
+  const displayProjectName = config.text || config.name || t('common.untitled');
 
   return (
     <div
@@ -254,12 +324,15 @@ export function App() {
         onOpenTemplates={() => setIsTemplatesOpen(true)}
         onOpenMockups={() => setIsMockupsOpen(true)}
         onOpenSocialMediaKit={() => setIsSocialMediaKitOpen(true)}
+        onOpenYouTubeKit={() => setIsYouTubeKitOpen(true)}
+        onOpenAIGenerator={() => setIsAIGeneratorOpen(true)}
         onOpenCropTrim={() => handleOpenCropTrim()}
         onSmartImport={() => smartImportInputRef.current?.click()}
         onOpenFaviconExport={() => setIsFaviconExportOpen(true)}
         onOpenFeatureGraphic={() => setIsFeatureGraphicOpen(true)}
         onOpenUniversalResizer={() => setIsUniversalResizerOpen(true)}
         onOpenSavedProjects={() => setIsSavedProjectsOpen(true)}
+        onOpenGooglePlayPolicy={() => setIsGooglePlayPolicyOpen(true)}
         onQuickSave={handleQuickSave}
         lastSavedAt={lastSavedAt}
         language={language}
@@ -267,9 +340,9 @@ export function App() {
       />
 
       {/* Main Studio Workspace: Sidebar Controls + Interactive Canvas Stage */}
-      <div className="flex flex-1 flex-col md:flex-row overflow-hidden relative">
+      <div className="flex flex-1 flex-col md:flex-row overflow-hidden relative p-2 sm:p-3 gap-2.5 sm:gap-3 bg-slate-100/70">
         {/* Sidebar Customizer Controls */}
-        <aside className="w-full md:w-[380px] lg:w-[410px] h-[45vh] md:h-full shrink-0 order-2 md:order-1 z-10">
+        <aside className="w-full md:w-[380px] lg:w-[410px] h-[45vh] md:h-full shrink-0 order-2 md:order-1 z-10 rounded-2xl overflow-hidden shadow-xs border border-slate-200/80 bg-white">
           <ControlPanel
             config={config}
             onChange={handleConfigChange}
@@ -279,7 +352,7 @@ export function App() {
         </aside>
 
         {/* Center Live Stage Preview */}
-        <main className="flex-1 h-[55vh] md:h-full order-1 md:order-2 overflow-hidden">
+        <main className="flex-1 h-[55vh] md:h-full order-1 md:order-2 overflow-hidden rounded-2xl shadow-xs border border-slate-200/80 bg-white flex flex-col">
           <CanvasStage
             config={config}
             language={language}
@@ -288,30 +361,78 @@ export function App() {
             onOpenMockups={() => setIsMockupsOpen(true)}
             onOpenSocialMediaKit={() => setIsSocialMediaKitOpen(true)}
             onOpenCropTrimModal={() => handleOpenCropTrim()}
-                onOpenFeatureGraphic={() => setIsFeatureGraphicOpen(true)}
+            onOpenFeatureGraphic={() => setIsFeatureGraphicOpen(true)}
             onOpenUniversalResizer={() => setIsUniversalResizerOpen(true)}
           />
         </main>
       </div>
 
       {/* Bottom Professional Polish Footer Bar */}
-      <footer className="h-9 bg-white border-t border-slate-200 flex items-center justify-between px-4 sm:px-6 text-[11px] font-medium text-slate-500 shrink-0">
-        <div className="flex items-center gap-4">
-          <span>{isAr ? 'المشروع:' : 'Project:'} <strong className="text-slate-700 font-semibold">{displayProjectName}</strong></span>
-          <span className="hidden sm:inline text-slate-300">|</span>
-          <span className="hidden sm:inline font-mono">{isAr ? 'الدقة:' : 'Resolution:'} 512 × 512 px</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1.5 font-semibold text-slate-600">
-            <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-            {isAr ? 'مزامنة السحابة مفعلة' : 'Cloud Sync Enabled'}
+      <footer className="h-9 bg-white border-t border-slate-200 flex items-center justify-between px-3 sm:px-6 text-[11px] font-medium text-slate-500 shrink-0">
+        <div className="flex items-center gap-3">
+          <span className="truncate max-w-[140px] sm:max-w-none">
+            {t('navbar.projectsVault')}: <strong className="text-slate-700 font-semibold">{displayProjectName}</strong>
           </span>
-          <span className="hidden sm:inline text-slate-400 font-mono">v1.5.0</span>
+          <span className="hidden sm:inline text-slate-300">|</span>
+          <span className="hidden sm:inline font-mono">{t('common.resolution')}: 512 × 512 px</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsGooglePlayPolicyOpen(true)}
+            className="flex items-center gap-1 font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200 transition-colors cursor-pointer"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span>{isAr ? '🔒 سياسة الخصوصية و Google Play' : '🔒 Privacy & Google Play'}</span>
+          </button>
+          <span className="hidden md:inline text-slate-400 font-mono">v1.5.0</span>
         </div>
       </footer>
 
       {/* MODALS */}
-      {/* 1. Universal Image Resizer & Multi-Size Converter (Any Dimension & Tamaño) */}
+      {/* 0. AI Logo & YouTube Banner Generator with Gemini AI */}
+      <AILogoGeneratorModal
+        isOpen={isAIGeneratorOpen}
+        onClose={() => setIsAIGeneratorOpen(false)}
+        language={language}
+        config={config}
+        onApplyLogo={(updates) => {
+          handleConfigChange(updates);
+        }}
+        onOpenYouTubeKit={() => {
+          setIsAIGeneratorOpen(false);
+          setIsYouTubeKitOpen(true);
+        }}
+        onOpenFaviconExport={() => {
+          setIsAIGeneratorOpen(false);
+          setIsFaviconExportOpen(true);
+        }}
+        onOpenFeatureGraphic={() => {
+          setIsAIGeneratorOpen(false);
+          setIsFeatureGraphicOpen(true);
+        }}
+        onOpenUniversalResizer={() => {
+          setIsAIGeneratorOpen(false);
+          setIsUniversalResizerOpen(true);
+        }}
+        onOpenMockups={() => {
+          setIsAIGeneratorOpen(false);
+          setIsMockupsOpen(true);
+        }}
+      />
+
+      {/* 0. Dedicated YouTube Channel Branding Studio */}
+      <YouTubeKitModal
+        isOpen={isYouTubeKitOpen}
+        onClose={() => setIsYouTubeKitOpen(false)}
+        config={config}
+        lang={language}
+        onOpenAIGenerator={() => {
+          setIsYouTubeKitOpen(false);
+          setIsAIGeneratorOpen(true);
+        }}
+      />
+
+      {/* 1. Universal Image Resizer & Multi-Size Converter */}
       <UniversalImageResizerModal
         isOpen={isUniversalResizerOpen}
         onClose={() => setIsUniversalResizerOpen(false)}
@@ -327,15 +448,23 @@ export function App() {
         language={language}
       />
 
-      {/* 3. Social Media Design Kit (1:1 Profiles & 16:9 Banners) */}
+      {/* 3. Social Media Design Kit */}
       <SocialMediaKitModal
         isOpen={isSocialMediaKitOpen}
         onClose={() => setIsSocialMediaKitOpen(false)}
         config={config}
         lang={language}
+        onOpenYouTubeKit={() => {
+          setIsSocialMediaKitOpen(false);
+          setIsYouTubeKitOpen(true);
+        }}
+        onOpenAIGenerator={() => {
+          setIsSocialMediaKitOpen(false);
+          setIsAIGeneratorOpen(true);
+        }}
       />
 
-      {/* 4. Google Play Feature Graphic (1024x500 px) Modal */}
+      {/* 4. Google Play Feature Graphic Modal */}
       <FeatureGraphicModal
         isOpen={isFeatureGraphicOpen}
         onClose={() => setIsFeatureGraphicOpen(false)}
@@ -343,7 +472,7 @@ export function App() {
         language={language}
       />
 
-      {/* 3. Templates Gallery */}
+      {/* 5. Templates Gallery */}
       <TemplateGalleryModal
         isOpen={isTemplatesOpen}
         onClose={() => setIsTemplatesOpen(false)}
@@ -352,7 +481,7 @@ export function App() {
         language={language}
       />
 
-      {/* 3. Realistic Live Mockups (Browser Tab, Mobile, Google) */}
+      {/* 6. Realistic Live Mockups */}
       <LiveMockupsModal
         isOpen={isMockupsOpen}
         onClose={() => setIsMockupsOpen(false)}
@@ -360,7 +489,7 @@ export function App() {
         language={language}
       />
 
-      {/* 6. Saved Projects Vault */}
+      {/* 7. Saved Projects Vault */}
       <SavedProjectsModal
         isOpen={isSavedProjectsOpen}
         onClose={() => setIsSavedProjectsOpen(false)}
@@ -369,7 +498,7 @@ export function App() {
         language={language}
       />
 
-      {/* 7. Image Auto-Trim & Manual Crop Modal */}
+      {/* 8. Image Auto-Trim & Manual Crop Modal */}
       {isCropTrimModalOpen && (
         <ImageCropTrimModal
           isOpen={isCropTrimModalOpen}
@@ -387,6 +516,47 @@ export function App() {
             setIsCropTrimModalOpen(false);
           }}
         />
+      )}
+
+      {/* 9. Google Play Compliance & Privacy Policy Modal */}
+      <GooglePlayPolicyModal
+        isOpen={isGooglePlayPolicyOpen}
+        onClose={() => setIsGooglePlayPolicyOpen(false)}
+        language={language}
+      />
+
+      {/* Quick Save Toast Notification */}
+      {saveToast && (
+        <div
+          id="toast-quick-save"
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-6 right-6 z-[80] flex items-center gap-3 px-4 py-3 bg-slate-900/95 text-white rounded-xl shadow-2xl border border-emerald-500/40 backdrop-blur-md animate-in fade-in slide-in-from-bottom-3 duration-200"
+        >
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
+            <CheckCircle2 className="h-4 w-4" />
+          </div>
+          <div className="flex flex-col text-start pr-1">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-white tracking-wide">
+                {saveToast.title}
+              </span>
+              <span className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-slate-800 text-emerald-400 border border-slate-700">
+                Shift + S
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-300 max-w-[220px] truncate">
+              {saveToast.projectName}
+            </p>
+          </div>
+          <button
+            onClick={() => setSaveToast(null)}
+            className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
+            aria-label={t('common.close')}
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
       )}
     </div>
   );

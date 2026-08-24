@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { X, LayoutGrid, Search, Sparkles, Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { X, LayoutGrid, Search, Sparkles } from 'lucide-react';
 import { LogoConfig, SupportedLanguage, Template } from '../types';
 import { TEMPLATES } from '../utils/templates';
 import { generateSvgString } from '../utils/canvasRenderer';
@@ -9,7 +10,7 @@ interface TemplateGalleryModalProps {
   onClose: () => void;
   currentConfig: LogoConfig;
   onSelectTemplate: (template: Template) => void;
-  language: SupportedLanguage;
+  language?: SupportedLanguage;
 }
 
 export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
@@ -17,9 +18,9 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
   onClose,
   currentConfig,
   onSelectTemplate,
-  language,
 }) => {
-  const isAr = language === 'ar';
+  const { t, i18n } = useTranslation();
+  const isAr = i18n.language === 'ar';
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -59,19 +60,17 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                {isAr ? 'مكتبة القوالب الجاهزة والتصاميم' : 'Template Library'}
+                {t('templateModal.title')}
               </h2>
               <p className="text-xs text-slate-500">
-                {isAr
-                  ? 'اختر من بين تصاميم احترافية متكاملة وقابلة للتخصيص بنقرة واحدة'
-                  : 'Choose from professionally crafted templates fully customizable with one click'}
+                {t('templateModal.subtitle')}
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-lg transition-colors"
+            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-lg transition-colors cursor-pointer"
           >
             <X className="h-5 w-5" />
           </button>
@@ -85,7 +84,7 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={isAr ? 'ابحث عن قالب أو مجال...' : 'Search template or field...'}
+              placeholder={t('templateModal.searchPlaceholder')}
               className="w-full bg-white border border-slate-200 rounded-xl pr-9 pl-3 py-2 text-xs font-medium text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none shadow-2xs"
             />
           </div>
@@ -96,7 +95,7 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3 py-1.5 text-xs rounded-lg font-bold transition-all shrink-0 ${
+                className={`px-3 py-1.5 text-xs rounded-lg font-bold transition-all shrink-0 cursor-pointer ${
                   selectedCategory === cat.id
                     ? 'bg-indigo-600 text-white shadow-xs'
                     : 'bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100/70 shadow-2xs'
@@ -148,10 +147,10 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
                         onSelectTemplate(template);
                         onClose();
                       }}
-                      className="flex items-center gap-1 rounded-xl bg-indigo-50 border border-indigo-200 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all shadow-2xs"
+                      className="flex items-center gap-1 rounded-xl bg-indigo-50 border border-indigo-200 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all shadow-2xs cursor-pointer"
                     >
                       <Sparkles className="h-3 w-3" />
-                      <span>{isAr ? 'استخدام' : 'Apply'}</span>
+                      <span>{t('templateModal.apply')}</span>
                     </button>
                   </div>
                 </div>

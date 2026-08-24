@@ -2,18 +2,272 @@ import express, { Request, Response } from "express";
 import path from "path";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
+import { GoogleGenAI } from "@google/genai";
 
 dotenv.config();
+
+// Lazy Gemini client helper
+let aiClient: GoogleGenAI | null = null;
+function getGenAI(): GoogleGenAI {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "GEMINI_API_KEY is not configured. Please add your Gemini API key to .env or environment settings."
+    );
+  }
+  if (!aiClient) {
+    aiClient = new GoogleGenAI({ 
+      apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        }
+      }
+    });
+  }
+  return aiClient;
+}
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  app.use(express.json());
+  // Allow larger payloads for base64 reference images
+  app.use(express.json({ limit: "25mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 
   // Health check
   app.get("/api/health", (_req: Request, res: Response) => {
-    res.json({ status: "ok", timestamp: new Date().toISOString() });
+    res.json({
+      status: "ok",
+      hasGeminiKey: Boolean(process.env.GEMINI_API_KEY),
+      timestamp: new Date().toISOString(),
+    });
+  });
+
+  // AI Image Generation Endpoint (from Prompt + Optional Reference Image)
+  app.post("/api/ai/generate-logo", async (req: Request, res: Response) => {
+    try {
+      const {
+        prompt,
+        referenceImage,
+        style = "modern-vector",
+        aspectRatio = "1:1",
+        target = "logo", // 'logo' | 'banner' | 'avatar'
+      } = req.body;
+
+      if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
+        return res.status(400).json({
+          success: false,
+          error: "Prompt is required to generate an image.",
+        });
+      }
+
+      if (!process.env.GEMINI_API_KEY) {
+        return res.status(400).json({
+          success: false,
+          error:
+            "GEMINI_API_KEY is not set. Please configure your API key to generate logos with AI.",
+          isApiKeyMissing: true,
+        });
+      }
+
+      const ai = getGenAI();
+
+      // Refined prompt tailored for logos, favicons, and channel branding
+      let styleGuidance = "";
+      switch (style) {
+        case "minimal":
+          styleGuidance =
+            "minimalist, clean lines, flat vector design, iconic silhouette, isolated on solid or clean background, no clutter, modern corporate identity style";
+          break;
+        case "modern-3d":
+          styleGuidance =
+            "modern 3D glossy render, smooth gradient shading, depth, soft ambient occlusion, clean icon, high visual contrast, digital product app icon";
+          break;
+        case "flat-vector":
+          styleGuidance =
+            "pure flat 2D vector graphic, sharp edges, bold geometric shapes, Swiss graphic design style, vibrant harmonious color palette";
+          break;
+        case "luxury-gold":
+          styleGuidance =
+            "premium luxury brand emblem, gold metallic foil accents, dark obsidian background, elegant intricate geometry, prestige identity";
+          break;
+        case "cyberpunk":
+          styleGuidance =
+            "cyberpunk neon glow, futuristic tech icon, vibrant cyan and magenta lights, dark sleek aesthetic, gaming mascot or synthwave logo";
+          break;
+        case "arabesque":
+          styleGuidance =
+            "modern Arabic calligraphy and geometric arabesque ornament, luxury modern Middle Eastern aesthetic, gold and deep royal teal/indigo";
+          break;
+        case "mascot":
+          styleGuidance =
+            "charismatic mascot character logo, dynamic stylized vector, esports and YouTube gaming branding, high energy and bold outlines";
+          break;
+        case "youtube-banner":
+          styleGuidance =
+            "wide cinematic YouTube channel banner header, 16:9 panoramic wallpaper, central focus for mobile safe area, epic lighting, professional streamer and creator background";
+          break;
+        default:
+          styleGuidance =
+            "professional logo icon, centered, clean background, balanced negative space, high resolution vector aesthetic";
+      }
+
+      const fullPrompt = `${prompt.trim()}. Style details: ${styleGuidance}. Centered subject, clear focal point, professional graphic design masterpiece.`;
+
+      // Build contents parts
+      const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [];
+
+      // If user uploaded a reference image, parse base64
+      if (referenceImage && typeof referenceImage === "string") {
+        const match = referenceImage.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+        if (match) {
+          parts.push({
+            inlineData: {
+              mimeType: match[1],
+              data: match[2],
+            },
+          });
+        }
+      }
+
+      // Add text prompt
+      parts.push({
+        text: fullPrompt,
+      });
+
+      // Select aspect ratio
+      const validAspectRatios: Array<"1:1" | "16:9" | "4:3" | "3:4" | "9:16"> = [
+        "1:1",
+        "16:9",
+        "4:3",
+        "3:4",
+        "9:16",
+      ];
+      const selectedRatio = validAspectRatios.includes(aspectRatio) ? aspectRatio : "1:1";
+
+      // Call Gemini Image generation model
+      const response = await ai.models.generateContent({
+        model: "gemini-3.1-flash-image",
+        contents: {
+          parts: parts as any,
+        },
+        config: {
+          imageConfig: {
+            aspectRatio: selectedRatio,
+            imageSize: "1K",
+          },
+        },
+      });
+
+      let generatedDataUrl: string | null = null;
+      let textExplanation = "";
+
+      if (response.candidates && response.candidates[0]?.content?.parts) {
+        for (const part of response.candidates[0].content.parts) {
+          if (part.inlineData) {
+            const mime = part.inlineData.mimeType || "image/png";
+            generatedDataUrl = `data:${mime};base64,${part.inlineData.data}`;
+          } else if (part.text) {
+            textExplanation += part.text;
+          }
+        }
+      }
+
+      if (!generatedDataUrl) {
+        return res.status(500).json({
+          success: false,
+          error: "No image was returned by the AI model. Please try a different prompt.",
+          details: textExplanation,
+        });
+      }
+
+      return res.json({
+        success: true,
+        imageUrl: generatedDataUrl,
+        prompt: prompt.trim(),
+        style,
+        aspectRatio: selectedRatio,
+      });
+    } catch (err: any) {
+      console.error("AI Logo generation error:", err);
+      const errorMessage = err?.message || "";
+      if (errorMessage.includes("401") || errorMessage.includes("invalid authentication credentials") || errorMessage.includes("ACCESS_TOKEN_TYPE_UNSUPPORTED")) {
+        return res.status(401).json({
+          success: false,
+          error: "Your Gemini API Key appears to be invalid or unsupported. Please go to Settings > Secrets and update your GEMINI_API_KEY.",
+        });
+      }
+      return res.status(500).json({
+        success: false,
+        error: "Failed to generate image with AI. " + (err?.message || "Please verify your prompt or API key."),
+      });
+    }
+  });
+
+  // AI Prompt Enhancer Endpoint (Refines simple descriptions into rich prompts)
+  app.post("/api/ai/enhance-prompt", async (req: Request, res: Response) => {
+    try {
+      const { prompt, language = "ar", type = "logo" } = req.body;
+
+      if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
+        return res.status(400).json({
+          success: false,
+          error: "Prompt is required.",
+        });
+      }
+
+      if (!process.env.GEMINI_API_KEY) {
+        return res.status(400).json({
+          success: false,
+          error: "GEMINI_API_KEY is not configured.",
+          isApiKeyMissing: true,
+        });
+      }
+
+      const ai = getGenAI();
+
+      const systemPrompt = `You are a world-class graphic designer and brand identity specialist.
+Your task is to take a user's short or basic prompt for a ${type === "banner" ? "YouTube channel banner (16:9)" : "logo / favicon icon (1:1)"} and expand it into a vivid, descriptive prompt that yields stunning graphic design results when passed to an image generation model.
+- Keep the enhanced prompt focused on visual elements, shapes, colors, geometry, lighting, and composition.
+- Return output strictly in JSON format with fields:
+  "enhancedPromptEn": English version of the enhanced prompt optimized for image generation models,
+  "enhancedPromptAr": Arabic translation of the enhanced prompt,
+  "suggestedColors": array of 2 to 4 hex color strings (e.g. ["#4f46e5", "#06b6d4"]),
+  "suggestedTitle": short recommended brand or channel name (1-3 words),
+  "suggestedTagline": short catchy slogan or tagline (3-6 words)`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.7-flash",
+        contents: `User idea: "${prompt.trim()}". Target language preference: ${language}. Enhance this prompt for a professional ${type}.`,
+        config: {
+          systemInstruction: systemPrompt,
+          responseMimeType: "application/json",
+        },
+      });
+
+      const text = response.text || "{}";
+      const parsed = JSON.parse(text);
+
+      return res.json({
+        success: true,
+        data: parsed,
+      });
+    } catch (err: any) {
+      console.error("AI prompt enhance error:", err);
+      const errorMessage = err?.message || "";
+      if (errorMessage.includes("401") || errorMessage.includes("invalid authentication credentials") || errorMessage.includes("ACCESS_TOKEN_TYPE_UNSUPPORTED")) {
+        return res.status(401).json({
+          success: false,
+          error: "Your Gemini API Key appears to be invalid or unsupported. Please go to Settings > Secrets and update your GEMINI_API_KEY.",
+        });
+      }
+      return res.status(500).json({
+        success: false,
+        error: "Failed to enhance prompt. " + (err?.message || ""),
+      });
+    }
   });
 
   // Vite integration
@@ -39,3 +293,4 @@ async function startServer() {
 startServer().catch((err) => {
   console.error("Failed to start server:", err);
 });
+

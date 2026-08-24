@@ -109,6 +109,18 @@ export const DEFAULT_LOGO_CONFIG: LogoConfig = {
   
   showBadgeRibbon: false,
   layout: 'icon-top',
+  watermark: {
+    enabled: false,
+    type: 'text',
+    text: 'CONFIDENTIAL',
+    opacity: 0.25,
+    position: 'bottom-right',
+    size: 24,
+    rotation: 0,
+    color: '#ffffff',
+    fontFamily: 'Cairo',
+    fontSize: 18,
+  },
 };
 
 export const TEMPLATES: Template[] = [

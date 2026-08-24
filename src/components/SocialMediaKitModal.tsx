@@ -21,6 +21,7 @@ import {
   ExternalLink,
   Shield,
   Crop,
+  Youtube,
 } from 'lucide-react';
 import { LogoConfig, SupportedLanguage, SocialBannerOptions, SocialMediaPreset } from '../types';
 import {
@@ -38,6 +39,8 @@ interface SocialMediaKitModalProps {
   onClose: () => void;
   config: LogoConfig;
   lang: SupportedLanguage;
+  onOpenYouTubeKit?: () => void;
+  onOpenAIGenerator?: () => void;
 }
 
 export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
@@ -45,6 +48,8 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
   onClose,
   config,
   lang,
+  onOpenYouTubeKit,
+  onOpenAIGenerator,
 }) => {
   // Tab filter: 'all' | '1:1' | '16:9' | 'platform'
   const [activeTab, setActiveTab] = useState<'all' | '1:1' | '16:9'>('all');
@@ -474,6 +479,51 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
 
           {/* RIGHT COLUMN: Interactive Grid Previews (8 cols on lg) */}
           <div className="lg:col-span-8 space-y-4">
+            {/* Dedicated YouTube Studio Quick Banner */}
+            {onOpenYouTubeKit && (
+              <div className="p-4 rounded-xl bg-gradient-to-r from-red-950/60 via-slate-900 to-red-950/40 border border-red-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center text-white shrink-0 shadow-md shadow-red-600/30">
+                    <Youtube className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      {isAr ? 'أستوديو قنوات YouTube المخصص (2560×1440 HD)' : 'Dedicated YouTube Channel Studio (2560x1440 HD)'}
+                      <span className="px-2 py-0.5 text-[10px] font-bold bg-red-500/20 text-red-300 rounded-full border border-red-500/30">
+                        NEW
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-300">
+                      {isAr
+                        ? 'تخصيص غلاف القناة مع مناطق الأمان للهاتف، صورة البروفايل، والعلامة المائية مع المعاينة الحية'
+                        : 'Customize channel banner with mobile safe zones, profile avatar, watermark, and live channel mockup'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {onOpenAIGenerator && (
+                    <button
+                      type="button"
+                      onClick={onOpenAIGenerator}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 transition flex items-center gap-1.5"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                      <span>{isAr ? 'توليد بالذكاء الاصطناعي' : 'AI Generate'}</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={onOpenYouTubeKit}
+                    className="px-4 py-2 rounded-lg text-xs font-bold bg-red-600 hover:bg-red-500 text-white shadow-md shadow-red-600/30 transition flex items-center gap-1.5"
+                  >
+                    <Youtube className="w-4 h-4" />
+                    <span>{isAr ? 'فتح أستوديو يوتيوب' : 'Open YouTube Studio'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 {isAr

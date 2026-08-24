@@ -188,19 +188,39 @@ export function detectTrimBounds(
   };
 }
 
+export type CropMaskShape = 'rect' | 'rounded' | 'squircle' | 'circle';
+
+export interface CropOptions {
+  shape?: CropMaskShape;
+  cornerRadius?: number; // in pixels or percentage calculated against target size
+  format?: 'png' | 'jpeg' | 'webp';
+  quality?: number;
+  backgroundColor?: string; // fallback for non-transparent formats like jpeg
+}
+
 /**
- * Crops a specific rectangle from an image and returns high-resolution blob and dataUrl
+ * Crops a specific rectangle from an image and optionally applies corner radius / circular / squircle mask
  */
 export async function cropImageToBlob(
   imgOrSrc: HTMLImageElement | string,
   cropRect: CropRect,
-  format: 'png' | 'jpeg' | 'webp' = 'png',
-  quality = 0.95
+  formatOrOptions: 'png' | 'jpeg' | 'webp' | CropOptions = 'png',
+  qualityParam = 0.95
 ): Promise<{ blob: Blob; dataUrl: string; width: number; height: number }> {
   const img = typeof imgOrSrc === 'string' ? await loadImageElement(imgOrSrc) : imgOrSrc;
 
   const targetWidth = Math.max(1, Math.round(cropRect.width));
   const targetHeight = Math.max(1, Math.round(cropRect.height));
+
+  const options: CropOptions =
+    typeof formatOrOptions === 'string'
+      ? { format: formatOrOptions, quality: qualityParam, shape: 'rect', cornerRadius: 0 }
+      : { shape: 'rect', cornerRadius: 0, format: 'png', quality: 0.95, ...formatOrOptions };
+
+  const format = options.format || 'png';
+  const quality = options.quality ?? 0.95;
+  const shape = options.shape || 'rect';
+  const cornerRadius = options.cornerRadius ?? 0;
 
   const canvas = document.createElement('canvas');
   canvas.width = targetWidth;
@@ -214,6 +234,53 @@ export async function cropImageToBlob(
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
 
+  // Handle mask clipping if rounded, circle, or squircle
+  if (shape !== 'rect' || cornerRadius > 0) {
+    ctx.save();
+    ctx.beginPath();
+
+    if (shape === 'circle') {
+      const radiusX = targetWidth / 2;
+      const radiusY = targetHeight / 2;
+      ctx.ellipse(radiusX, radiusY, radiusX, radiusY, 0, 0, Math.PI * 2);
+    } else if (shape === 'squircle') {
+      // Superellipse / Squircle approximation
+      const r = Math.min(targetWidth, targetHeight) * 0.22;
+      if (typeof (ctx as any).roundRect === 'function') {
+        (ctx as any).roundRect(0, 0, targetWidth, targetHeight, r);
+      } else {
+        const radius = Math.min(r, targetWidth / 2, targetHeight / 2);
+        ctx.moveTo(radius, 0);
+        ctx.lineTo(targetWidth - radius, 0);
+        ctx.quadraticCurveTo(targetWidth, 0, targetWidth, radius);
+        ctx.lineTo(targetWidth, targetHeight - radius);
+        ctx.quadraticCurveTo(targetWidth, targetHeight, targetWidth - radius, targetHeight);
+        ctx.lineTo(radius, targetHeight);
+        ctx.quadraticCurveTo(0, targetHeight, 0, targetHeight - radius);
+        ctx.lineTo(0, radius);
+        ctx.quadraticCurveTo(0, 0, radius, 0);
+        ctx.closePath();
+      }
+    } else if (shape === 'rounded' || cornerRadius > 0) {
+      const radius = Math.min(cornerRadius, targetWidth / 2, targetHeight / 2);
+      if (typeof (ctx as any).roundRect === 'function') {
+        (ctx as any).roundRect(0, 0, targetWidth, targetHeight, radius);
+      } else {
+        ctx.moveTo(radius, 0);
+        ctx.lineTo(targetWidth - radius, 0);
+        ctx.arcTo(targetWidth, 0, targetWidth, radius, radius);
+        ctx.lineTo(targetWidth, targetHeight - radius);
+        ctx.arcTo(targetWidth, targetHeight, targetWidth - radius, targetHeight, radius);
+        ctx.lineTo(radius, targetHeight);
+        ctx.arcTo(0, targetHeight, 0, targetHeight - radius, radius);
+        ctx.lineTo(0, radius);
+        ctx.arcTo(0, 0, radius, 0, radius);
+        ctx.closePath();
+      }
+    }
+    ctx.clip();
+  }
+
   // Draw the cropped slice
   ctx.drawImage(
     img,
@@ -226,6 +293,10 @@ export async function cropImageToBlob(
     targetWidth,
     targetHeight
   );
+
+  if (shape !== 'rect' || cornerRadius > 0) {
+    ctx.restore();
+  }
 
   const mimeType = format === 'jpeg' ? 'image/jpeg' : format === 'webp' ? 'image/webp' : 'image/png';
   const dataUrl = canvas.toDataURL(mimeType, quality);

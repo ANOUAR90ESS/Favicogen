@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   X,
   Eye,
@@ -9,7 +10,6 @@ import {
   Lock,
   Globe,
   Star,
-  Share2,
   RefreshCw,
   Plus,
 } from 'lucide-react';
@@ -20,16 +20,16 @@ interface LiveMockupsModalProps {
   isOpen: boolean;
   onClose: () => void;
   config: LogoConfig;
-  language: SupportedLanguage;
+  language?: SupportedLanguage;
 }
 
 export const LiveMockupsModal: React.FC<LiveMockupsModalProps> = ({
   isOpen,
   onClose,
   config,
-  language,
 }) => {
-  const isAr = language === 'ar';
+  const { t, i18n } = useTranslation();
+  const isAr = i18n.language === 'ar';
   const [activeMockup, setActiveMockup] = useState<'browser' | 'mobile' | 'playstore' | 'google' | 'modes'>('browser');
 
   const svgString = useMemo(() => generateSvgString(config, 512), [config]);
@@ -64,19 +64,17 @@ export const LiveMockupsModal: React.FC<LiveMockupsModalProps> = ({
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                {isAr ? 'المعاينة الواقعية (Live Mockups)' : 'Realistic Live Mockups'}
+                {t('mockupsModal.title')}
               </h2>
               <p className="text-xs text-slate-500">
-                {isAr
-                  ? 'شاهد كيف يظهر شعارك وأيقونتك في بيئات الاستخدام الحقيقية (المتصفح, الهاتف, بحث جوجل)'
-                  : 'Preview your favicon and logo in real-world contexts (Browser, Smartphone, Google Search)'}
+                {t('mockupsModal.subtitle')}
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-lg transition-colors"
+            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-lg transition-colors cursor-pointer"
           >
             <X className="h-5 w-5" />
           </button>
@@ -85,25 +83,25 @@ export const LiveMockupsModal: React.FC<LiveMockupsModalProps> = ({
         {/* Mockup Tabs Selector */}
         <div className="flex items-center gap-2 p-3 border-b border-slate-200 bg-slate-50/40 overflow-x-auto">
           {[
-            { id: 'browser', nameAr: 'تبويب المتصفح', nameEn: 'Browser Tab', icon: Laptop },
-            { id: 'mobile', nameAr: 'شاشة الهاتف', nameEn: 'Mobile Screen', icon: Smartphone },
-            { id: 'playstore', nameAr: 'متجر Google Play (الرسم المميز)', nameEn: 'Play Store (Feature Graphic)', icon: Star },
-            { id: 'google', nameAr: 'نتائج بحث جوجل', nameEn: 'Google Search', icon: SearchIcon },
-            { id: 'modes', nameAr: 'التباين والوضع المظلم/الفاتح', nameEn: 'Contrast & Themes', icon: Layers },
+            { id: 'browser', name: t('mockupsModal.tabBrowser'), icon: Laptop },
+            { id: 'mobile', name: t('mockupsModal.tabMobile'), icon: Smartphone },
+            { id: 'playstore', name: t('mockupsModal.tabPlayStore'), icon: Star },
+            { id: 'google', name: t('mockupsModal.tabGoogle'), icon: SearchIcon },
+            { id: 'modes', name: t('mockupsModal.tabThemes'), icon: Layers },
           ].map((tab) => {
             const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveMockup(tab.id as any)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
                   activeMockup === tab.id
                     ? 'bg-indigo-600 text-white shadow-xs'
                     : 'bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 shadow-2xs'
                 }`}
               >
                 <Icon className="h-4 w-4" />
-                <span>{isAr ? tab.nameAr : tab.nameEn}</span>
+                <span>{tab.name}</span>
               </button>
             );
           })}
@@ -166,10 +164,10 @@ export const LiveMockupsModal: React.FC<LiveMockupsModalProps> = ({
                 <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">{brandName}</h1>
                 <p className="text-sm text-slate-500 max-w-md font-medium">{tagline}</p>
                 <div className="flex items-center gap-3 pt-2">
-                  <button className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-indigo-700">
+                  <button className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 cursor-pointer">
                     {isAr ? 'ابدأ الآن مجاناً' : 'Get Started'}
                   </button>
-                  <button className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50">
+                  <button className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 cursor-pointer">
                     {isAr ? 'معرفة المزيد' : 'Learn More'}
                   </button>
                 </div>
@@ -204,7 +202,7 @@ export const LiveMockupsModal: React.FC<LiveMockupsModalProps> = ({
                   </span>
                 </div>
 
-                {/* Dummy apps for realistic grid */}
+                {/* Dummy apps */}
                 {[
                   { name: 'Safari', color: 'from-blue-500 to-indigo-600' },
                   { name: 'Messages', color: 'from-emerald-500 to-teal-600' },
@@ -231,126 +229,81 @@ export const LiveMockupsModal: React.FC<LiveMockupsModalProps> = ({
             </div>
           )}
 
-          {/* 3. GOOGLE PLAY STORE LISTING WITH 1024x500 FEATURE GRAPHIC */}
+          {/* 3. GOOGLE PLAY STORE LISTING */}
           {activeMockup === 'playstore' && (
             <div className="w-full max-w-3xl rounded-2xl border border-slate-200 bg-white shadow-xl overflow-hidden animate-in zoom-in-95 duration-150">
-              {/* Play Store Top 1024x500 Feature Graphic Banner */}
               <div className="w-full aspect-[1024/500] max-h-[260px] overflow-hidden bg-slate-900 relative shadow-inner">
                 <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: featureGraphicSvg }} />
                 <div className="absolute top-3 left-3 bg-black/60 backdrop-blur-xs text-white text-[10px] font-bold px-2.5 py-1 rounded-full border border-white/20">
-                  {isAr ? 'الرسم المميز (Feature Graphic 1024x500)' : 'Google Play Feature Graphic (1024x500)'}
+                  Google Play Feature Graphic (1024x500)
                 </div>
               </div>
 
-              {/* App Details Header */}
               <div className="p-5 bg-white border-t border-slate-100">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-4">
-                    {/* App Icon 512px */}
                     <div className="w-16 h-16 rounded-2xl shadow-lg border border-slate-200 overflow-hidden bg-white p-1 shrink-0 -mt-10 ring-4 ring-white">
                       <div className="w-full h-full" dangerouslySetInnerHTML={{ __html: svgString }} />
                     </div>
-
                     <div>
                       <h3 className="text-base font-bold text-slate-900">{brandName}</h3>
-                      <p className="text-xs font-semibold text-emerald-700">{tagline}</p>
-                      <p className="text-[11px] text-slate-400">In-app purchases • Contains ads</p>
+                      <p className="text-xs text-emerald-600 font-semibold">{brandName} Inc. • Productivity</p>
+                      <div className="flex items-center gap-1 mt-1 text-[11px] text-slate-500 font-medium">
+                        <span>4.9 ★ (12K reviews)</span>
+                        <span>•</span>
+                        <span>100K+ Downloads</span>
+                      </div>
                     </div>
                   </div>
-
-                  <button className="px-5 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-sm transition-colors">
-                    {isAr ? 'تثبيت (Install)' : 'Install'}
+                  <button className="px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs cursor-pointer">
+                    Install
                   </button>
-                </div>
-
-                {/* Rating & Stats Strip */}
-                <div className="flex items-center justify-around mt-5 pt-4 border-t border-slate-100 text-center">
-                  <div>
-                    <div className="flex items-center justify-center gap-1 text-xs font-bold text-slate-900">
-                      <span>4.9</span>
-                      <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                    </div>
-                    <span className="text-[10px] text-slate-400">120K reviews</span>
-                  </div>
-                  <div className="h-6 w-px bg-slate-200" />
-                  <div>
-                    <span className="text-xs font-bold text-slate-900">5M+</span>
-                    <span className="text-[10px] text-slate-400 block">Downloads</span>
-                  </div>
-                  <div className="h-6 w-px bg-slate-200" />
-                  <div>
-                    <span className="text-xs font-bold text-slate-900">Everyone</span>
-                    <span className="text-[10px] text-slate-400 block">Rated for 3+</span>
-                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* 4. GOOGLE SEARCH RESULT MOCKUP */}
+          {/* 4. GOOGLE SEARCH RESULTS */}
           {activeMockup === 'google' && (
-            <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-xl space-y-6 animate-in zoom-in-95 duration-150">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                <SearchIcon className="h-4 w-4 text-indigo-600" />
-                <span>{isAr ? 'معاينة نتيجة بحث جوجل الرسمية' : 'Google Search Snippet Preview'}</span>
+            <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-xl space-y-4 animate-in zoom-in-95 duration-150">
+              <div className="flex items-center gap-3">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 border border-slate-200 overflow-hidden p-0.5">
+                  <div className="w-4 h-4" dangerouslySetInnerHTML={{ __html: svgString }} />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-slate-900">{brandName}</span>
+                  <span className="text-[11px] text-slate-500 font-mono">
+                    https://www.{brandName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'brand'}.com
+                  </span>
+                </div>
               </div>
 
-              {/* Google Result Card */}
-              <div className="p-4 rounded-xl bg-white border border-slate-200 space-y-2 shadow-2xs">
-                {/* Site Favicon & Breadcrumb */}
-                <div className="flex items-center gap-2.5">
-                  <div
-                    className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center p-0.5 overflow-hidden shadow-2xs"
-                    dangerouslySetInnerHTML={{ __html: svgString }}
-                  />
-                  <div className="flex flex-col text-xs leading-none">
-                    <span className="font-bold text-slate-800">{brandName}</span>
-                    <span className="text-[11px] text-slate-500 font-mono">
-                      https://www.{brandName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'brand'}.com
-                    </span>
-                  </div>
-                </div>
-
-                {/* Title in Google Blue */}
-                <h3 className="text-base sm:text-lg font-semibold text-indigo-600 hover:underline cursor-pointer">
-                  {brandName} - {tagline}
+              <div className="space-y-1">
+                <h3 className="text-lg font-bold text-indigo-700 hover:underline cursor-pointer">
+                  {brandName}: {tagline} - Official Website
                 </h3>
-
-                {/* Description snippet */}
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  {isAr
-                    ? `الموقع الرسمي لـ ${brandName}. استكشف أحدث المنتجات والخدمات المميزة مع معايير الجودة والابتكار الرائدة عالمياً.`
-                    : `Official website for ${brandName}. Discover top-rated features, modern solutions, and high-performance tools designed for excellence.`}
+                  Discover the next-generation visual design suite for {brandName}. High-resolution logos, favicons, vector assets, and seamless cloud syncing.
                 </p>
               </div>
             </div>
           )}
 
-          {/* 4. CONTRAST & THEMES */}
+          {/* 5. CONTRAST & THEMES */}
           {activeMockup === 'modes' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-3xl animate-in zoom-in-95 duration-150">
-              {/* Light Pure White */}
-              <div className="flex flex-col items-center justify-center p-8 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-3">
-                <span className="text-xs font-bold text-slate-700">{isAr ? 'الوضع الفاتح الصافي' : 'Pure White Canvas'}</span>
-                <div className="w-28 h-28 drop-shadow-md" dangerouslySetInnerHTML={{ __html: svgString }} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-3xl animate-in zoom-in-95 duration-150">
+              {/* Light Background Preview */}
+              <div className="flex flex-col items-center justify-center p-8 rounded-2xl border border-slate-200 bg-white shadow-md space-y-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Light Canvas</span>
+                <div className="w-24 h-24" dangerouslySetInnerHTML={{ __html: svgString }} />
+                <span className="text-sm font-bold text-slate-900">{brandName}</span>
               </div>
 
-              {/* Dark Slate Theme */}
-              <div className="flex flex-col items-center justify-center p-8 rounded-2xl bg-slate-900 border border-slate-800 shadow-md space-y-3">
-                <span className="text-xs font-bold text-slate-300">{isAr ? 'الوضع المظلم الداكن' : 'Dark Slate Canvas'}</span>
-                <div className="w-28 h-28 drop-shadow-xl" dangerouslySetInnerHTML={{ __html: svgString }} />
-              </div>
-
-              {/* Indigo Gradient */}
-              <div className="flex flex-col items-center justify-center p-8 rounded-2xl bg-gradient-to-tr from-indigo-900 to-slate-900 border border-indigo-800 shadow-md space-y-3">
-                <span className="text-xs font-bold text-indigo-200">{isAr ? 'خلفية تدرج نيلي' : 'Indigo Gradient'}</span>
-                <div className="w-28 h-28 drop-shadow-xl" dangerouslySetInnerHTML={{ __html: svgString }} />
-              </div>
-
-              {/* Slate Soft */}
-              <div className="flex flex-col items-center justify-center p-8 rounded-2xl bg-slate-100 border border-slate-200 shadow-2xs space-y-3">
-                <span className="text-xs font-bold text-slate-700">{isAr ? 'خلفية رمادية ناعمة' : 'Soft Slate'}</span>
-                <div className="w-28 h-28 drop-shadow-md" dangerouslySetInnerHTML={{ __html: svgString }} />
+              {/* Dark Background Preview */}
+              <div className="flex flex-col items-center justify-center p-8 rounded-2xl border border-slate-800 bg-slate-950 shadow-md space-y-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Dark Canvas</span>
+                <div className="w-24 h-24" dangerouslySetInnerHTML={{ __html: svgString }} />
+                <span className="text-sm font-bold text-white">{brandName}</span>
               </div>
             </div>
           )}

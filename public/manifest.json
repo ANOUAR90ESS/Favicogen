@@ -1,0 +1,30 @@
+{
+  "name": "Logo & Favicon Studio",
+  "short_name": "LogoStudio",
+  "description": "Professional Logo & Favicon creator with YouTube branding kit, icon generation, and multi-format exports.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#4f46e5",
+  "orientation": "any",
+  "categories": ["design", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "developer": {
+    "name": "Anwar Asbas",
+    "email": "anwarasbas2018@gmail.com"
+  },
+  "privacy_policy": "/Legal/PRIVACY_POLICY.md"
+}

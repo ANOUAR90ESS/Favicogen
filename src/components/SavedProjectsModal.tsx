@@ -1,14 +1,12 @@
 import React, { useState, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   X,
   FolderOpen,
   Trash2,
-  Download,
   Upload,
   Clock,
-  Check,
   FileJson,
-  Layers,
   Plus,
 } from 'lucide-react';
 import { LogoConfig, SupportedLanguage } from '../types';
@@ -25,7 +23,7 @@ interface SavedProjectsModalProps {
   onClose: () => void;
   onLoadProject: (config: LogoConfig) => void;
   onNewProject: () => void;
-  language: SupportedLanguage;
+  language?: SupportedLanguage;
 }
 
 export const SavedProjectsModal: React.FC<SavedProjectsModalProps> = ({
@@ -33,9 +31,9 @@ export const SavedProjectsModal: React.FC<SavedProjectsModalProps> = ({
   onClose,
   onLoadProject,
   onNewProject,
-  language,
 }) => {
-  const isAr = language === 'ar';
+  const { t, i18n } = useTranslation();
+  const isAr = i18n.language === 'ar';
   const [projects, setProjects] = useState<SavedProjectItem[]>(() => getSavedProjects());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -81,12 +79,10 @@ export const SavedProjectsModal: React.FC<SavedProjectsModalProps> = ({
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                {isAr ? 'المشاريع والتصاميم المحفوظة' : 'Saved Projects'}
+                {t('projectsModal.title')}
               </h2>
               <p className="text-xs text-slate-500">
-                {isAr
-                  ? 'نظام حفظ تلقائي فوري لمشاريعك مع إمكانية استيراد وتصدير ملفات JSON'
-                  : 'Auto-saved local project history with instant JSON backup and restore'}
+                {t('projectsModal.subtitle')}
               </p>
             </div>
           </div>
@@ -101,10 +97,10 @@ export const SavedProjectsModal: React.FC<SavedProjectsModalProps> = ({
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-2xs transition-colors"
+              className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-2xs transition-colors cursor-pointer"
             >
               <Upload className="h-3.5 w-3.5" />
-              <span>{isAr ? 'استيراد JSON' : 'Import JSON'}</span>
+              <span>{t('projectsModal.importJson')}</span>
             </button>
 
             <button
@@ -112,15 +108,15 @@ export const SavedProjectsModal: React.FC<SavedProjectsModalProps> = ({
                 onNewProject();
                 onClose();
               }}
-              className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition-colors"
+              className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition-colors cursor-pointer"
             >
               <Plus className="h-3.5 w-3.5" />
-              <span>{isAr ? 'مشروع جديد' : 'New Project'}</span>
+              <span>{t('projectsModal.newProject')}</span>
             </button>
 
             <button
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-lg transition-colors"
+              className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-lg transition-colors cursor-pointer"
             >
               <X className="h-5 w-5" />
             </button>
@@ -133,12 +129,10 @@ export const SavedProjectsModal: React.FC<SavedProjectsModalProps> = ({
             <div className="flex flex-col items-center justify-center text-center p-12 space-y-3">
               <FolderOpen className="h-12 w-12 text-slate-400" />
               <p className="text-sm font-bold text-slate-700">
-                {isAr ? 'لا توجد مشاريع محفوظة حالياً' : 'No saved projects yet'}
+                {t('projectsModal.emptyTitle')}
               </p>
               <p className="text-xs text-slate-500 max-w-sm font-medium">
-                {isAr
-                  ? 'يتم حفظ أي تعديل تجريه تلقائياً، يمكنك أيضاً الضغط على زر "حفظ" في الشريط العلوي لتثبيت نسختك.'
-                  : 'Your work is auto-saved continuously in browser storage.'}
+                {t('projectsModal.emptyDesc')}
               </p>
             </div>
           ) : (
@@ -173,7 +167,7 @@ export const SavedProjectsModal: React.FC<SavedProjectsModalProps> = ({
                     <div className="mt-3 flex items-center justify-between">
                       <div className="space-y-0.5 max-w-[65%]">
                         <h4 className="text-sm font-bold text-slate-800 truncate">
-                          {item.name || (isAr ? 'شعار بدون عنوان' : 'Untitled Logo')}
+                          {item.name || t('common.untitled')}
                         </h4>
                         <div className="flex items-center gap-1 text-[11px] text-slate-400 font-medium">
                           <Clock className="h-3 w-3" />
@@ -185,15 +179,15 @@ export const SavedProjectsModal: React.FC<SavedProjectsModalProps> = ({
                       <div className="flex items-center gap-1">
                         <button
                           onClick={(e) => handleExport(item.config, e)}
-                          className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-colors"
-                          title={isAr ? 'تصدير JSON' : 'Export JSON'}
+                          className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                          title="Export JSON"
                         >
                           <FileJson className="h-4 w-4" />
                         </button>
                         <button
                           onClick={(e) => handleDelete(item.id, e)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded-lg transition-colors"
-                          title={isAr ? 'حذف المشروع' : 'Delete Project'}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+                          title="Delete Project"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>

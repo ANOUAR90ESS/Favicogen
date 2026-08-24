@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   X,
   Download,
@@ -7,9 +8,6 @@ import {
   Check,
   FileCode,
   Sparkles,
-  Layers,
-  FileText,
-  FileImage,
   ArrowDownToLine,
   CheckCircle2,
 } from 'lucide-react';
@@ -32,17 +30,22 @@ interface FaviconExportModalProps {
   isOpen: boolean;
   onClose: () => void;
   config: LogoConfig;
-  language: SupportedLanguage;
+  language?: SupportedLanguage;
 }
 
 export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
   isOpen,
   onClose,
   config,
-  language,
 }) => {
-  const isAr = language === 'ar';
+  const { t, i18n } = useTranslation();
+  const isAr = i18n.language === 'ar';
   const [isZipping, setIsZipping] = useState(false);
+  const [zipProgress, setZipProgress] = useState<{ percent: number; status: string }>({ percent: 0, status: '' });
+  const [includeWebp, setIncludeWebp] = useState(true);
+  const [includeJpeg, setIncludeJpeg] = useState(true);
+  const [includePlayFeature, setIncludePlayFeature] = useState(true);
+  const [organizedFolders, setOrganizedFolders] = useState(false);
   const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
   const [copiedType, setCopiedType] = useState<string | null>(null);
   const [activeFormat, setActiveFormat] = useState<'png' | 'webp' | 'jpeg' | 'svg' | 'ico'>('png');
@@ -60,11 +63,20 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Full Favicon ZIP generator
+  // Full Favicon ZIP generator with JSZip and live progress
   const handleDownloadZip = async () => {
     try {
       setIsZipping(true);
-      const zipBlob = await generateFaviconZip(config);
+      setZipProgress({ percent: 0, status: isAr ? 'بدء إعداد الحزمة...' : 'Initializing ZIP package...' });
+      const zipBlob = await generateFaviconZip(config, {
+        includeWebp,
+        includeJpeg,
+        includePlayStoreFeature: includePlayFeature,
+        organizedFolders,
+        onProgress: (percent, status) => {
+          setZipProgress({ percent, status });
+        },
+      });
       downloadBlob(zipBlob, `favicon-package-${brandName.replace(/\s+/g, '_')}.zip`);
       // Trigger celebratory confetti
       confetti({
@@ -76,6 +88,7 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
       console.error('Failed to generate ZIP package:', err);
     } finally {
       setIsZipping(false);
+      setZipProgress({ percent: 0, status: '' });
     }
   };
 
@@ -143,19 +156,17 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                {isAr ? 'حزمة الـ Favicon والتصدير المتكامل' : 'Favicon Suite & Export Center'}
+                {t('faviconModal.title')}
               </h2>
               <p className="text-xs text-slate-500">
-                {isAr
-                  ? 'توليد تلقائي لكافة مقاسات الـ Favicon القياسية بصيغ متعددة (PNG, SVG, ICO, WebP, JPG)'
-                  : 'Auto-generate all standard favicon sizes in multiple formats (PNG, SVG, ICO, WebP, JPG)'}
+                {t('faviconModal.subtitle')}
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-lg transition-colors"
+            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-lg transition-colors cursor-pointer"
           >
             <X className="h-5 w-5" />
           </button>
@@ -164,31 +175,94 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
         {/* Modal Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 custom-scrollbar bg-white">
           {/* Main Action Banner: 1-Click ZIP Package */}
-          <div className="relative overflow-hidden rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50/80 via-white to-slate-50 p-4 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
-            <div className="space-y-1.5 text-center sm:text-start">
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-indigo-100 border border-indigo-200 px-2.5 py-0.5 text-xs font-bold text-indigo-800">
-                <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
-                <span>{isAr ? 'الحزمة الشاملة للمواقع وتطبيقات PWA' : 'Complete All-In-One Bundle'}</span>
+          <div className="relative overflow-hidden rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50/80 via-white to-slate-50 p-4 sm:p-6 space-y-4 shadow-sm">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="space-y-1.5 text-center sm:text-start">
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-indigo-100 border border-indigo-200 px-2.5 py-0.5 text-xs font-bold text-indigo-800">
+                  <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
+                  <span>{t('faviconModal.allInOne')}</span>
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">
+                  {t('faviconModal.exportZip')}
+                </h3>
+                <p className="text-xs text-slate-600 max-w-xl">
+                  {t('faviconModal.zipDescription')}
+                </p>
               </div>
-              <h3 className="text-lg font-bold text-slate-900">
-                {isAr ? 'تحميل حزمة الأيقونات الكاملة (.ZIP)' : 'Download Full Favicon Package (.ZIP)'}
-              </h3>
-              <p className="text-xs text-slate-600 max-w-xl">
-                {isAr
-                  ? 'تحتوي على كافة أحجام PNG من 16px إلى 512px + أيقونة ICO متعددة المقاسات + SVG + ملف site.webmanifest وكود الـ HTML الجاهز للنسخ.'
-                  : 'Includes all PNG resolutions (16px to 512px) + multi-size favicon.ico + vector SVG + site.webmanifest & copyable HTML head snippet.'}
-              </p>
+
+              <button
+                id="btn-download-full-zip"
+                onClick={handleDownloadZip}
+                disabled={isZipping}
+                className="flex items-center gap-2.5 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-md hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-50 shrink-0 cursor-pointer"
+              >
+                <Download className="h-4 w-4" />
+                <span>
+                  {isZipping
+                    ? `${t('faviconModal.packaging')} (${zipProgress.percent}%)...`
+                    : t('faviconModal.exportZip')}
+                </span>
+              </button>
             </div>
 
-            <button
-              id="btn-download-full-zip"
-              onClick={handleDownloadZip}
-              disabled={isZipping}
-              className="flex items-center gap-2.5 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-md hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-50 shrink-0"
-            >
-              <Download className="h-4 w-4" />
-              <span>{isZipping ? (isAr ? 'جارٍ تجميع الحزمة...' : 'Zipping...') : isAr ? 'تحميل الحزمة الآن (.ZIP)' : 'Export All Sizes (.ZIP)'}</span>
-            </button>
+            {/* ZIP Options Checklist */}
+            <div className="pt-3 border-t border-indigo-100/80 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+              <label className="flex items-center gap-2 text-slate-700 font-semibold cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={includeWebp}
+                  onChange={(e) => setIncludeWebp(e.target.checked)}
+                  className="rounded border-slate-300 text-indigo-600 focus:ring-0 w-3.5 h-3.5"
+                />
+                <span>{t('faviconModal.includeWebp')}</span>
+              </label>
+
+              <label className="flex items-center gap-2 text-slate-700 font-semibold cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={includeJpeg}
+                  onChange={(e) => setIncludeJpeg(e.target.checked)}
+                  className="rounded border-slate-300 text-indigo-600 focus:ring-0 w-3.5 h-3.5"
+                />
+                <span>{t('faviconModal.includeJpg')}</span>
+              </label>
+
+              <label className="flex items-center gap-2 text-slate-700 font-semibold cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={includePlayFeature}
+                  onChange={(e) => setIncludePlayFeature(e.target.checked)}
+                  className="rounded border-slate-300 text-indigo-600 focus:ring-0 w-3.5 h-3.5"
+                />
+                <span>{t('faviconModal.playStoreBanner')}</span>
+              </label>
+
+              <label className="flex items-center gap-2 text-slate-700 font-semibold cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={organizedFolders}
+                  onChange={(e) => setOrganizedFolders(e.target.checked)}
+                  className="rounded border-slate-300 text-indigo-600 focus:ring-0 w-3.5 h-3.5"
+                />
+                <span>{t('faviconModal.subfolders')}</span>
+              </label>
+            </div>
+
+            {/* Live Progress Bar when Packaging */}
+            {isZipping && (
+              <div className="space-y-1.5 pt-1 animate-in fade-in duration-150">
+                <div className="flex justify-between text-xs font-bold text-indigo-900">
+                  <span className="truncate">{zipProgress.status}</span>
+                  <span className="font-mono">{zipProgress.percent}%</span>
+                </div>
+                <div className="w-full bg-indigo-100 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-indigo-600 h-2 rounded-full transition-all duration-200"
+                    style={{ width: `${zipProgress.percent}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Google Play Feature Graphic 1024x500 Banner Card */}
@@ -200,16 +274,14 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
               <div>
                 <div className="flex items-center gap-2">
                   <h4 className="text-xs sm:text-sm font-bold text-emerald-950">
-                    {isAr ? 'الرسم المميز لمتجر Google Play (1024 × 500 px)' : 'Google Play Feature Graphic (1024 × 500 px)'}
+                    Google Play Feature Graphic (1024 × 500 px)
                   </h4>
                   <span className="bg-emerald-200/80 text-emerald-900 text-[9px] font-black px-2 py-0.5 rounded-full">
                     PLAY STORE
                   </span>
                 </div>
                 <p className="text-[11px] text-emerald-800 line-clamp-1">
-                  {isAr
-                    ? 'الرسم المميز المطلوب رسمياً من متجر جوجل بلاي بتنسيق PNG أو JPEG، وحجم أقل من 15MB وبدقة 1024 × 500.'
-                    : 'Official Google Play Feature Graphic format (PNG/JPEG, <15MB, 1,024 x 500 px) for app store promotion.'}
+                  {t('featureGraphicModal.subtitle')}
                 </p>
               </div>
             </div>
@@ -231,7 +303,7 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
                   const blob = await rasterizeSvg(svg, 1024, 500, 'png');
                   downloadBlob(blob, `google_play_feature_graphic_${(config.text || 'app').replace(/\s+/g, '_')}_1024x500.png`);
                 }}
-                className="px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-colors shadow-2xs"
+                className="px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-colors shadow-2xs cursor-pointer"
               >
                 PNG 1024×500
               </button>
@@ -251,7 +323,7 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
                   const blob = await rasterizeSvg(svg, 1024, 500, 'jpeg');
                   downloadBlob(blob, `google_play_feature_graphic_${(config.text || 'app').replace(/\s+/g, '_')}_1024x500.jpg`);
                 }}
-                className="px-3 py-1.5 rounded-lg bg-white border border-emerald-300 hover:bg-emerald-100 text-emerald-900 text-xs font-bold transition-colors shadow-2xs"
+                className="px-3 py-1.5 rounded-lg bg-white border border-emerald-300 hover:bg-emerald-100 text-emerald-900 text-xs font-bold transition-colors shadow-2xs cursor-pointer"
               >
                 JPG 1024×500
               </button>
@@ -261,15 +333,15 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
           {/* Format Selector for Individual Exports */}
           <div className="flex items-center justify-between pt-2">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              {isAr ? 'المقاسات المتوفرة للتحميل الفردي' : 'Available Sizes for Single Download'}
+              {t('faviconModal.sizesList')}
             </span>
             <div className="flex items-center gap-1 bg-slate-100 border border-slate-200 rounded-lg p-1">
-              <span className="text-[11px] text-slate-500 px-1 font-medium">{isAr ? 'الصيغة:' : 'Format:'}</span>
+              <span className="text-[11px] text-slate-500 px-1 font-medium">{t('faviconModal.formatLabel')}</span>
               {(['png', 'svg', 'ico', 'webp', 'jpeg'] as const).map((fmt) => (
                 <button
                   key={fmt}
                   onClick={() => setActiveFormat(fmt)}
-                  className={`px-2.5 py-0.5 text-xs rounded-md font-bold uppercase transition-all ${
+                  className={`px-2.5 py-0.5 text-xs rounded-md font-bold uppercase transition-all cursor-pointer ${
                     activeFormat === fmt ? 'bg-white text-indigo-700 shadow-2xs' : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -316,8 +388,8 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
                 <button
                   onClick={() => handleDownloadSingle(spec.size, spec.fileName, activeFormat)}
                   disabled={downloadingFile === spec.fileName}
-                  className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white transition-colors group-hover:scale-105"
-                  title={`${isAr ? 'تحميل' : 'Download'} ${spec.fileName}`}
+                  className="p-2 rounded-lg bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white transition-colors group-hover:scale-105 cursor-pointer"
+                  title={`${t('common.download')} ${spec.fileName}`}
                 >
                   <ArrowDownToLine className="h-4 w-4" />
                 </button>
@@ -331,31 +403,31 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
               <div className="flex items-center gap-2">
                 <FileCode className="h-4 w-4 text-indigo-600" />
                 <span className="text-xs font-bold text-slate-800">
-                  {isAr ? 'كود الـ HTML الجاهز للـ <head>' : 'Ready HTML <head> Code'}
+                  {t('faviconModal.htmlCodeTitle')}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleCopyManifest}
-                  className="flex items-center gap-1 text-xs text-slate-600 font-semibold hover:text-slate-900 px-2.5 py-1 rounded-lg bg-white border border-slate-200 shadow-2xs"
+                  className="flex items-center gap-1 text-xs text-slate-600 font-semibold hover:text-slate-900 px-2.5 py-1 rounded-lg bg-white border border-slate-200 shadow-2xs cursor-pointer"
                 >
                   {copiedType === 'manifest' ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
-                  <span>{isAr ? 'نسخ Manifest' : 'Copy Manifest'}</span>
+                  <span>{t('faviconModal.copyManifest')}</span>
                 </button>
 
                 <button
                   onClick={handleCopyHtml}
-                  className="flex items-center gap-1.5 rounded-lg bg-indigo-50 border border-indigo-200 px-3 py-1 text-xs font-bold text-indigo-700 hover:bg-indigo-100 transition-colors shadow-2xs"
+                  className="flex items-center gap-1.5 rounded-lg bg-indigo-50 border border-indigo-200 px-3 py-1 text-xs font-bold text-indigo-700 hover:bg-indigo-100 transition-colors shadow-2xs cursor-pointer"
                 >
                   {copiedType === 'html' ? (
                     <>
                       <Check className="h-3.5 w-3.5 text-emerald-600" />
-                      <span className="text-emerald-700 font-bold">{isAr ? 'تم نسخ الكود!' : 'Copied!'}</span>
+                      <span className="text-emerald-700 font-bold">{t('common.copied')}</span>
                     </>
                   ) : (
                     <>
                       <Copy className="h-3.5 w-3.5" />
-                      <span>{isAr ? 'نسخ كود الـ HTML' : 'Copy HTML Code'}</span>
+                      <span>{t('faviconModal.copyHtml')}</span>
                     </>
                   )}
                 </button>
@@ -372,13 +444,13 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
         <div className="p-4 border-t border-slate-200 bg-slate-50/80 flex items-center justify-between text-xs text-slate-600">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-            <span className="font-semibold">{isAr ? 'جميع الملفات متوافقة 100% مع معايير W3C وGoogle وApple' : '100% W3C, Google & Apple compliant'}</span>
+            <span className="font-semibold">{t('faviconModal.compliantNote')}</span>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg bg-white border border-slate-200 px-4 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 shadow-2xs transition-colors"
+            className="rounded-lg bg-white border border-slate-200 px-4 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 shadow-2xs transition-colors cursor-pointer"
           >
-            {isAr ? 'إغلاق' : 'Close'}
+            {t('common.close')}
           </button>
         </div>
       </div>

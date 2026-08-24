@@ -519,6 +519,102 @@ export function generateSvgString(config: LogoConfig, targetSize = 512): string 
     `;
   }
 
+  // Watermark Overlay Element
+  let watermarkElement = '';
+  if (config.watermark && config.watermark.enabled) {
+    const wm = config.watermark;
+    const center = s / 2;
+    const wmOpacity = Math.max(0.05, Math.min(1, wm.opacity ?? 0.25));
+    const wmRotation = wm.rotation ?? 0;
+    const wmColor = wm.color || '#ffffff';
+    const wmFontSize = wm.fontSize || 20;
+    const wmFont = wm.fontFamily || 'Cairo';
+    const wmText = wm.text || 'CONFIDENTIAL';
+
+    if (wm.position === 'tile') {
+      // Repeating diagonal tiled text
+      const tileStep = 110;
+      const tileRows: string[] = [];
+      for (let y = -s; y < s * 2; y += tileStep) {
+        for (let x = -s; x < s * 2; x += tileStep * 1.6) {
+          tileRows.push(
+            `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" font-family="${escapeXml(wmFont)}, system-ui, sans-serif" font-size="${wmFontSize}" font-weight="700" fill="${wmColor}">${escapeXml(wmText)}</text>`
+          );
+        }
+      }
+      watermarkElement = `
+        <g opacity="${wmOpacity}" transform="rotate(${wmRotation || -30} ${center} ${center})" pointer-events="none">
+          ${tileRows.join('\n')}
+        </g>
+      `;
+    } else {
+      let wmX = center;
+      let wmY = center;
+      let textAnchor = 'middle';
+      const margin = 32;
+
+      switch (wm.position) {
+        case 'top-left':
+          wmX = margin;
+          wmY = margin + wmFontSize * 0.8;
+          textAnchor = 'start';
+          break;
+        case 'top-right':
+          wmX = s - margin;
+          wmY = margin + wmFontSize * 0.8;
+          textAnchor = 'end';
+          break;
+        case 'bottom-left':
+          wmX = margin;
+          wmY = s - margin;
+          textAnchor = 'start';
+          break;
+        case 'bottom-right':
+          wmX = s - margin;
+          wmY = s - margin;
+          textAnchor = 'end';
+          break;
+        case 'center':
+        default:
+          wmX = center;
+          wmY = center;
+          textAnchor = 'middle';
+          break;
+      }
+
+      if (wm.type === 'logo') {
+        const wmSize = wm.size || 70;
+        const halfSize = wmSize / 2;
+        const wmIconPath = iconItem ? iconItem.path : '<circle cx="12" cy="12" r="8"/>';
+        const wmViewBox = iconItem?.viewBox || '0 0 24 24';
+        watermarkElement = `
+          <g opacity="${wmOpacity}" transform="translate(${wmX - halfSize}, ${wmY - halfSize}) rotate(${wmRotation} ${halfSize} ${halfSize})" pointer-events="none">
+            <svg width="${wmSize}" height="${wmSize}" viewBox="${wmViewBox}" fill="none" stroke="${wmColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              ${wmIconPath}
+            </svg>
+          </g>
+        `;
+      } else if (wm.type === 'custom-image' && wm.customImageSrc) {
+        const wmSize = wm.size || 80;
+        const halfSize = wmSize / 2;
+        watermarkElement = `
+          <g opacity="${wmOpacity}" transform="translate(${wmX - halfSize}, ${wmY - halfSize}) rotate(${wmRotation} ${halfSize} ${halfSize})" pointer-events="none">
+            <image href="${escapeXml(wm.customImageSrc)}" width="${wmSize}" height="${wmSize}" preserveAspectRatio="xMidYMid meet" />
+          </g>
+        `;
+      } else {
+        const rot = wmRotation ? `transform="rotate(${wmRotation} ${wmX} ${wmY})"` : '';
+        watermarkElement = `
+          <g opacity="${wmOpacity}" ${rot} pointer-events="none">
+            <text x="${wmX}" y="${wmY}" text-anchor="${textAnchor}" dominant-baseline="middle" font-family="${escapeXml(wmFont)}, system-ui, sans-serif" font-size="${wmFontSize}" font-weight="800" fill="${wmColor}" letter-spacing="1px">
+              ${escapeXml(wmText)}
+            </text>
+          </g>
+        `;
+      }
+    }
+  }
+
   return `
 <svg class="artboard-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${s} ${s}" width="${targetSize}" height="${targetSize}">
   <defs>
@@ -579,6 +675,7 @@ export function generateSvgString(config: LogoConfig, targetSize = 512): string 
   ${iconElement}
   ${textElement}
   ${taglineElement}
+  ${watermarkElement}
 </svg>
 `.trim();
 }
@@ -753,70 +850,172 @@ export function generateWebmanifestJson(brandName = 'My App', themeColor = '#0f1
   );
 }
 
+export interface FaviconZipOptions {
+  includeWebp?: boolean;
+  includeJpeg?: boolean;
+  includePlayStoreFeature?: boolean;
+  organizedFolders?: boolean;
+  onProgress?: (percent: number, statusText: string) => void;
+}
+
 /**
- * Generates a full ready-to-use Favicon ZIP package
+ * Generates a full ready-to-use Favicon ZIP package with all sizes and formats
  */
-export async function generateFaviconZip(config: LogoConfig): Promise<Blob> {
+export async function generateFaviconZip(
+  config: LogoConfig,
+  options: FaviconZipOptions = {}
+): Promise<Blob> {
   const zip = new JSZip();
   const brandName = config.text || config.name || 'Brand';
   const themeColor = config.bgColor1 || '#0f172a';
+  const {
+    includeWebp = true,
+    includeJpeg = true,
+    includePlayStoreFeature = true,
+    organizedFolders = false,
+    onProgress,
+  } = options;
 
+  onProgress?.(5, 'Preparing SVG master asset...');
   const svgString = generateSvgString(config, 512);
 
-  // 1. Add SVG vector
+  // 1. Root & Documentation
   zip.file('favicon.svg', svgString);
-
-  // 2. Add manifest.json & HTML snippet
   zip.file('site.webmanifest', generateWebmanifestJson(brandName, themeColor));
   zip.file('html-head-snippet.html', generateHtmlHeadSnippet(brandName, themeColor));
   zip.file(
-    'README.txt',
+    'browserconfig.xml',
+    `<?xml version="1.0" encoding="utf-8"?>
+<browserconfig>
+  <msapplication>
+    <tile>
+      <square150x150logo src="/mstile-150x150.png"/>
+      <TileColor>${themeColor}</TileColor>
+    </tile>
+  </msapplication>
+</browserconfig>`
+  );
+
+  zip.file(
+    'README_FAVICON_GUIDE.txt',
     `=============================================================
- FAVICON & LOGO PACKAGE - حزمة الأيقونات والشعار المتكاملة
- Brand / اسم المشروع: ${brandName}
- Generated at: ${new Date().toLocaleString()}
+  ${brandName} - Complete Favicon & Web App Icon Package
+  Generated by Logo & Favicon Studio PRO
+  Created at: ${new Date().toLocaleString()}
 =============================================================
 
-1. Copy all image files and site.webmanifest into your public root folder.
-2. Insert the code from 'html-head-snippet.html' inside the <head> of your index.html.
+📁 HOW TO USE THIS PACKAGE:
+1. Place all icon files, 'site.webmanifest', and 'browserconfig.xml' into the root /public directory of your web project.
+2. Copy the HTML code inside 'html-head-snippet.html' and paste it into the <head> section of your HTML files.
 
-ملفات الحزمة المتوفرة:
-- favicon.svg : الأيقونة المتجهة بدقة غير محدودة لجميع المتصفحات الحديثة.
-- favicon.ico : الأيقونة القياسية متعددة المقاسات (16x16, 32x32, 48x48).
-- favicon-16x16.png : مقاس التبويب القياسي.
-- favicon-32x32.png : مقاس شاشات الريتينا.
-- favicon-48x48.png : شريط المهام وسطح المكتب.
-- apple-touch-icon.png (180x180) : شاشة هواتف آبل iOS Safari.
-- android-chrome-192x192.png : أيقونة أندرويد و PWA.
-- android-chrome-256x256.png : أيقونات ويندوز والأندرويد بدقة 256px.
-- android-chrome-512x512.png : شاشة البداية Splash Screen لتطبيقات الويب.
-- site.webmanifest : ملف التعريف لتطبيقات الويب التقدمية PWA.
+📦 INCLUDED ASSETS:
+- favicon.svg : Infinite-resolution vector icon for modern web browsers.
+- favicon.ico : Multi-resolution Windows / Browser fallback (16x16, 32x32, 48x48).
+- favicon-16x16.png : Standard browser tab icon.
+- favicon-32x32.png : High-DPI / Retina browser tab icon.
+- favicon-48x48.png : Windows desktop / taskbar icon.
+- favicon-64x64.png : Windows / Linux shortcut icon.
+- favicon-128x128.png : Chrome Web Store / App icon.
+- apple-touch-icon.png (180x180) : Apple iOS Safari Home Screen icon.
+- android-chrome-192x192.png : Android Chrome / PWA home screen icon.
+- android-chrome-256x256.png : Windows tile / PWA icon.
+- android-chrome-512x512.png : PWA Splash screen & high-res app icon.
+- site.webmanifest : Progressive Web App (PWA) manifest.
+- browserconfig.xml : Microsoft IE / Edge Windows tile configuration.
+${includePlayStoreFeature ? '- google-play-feature-graphic-1024x500.png / .jpg : Google Play Store promo header.' : ''}
+
+100% W3C, Google Lighthouse, Apple Safari & PWA compliant.
 `
   );
 
-  // 3. Render all standard size PNGs
+  // Folders if requested
+  const pngFolder = organizedFolders ? zip.folder('png') : zip;
+  const webpFolder = organizedFolders ? zip.folder('webp') : zip;
+  const jpegFolder = organizedFolders ? zip.folder('jpeg') : zip;
+
+  const totalSteps = FAVICON_SPECS.length + (includeWebp ? FAVICON_SPECS.length : 0) + (includeJpeg ? 3 : 0) + 3;
+  let currentStep = 0;
+
+  // 2. Render all standard size PNGs
   const icoItems: { size: number; blob: Blob }[] = [];
 
   for (const spec of FAVICON_SPECS) {
+    currentStep++;
+    onProgress?.(
+      Math.round((currentStep / totalSteps) * 85),
+      `Rendering PNG: ${spec.label} (${spec.size}×${spec.size})...`
+    );
     const pngBlob = await renderSvgToBlob(svgString, spec.size, 'png');
-    zip.file(spec.fileName, pngBlob);
+    (pngFolder || zip).file(spec.fileName, pngBlob);
 
     if (spec.size === 16 || spec.size === 32 || spec.size === 48) {
       icoItems.push({ size: spec.size, blob: pngBlob });
     }
   }
 
-  // 4. Generate multi-size favicon.ico
+  // 3. Multi-size favicon.ico
+  onProgress?.(88, 'Building multi-resolution favicon.ico binary...');
   try {
     const icoBlob = await createIcoFile(icoItems);
     zip.file('favicon.ico', icoBlob);
   } catch (err) {
-    console.warn('Could not generate multi-size ICO binary, using 32px png as fallback', err);
+    console.warn('Could not generate multi-size ICO binary, using 32px png fallback', err);
     const fallback32 = await renderSvgToBlob(svgString, 32, 'png');
     zip.file('favicon.ico', fallback32);
   }
 
-  return await zip.generateAsync({ type: 'blob' });
+  // 4. WebP formats if enabled
+  if (includeWebp) {
+    for (const spec of FAVICON_SPECS) {
+      currentStep++;
+      onProgress?.(
+        Math.round((currentStep / totalSteps) * 92),
+        `Encoding WebP: ${spec.size}×${spec.size}...`
+      );
+      const webpBlob = await renderSvgToBlob(svgString, spec.size, 'webp');
+      const webpName = spec.fileName.replace(/\.png$/i, '.webp');
+      (webpFolder || zip).file(webpName, webpBlob);
+    }
+  }
+
+  // 5. JPEGs if enabled (popular sizes: 180, 192, 512)
+  if (includeJpeg) {
+    for (const sz of [180, 192, 512]) {
+      const jpgBlob = await renderSvgToBlob(svgString, sz, 'jpeg');
+      (jpegFolder || zip).file(`icon-${sz}x${sz}.jpg`, jpgBlob);
+    }
+  }
+
+  // 6. Play Store Feature Graphic if enabled
+  if (includePlayStoreFeature) {
+    onProgress?.(95, 'Generating Google Play Store 1024×500 feature graphic...');
+    const playSvg = generateFeatureGraphicSvg(config, {
+      layout: 'center-hero',
+      title: config.text || config.name || 'App',
+      subtitle: config.tagline || 'Mobile & Web App',
+      badgeText: '★ 4.9 • 100K+ Downloads',
+      bgTheme: 'brand',
+      showPhoneMockup: true,
+      showPlayBadge: true,
+      showRatingStars: true,
+      showGlowEffect: true,
+    });
+    const playPng = await rasterizeSvg(playSvg, 1024, 500, 'png');
+    const playJpg = await rasterizeSvg(playSvg, 1024, 500, 'jpeg');
+    if (organizedFolders) {
+      const storeFolder = zip.folder('store_assets');
+      storeFolder?.file('google-play-feature-graphic-1024x500.png', playPng);
+      storeFolder?.file('google-play-feature-graphic-1024x500.jpg', playJpg);
+    } else {
+      zip.file('google-play-feature-graphic-1024x500.png', playPng);
+      zip.file('google-play-feature-graphic-1024x500.jpg', playJpg);
+    }
+  }
+
+  onProgress?.(98, 'Packaging final ZIP archive with JSZip...');
+  const finalZip = await zip.generateAsync({ type: 'blob' });
+  onProgress?.(100, 'Done!');
+  return finalZip;
 }
 
 
@@ -1393,6 +1592,24 @@ export function generateSocialBannerSvg(
       accentGlow = '#ec4899';
       break;
     }
+    case 'youtube-red': {
+      bgGradDef = `<linearGradient id="sb_bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#1a0003" />
+        <stop offset="40%" stop-color="#450a0a" />
+        <stop offset="100%" stop-color="#991b1b" />
+      </linearGradient>`;
+      accentGlow = '#ef4444';
+      break;
+    }
+    case 'royal-gold': {
+      bgGradDef = `<linearGradient id="sb_bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#0f0c05" />
+        <stop offset="50%" stop-color="#2a2007" />
+        <stop offset="100%" stop-color="#45340a" />
+      </linearGradient>`;
+      accentGlow = '#eab308';
+      break;
+    }
     case 'dark': {
       bgGradDef = `<linearGradient id="sb_bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" stop-color="#030712" />
@@ -1422,6 +1639,9 @@ export function generateSocialBannerSvg(
   const title = options.title || config.text || config.name || 'Brand Name';
   const subtitle = options.subtitle || config.tagline || 'Official Social Media Channel';
   const badgeText = options.badgeText || 'OFFICIAL CHANNEL • 2026';
+  const channelHandle = options.channelHandle || `@${(config.text || 'channel').toLowerCase().replace(/\s+/g, '')}`;
+  const uploadSchedule = options.uploadSchedule || 'NEW VIDEOS EVERY WEEK';
+  const socialLinks = options.socialLinks || 'YouTube • Instagram • X';
 
   // Extract inner SVG content (strip outer <svg> tags)
   const innerSvgContent = logoSvg.replace(/^<svg[^>]*>|<\/svg>$/gi, '');
@@ -1473,8 +1693,65 @@ export function generateSocialBannerSvg(
       </text>
     `;
   }
-  // 2. Split Hero (Left logo, Right text)
-  else if (options.layout === 'split-hero') {
+  // 2. YouTube Channel Specific Layout (Strictly inside safe area)
+  else if (options.layout === 'youtube-channel') {
+    const cx = w / 2;
+    const cy = h / 2;
+    const avatarSize = Math.min(180, h * 0.28);
+    const avatarScale = avatarSize / 512;
+    const avatarHalf = avatarSize / 2;
+
+    layoutContent = `
+      ${options.showGlowEffect ? `
+        <circle cx="${cx - 280}" cy="${cy}" r="${minDimension * 0.35}" fill="${accentGlow}" opacity="0.35" filter="url(#sb_blur)" />
+        <circle cx="${cx + 280}" cy="${cy}" r="${minDimension * 0.3}" fill="${accentGlow}" opacity="0.2" filter="url(#sb_blur)" />
+      ` : ''}
+
+      <!-- Central Safe-Area Container -->
+      <g transform="translate(${cx - 500}, ${cy - avatarHalf})">
+        <!-- Channel Avatar with Circular Stroke -->
+        <g transform="translate(0, 0)" filter="url(#sb_shadow)">
+          <circle cx="${avatarHalf}" cy="${avatarHalf}" r="${avatarHalf + 4}" fill="${accentGlow}" opacity="0.4" />
+          <g transform="scale(${avatarScale})">
+            ${innerSvgContent}
+          </g>
+        </g>
+
+        <!-- Channel Info Block -->
+        <g transform="translate(${avatarSize + 40}, ${avatarHalf - 30})">
+          <!-- Title & Verified Badge -->
+          <g transform="translate(0, 0)">
+            <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(28, Math.min(54, w * 0.03))}" font-weight="900" fill="${textColor}" letter-spacing="-0.5">
+              ${escapeXml(title)}
+            </text>
+            <!-- Checkmark badge -->
+            <circle cx="${title.length * 24 + 20}" cy="-12" r="10" fill="#38bdf8" />
+            <path d="M ${title.length * 24 + 16} -12 L ${title.length * 24 + 19} -9 L ${title.length * 24 + 25} -15" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+          </g>
+
+          <!-- Handle & Upload Schedule -->
+          <text x="0" y="32" font-family="system-ui, sans-serif" font-size="${Math.max(13, Math.min(20, w * 0.012))}" font-weight="600" fill="${subtextColor}">
+            ${escapeXml(channelHandle)} • ${escapeXml(uploadSchedule)}
+          </text>
+
+          <!-- Tagline -->
+          <text x="0" y="62" font-family="system-ui, sans-serif" font-size="${Math.max(12, Math.min(17, w * 0.01))}" font-weight="400" fill="${subtextColor}" opacity="0.85">
+            ${escapeXml(subtitle)}
+          </text>
+        </g>
+
+        <!-- Right Subscribe CTA Badge -->
+        <g transform="translate(740, ${avatarHalf - 20})">
+          <rect width="180" height="46" rx="23" fill="#ff0000" filter="url(#sb_subtle_shadow)" />
+          <text x="90" y="29" text-anchor="middle" font-family="system-ui, sans-serif" font-size="15" font-weight="900" fill="#ffffff" letter-spacing="0.5">
+            SUBSCRIBE
+          </text>
+        </g>
+      </g>
+    `;
+  }
+  // 3. Split Hero (Left logo, Right text)
+  else if (options.layout === 'split-hero' || options.layout === 'streamer-gamer') {
     const isWide = w / h >= 2;
     const logoX = isWide ? w * 0.12 : w * 0.08;
     const cy = h / 2;
@@ -1519,7 +1796,7 @@ export function generateSocialBannerSvg(
       </g>
     `;
   }
-  // 3. Minimal Clean / Center Monogram
+  // 4. Minimal Clean / Center Monogram
   else {
     const cx = w / 2;
     const cy = h / 2;
@@ -1538,16 +1815,32 @@ export function generateSocialBannerSvg(
   let safeZoneOverlay = '';
   if (options.showSafeZone) {
     if (w === 2560 && h === 1440) {
-      // YouTube Safe Area (1546 x 423)
-      const szW = 1546;
-      const szH = 423;
-      const szX = (w - szW) / 2;
-      const szY = (h - szH) / 2;
+      // YouTube Full TV (2560x1440), Desktop (2560x423), Tablet (1855x423), Mobile (1546x423)
+      const szMobileW = 1546;
+      const szDesktopH = 423;
+      const szY = (h - szDesktopH) / 2;
+      const szMobileX = (w - szMobileW) / 2;
+      const szTabletW = 1855;
+      const szTabletX = (w - szTabletW) / 2;
+
       safeZoneOverlay = `
-        <rect x="${szX}" y="${szY}" width="${szW}" height="${szH}" fill="none" stroke="#e11d48" stroke-width="4" stroke-dasharray="16 8" />
-        <rect x="${szX}" y="${szY - 36}" width="340" height="32" rx="6" fill="#e11d48" />
-        <text x="${szX + 16}" y="${szY - 14}" font-family="monospace" font-size="14" font-weight="700" fill="#ffffff">
-          YouTube Mobile Safe Zone (1546 × 423)
+        <!-- Desktop safe strip -->
+        <rect x="0" y="${szY}" width="${w}" height="${szDesktopH}" fill="none" stroke="#60a5fa" stroke-width="2" stroke-dasharray="10 5" opacity="0.7" />
+        <text x="30" y="${szY + 30}" font-family="sans-serif" font-size="16" font-weight="700" fill="#60a5fa">
+          Desktop View Area (2560 × 423)
+        </text>
+
+        <!-- Tablet safe box -->
+        <rect x="${szTabletX}" y="${szY}" width="${szTabletW}" height="${szDesktopH}" fill="none" stroke="#a78bfa" stroke-width="2" stroke-dasharray="8 4" opacity="0.8" />
+        <text x="${szTabletX + 20}" y="${szY + 30}" font-family="sans-serif" font-size="16" font-weight="700" fill="#a78bfa">
+          Tablet Safe (1855 × 423)
+        </text>
+
+        <!-- Guaranteed Mobile Safe Area (1546 x 423) -->
+        <rect x="${szMobileX}" y="${szY}" width="${szMobileW}" height="${szDesktopH}" fill="rgba(225, 29, 72, 0.08)" stroke="#e11d48" stroke-width="4" stroke-dasharray="14 6" />
+        <rect x="${szMobileX}" y="${szY - 38}" width="380" height="34" rx="8" fill="#e11d48" />
+        <text x="${szMobileX + 16}" y="${szY - 15}" font-family="monospace" font-size="15" font-weight="900" fill="#ffffff">
+          ★ Mobile Safe Zone (1546 × 423)
         </text>
       `;
     } else {
@@ -1583,6 +1876,102 @@ export function generateSocialBannerSvg(
 </svg>
 `.trim();
 }
+
+/**
+ * Dedicated YouTube Creator Kit Exporter
+ */
+export async function generateYouTubeKitZip(
+  config: LogoConfig,
+  bannerOptions: SocialBannerOptions
+): Promise<Blob> {
+  const zip = new JSZip();
+
+  const brandName = config.text || config.name || 'YouTube_Channel';
+  const safeTitle = brandName.toLowerCase().replace(/[^a-z0-9]/gi, '_');
+
+  // Documentation file
+  zip.file(
+    'README_YOUTUBE_CREATOR_GUIDE.txt',
+    `=============================================================
+  ${brandName} - YouTube Channel Branding & Asset Pack
+  Generated by Logo & Favicon Studio PRO
+=============================================================
+
+📐 YOUTUBE OFFICIAL DIMENSION SPECS (2026 Standards):
+
+1. YouTube Channel Banner (Cover Art):
+   - Optimal File: 01_youtube_channel_banner_2560x1440.png
+   - Canvas Resolution: 2560 x 1440 pixels (16:9 Aspect Ratio)
+   - Mobile Safe Area: 1546 x 423 pixels (Guaranteed visible across all smartphones)
+   - Tablet Safe Band: 1855 x 423 pixels
+   - Desktop Safe Band: 2560 x 423 pixels
+   - TV Display: Full 2560 x 1440 canvas
+
+2. YouTube Profile Avatar (Channel Icon):
+   - File: 03_youtube_profile_avatar_800x800.png
+   - Resolution: 800 x 800 pixels (1:1 Ratio, auto-cropped to circle on YouTube)
+
+3. YouTube Video Branding Watermark:
+   - File: 04_youtube_video_watermark_150x150.png
+   - Resolution: 150 x 150 pixels (Displays in bottom-right of your videos)
+
+4. YouTube Video HD Thumbnail:
+   - File: 05_youtube_video_thumbnail_1280x720.png
+   - Resolution: 1280 x 720 pixels (Standard 16:9 HD Thumbnail)
+
+5. Scalable Vector Master:
+   - File: 06_youtube_banner_master.svg
+   - Lossless infinite resolution vector source
+
+Upload directly via YouTube Studio -> Customization -> Branding.
+`
+  );
+
+  // 1. YouTube Banner (2560 x 1440)
+  const bannerSvgClean = generateSocialBannerSvg(
+    config,
+    { ...bannerOptions, showSafeZone: false },
+    2560,
+    1440
+  );
+  const bannerBlob = await rasterizeSvg(bannerSvgClean, 2560, 1440, 'png');
+  zip.file('01_youtube_channel_banner_2560x1440.png', bannerBlob);
+
+  // 2. YouTube Banner with Safe Zones guide
+  const bannerSvgGuide = generateSocialBannerSvg(
+    config,
+    { ...bannerOptions, showSafeZone: true },
+    2560,
+    1440
+  );
+  const bannerGuideBlob = await rasterizeSvg(bannerSvgGuide, 2560, 1440, 'png');
+  zip.file('02_youtube_banner_with_safezones_2560x1440.png', bannerGuideBlob);
+
+  // 3. YouTube Avatar (800 x 800)
+  const avatarSvg = generateSvgString(config, 800);
+  const avatarBlob = await renderSvgToBlob(avatarSvg, 800, 'png');
+  zip.file('03_youtube_profile_avatar_800x800.png', avatarBlob);
+
+  // 4. Video Watermark (150 x 150)
+  const watermarkBlob = await renderSvgToBlob(avatarSvg, 150, 'png');
+  zip.file('04_youtube_video_watermark_150x150.png', watermarkBlob);
+
+  // 5. Video Thumbnail (1280 x 720)
+  const thumbSvg = generateSocialBannerSvg(
+    config,
+    { ...bannerOptions, showSafeZone: false },
+    1280,
+    720
+  );
+  const thumbBlob = await rasterizeSvg(thumbSvg, 1280, 720, 'png');
+  zip.file('05_youtube_video_thumbnail_1280x720.png', thumbBlob);
+
+  // 6. Vector Master SVG
+  zip.file('06_youtube_banner_master.svg', bannerSvgClean);
+
+  return await zip.generateAsync({ type: 'blob' });
+}
+
 
 /**
  * Generates full Social Media Kit ZIP package with organized folders

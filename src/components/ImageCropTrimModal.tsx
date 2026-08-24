@@ -7,20 +7,15 @@ import {
   Download,
   Check,
   RotateCcw,
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
-  Sliders,
   Eye,
-  Layers,
   Upload,
   Move,
-  CheckCircle2,
-  RefreshCw,
   Square,
-  Smartphone,
-  Monitor,
-  FolderDown,
+  Circle,
+  Shield,
+  Layers,
+  Sliders,
+  Maximize2,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { SupportedLanguage } from '../types';
@@ -28,8 +23,8 @@ import {
   CropRect,
   detectTrimBounds,
   cropImageToBlob,
-  autoTrimImage,
   TrimResult,
+  CropMaskShape,
 } from '../utils/imageCropper';
 import { downloadBlob } from '../utils/canvasRenderer';
 
@@ -53,14 +48,13 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
   const isAr = language === 'ar';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Active Image Source
   const [imageSrc, setImageSrc] = useState<string | null>(initialImageSrc || null);
   const [loadedImage, setLoadedImage] = useState<HTMLImageElement | null>(null);
 
-  // Modes: 'auto-trim' | 'manual-crop'
-  const [activeTab, setActiveTab] = useState<'auto-trim' | 'manual-crop'>('auto-trim');
+  // Modes: 'auto-trim' | 'manual-crop' | 'corner-round'
+  const [activeTab, setActiveTab] = useState<'auto-trim' | 'manual-crop' | 'corner-round'>('auto-trim');
 
   // Auto-Trim Settings
   const [trimTolerance, setTrimTolerance] = useState<number>(18);
@@ -68,21 +62,23 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
   const [trimMode, setTrimMode] = useState<'auto' | 'white' | 'transparent' | 'corner-color'>('white');
   const [detectedTrim, setDetectedTrim] = useState<TrimResult | null>(null);
 
+  // Corner Rounding & Mask Settings (for trimming 90° sharp corners into rounded/squircle/circle)
+  const [cornerShape, setCornerShape] = useState<CropMaskShape>('rounded');
+  const [cornerRadius, setCornerRadius] = useState<number>(36); // px or relative radius
+
   // Manual Crop Rect (in original image coordinates)
   const [cropRect, setCropRect] = useState<CropRect>({ x: 0, y: 0, width: 100, height: 100 });
   const [aspectRatio, setAspectRatio] = useState<AspectRatioPreset>('free');
 
   // Interactive Dragging State
   const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [dragAction, setDragAction] = useState<string | null>(null); // 'move' | 'tl' | 'tr' | 'bl' | 'br' | 't' | 'b' | 'l' | 'r'
+  const [dragAction, setDragAction] = useState<string | null>(null);
   const [dragStart, setDragStart] = useState<{ x: number; y: number; rect: CropRect }>({
     x: 0,
     y: 0,
     rect: { x: 0, y: 0, width: 0, height: 0 },
   });
 
-  // Display Zoom & Fit
-  const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [croppedPreviewUrl, setCroppedPreviewUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [exportFormat, setExportFormat] = useState<'png' | 'jpeg' | 'webp'>('png');
@@ -126,10 +122,10 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
         });
       } else {
         setCropRect({
-          x: Math.round(img.naturalWidth * 0.1),
-          y: Math.round(img.naturalHeight * 0.1),
-          width: Math.round(img.naturalWidth * 0.8),
-          height: Math.round(img.naturalHeight * 0.8),
+          x: Math.round(img.naturalWidth * 0.05),
+          y: Math.round(img.naturalHeight * 0.05),
+          width: Math.round(img.naturalWidth * 0.9),
+          height: Math.round(img.naturalHeight * 0.9),
         });
       }
     };
@@ -157,12 +153,16 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
     }
   }, [trimTolerance, trimPadding, trimMode, loadedImage, activeTab]);
 
-  // Update Live Cropped Preview
+  // Update Live Cropped Preview with corner rounding & mask support
   useEffect(() => {
     if (!loadedImage || cropRect.width <= 0 || cropRect.height <= 0) return;
 
     let isMounted = true;
-    cropImageToBlob(loadedImage, cropRect, 'png').then((res) => {
+    cropImageToBlob(loadedImage, cropRect, {
+      format: 'png',
+      shape: activeTab === 'corner-round' || cornerRadius > 0 ? cornerShape : 'rect',
+      cornerRadius: activeTab === 'corner-round' ? cornerRadius : 0,
+    }).then((res) => {
       if (isMounted) {
         setCroppedPreviewUrl(res.dataUrl);
       }
@@ -171,7 +171,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [loadedImage, cropRect]);
+  }, [loadedImage, cropRect, activeTab, cornerShape, cornerRadius]);
 
   // Handle local file upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -253,7 +253,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
     });
 
     confetti({
-      particleCount: 40,
+      particleCount: 35,
       spread: 60,
       origin: { y: 0.6 },
     });
@@ -267,13 +267,17 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
     if (!loadedImage) return;
     setIsProcessing(true);
     try {
-      const { blob } = await cropImageToBlob(loadedImage, cropRect, exportFormat);
-      const filename = `fyntica_cropped_${cropRect.width}x${cropRect.height}.${exportFormat === 'jpeg' ? 'jpg' : exportFormat}`;
+      const { blob } = await cropImageToBlob(loadedImage, cropRect, {
+        format: exportFormat,
+        shape: activeTab === 'corner-round' || cornerRadius > 0 ? cornerShape : 'rect',
+        cornerRadius: activeTab === 'corner-round' ? cornerRadius : 0,
+      });
+      const filename = `fyntica_crop_${cropRect.width}x${cropRect.height}.${exportFormat === 'jpeg' ? 'jpg' : exportFormat}`;
       downloadBlob(blob, filename);
 
       confetti({
-        particleCount: 50,
-        spread: 70,
+        particleCount: 40,
+        spread: 65,
         origin: { y: 0.7 },
       });
     } catch (err) {
@@ -301,7 +305,6 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
       if (!isDragging || !dragAction || !loadedImage || !containerRef.current) return;
 
       const rect = containerRef.current.getBoundingClientRect();
-      // Calculate scale factor from visual display to image natural pixels
       const scaleX = loadedImage.naturalWidth / rect.width;
       const scaleY = loadedImage.naturalHeight / rect.height;
 
@@ -318,7 +321,6 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
         nextRect.x = Math.max(0, Math.min(imgW - orig.width, orig.x + deltaX));
         nextRect.y = Math.max(0, Math.min(imgH - orig.height, orig.y + deltaY));
       } else {
-        // Resizing from handles
         let newX = orig.x;
         let newY = orig.y;
         let newW = orig.width;
@@ -341,7 +343,6 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
           newH = Math.max(20, Math.min(imgH - orig.y, orig.height + deltaY));
         }
 
-        // Lock aspect ratio if required
         if (aspectRatio !== 'free') {
           let ratio = 1;
           if (aspectRatio === '1:1') ratio = 1;
@@ -388,39 +389,53 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
 
   if (!isOpen) return null;
 
+  // Calculate dynamic border radius style for preview box
+  const getVisualBorderRadius = () => {
+    if (activeTab === 'corner-round') {
+      if (cornerShape === 'circle') return '50%';
+      if (cornerShape === 'squircle') return '22%';
+      if (cornerShape === 'rounded') {
+        const previewScale = containerRef.current && loadedImage
+          ? containerRef.current.clientWidth / loadedImage.naturalWidth
+          : 0.5;
+        return `${Math.min(cornerRadius * previewScale, 80)}px`;
+      }
+    }
+    return '4px';
+  };
+
   return (
     <div
       id="image-crop-trim-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 sm:p-6 overflow-y-auto animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-3 sm:p-5 overflow-y-auto animate-in fade-in duration-200"
       dir={isAr ? 'rtl' : 'ltr'}
     >
       <div className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50/80">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 bg-slate-50/90 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-teal-500 text-white flex items-center justify-center shadow-sm">
-              <Scissors className="h-5 w-5" />
+            <div className="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-xs">
+              <Scissors className="h-4 w-4" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
-                {isAr ? 'أداة قص الأطراف البيضاء وتحديد المستطيل (Auto-Trim & Crop)' : 'Smart Image Trimmer & Rectangle Cropper'}
-                <span className="text-[10px] font-bold bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full">
-                  {isAr ? 'إزالة الحواف تلقائياً' : 'Auto-Border Remover'}
+              <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                {isAr ? 'أداة قص وتدوير الزوايا وإزالة الحواف' : 'Image Cropper & 90° Corner Rounder'}
+                <span className="text-[10px] font-bold bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full border border-teal-200">
+                  {isAr ? 'قص الزوايا الحادة 90°' : '90° Sharp Edge Trimmer'}
                 </span>
               </h2>
-              <p className="text-xs text-slate-500">
+              <p className="text-[11px] text-slate-500 hidden sm:block">
                 {isAr
-                  ? 'قص الأطراف البيضاء والشفافة المحيطة بالشعار تلقائياً أو تحديد مستطيل يدوي بدقة بكسل كاملة'
-                  : 'Automatically trim unwanted white/transparent borders or interactively crop any rectangle with pixel precision'}
+                  ? 'قص الحواف البيضاء والشفافة أو تدوير الأطراف الأربعة الحادة 90 درجة إلى شكل دائري/سكويركل'
+                  : 'Trim white margins or round the 4 sharp 90-degree corners into smooth circular or squircle curves'}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <button
-              id="btn-close-cropper"
               onClick={onClose}
-              className="p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer"
               title={isAr ? 'إغلاق' : 'Close'}
             >
               <X className="h-5 w-5" />
@@ -428,38 +443,56 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex items-center justify-between px-6 py-2.5 bg-slate-100/60 border-b border-slate-200">
-          <div className="flex items-center gap-2">
+        {/* Tab Selector & Upload Bar */}
+        <div className="flex items-center justify-between px-5 py-2 bg-slate-100/70 border-b border-slate-200 shrink-0 flex-wrap gap-2">
+          <div className="flex items-center gap-1.5 overflow-x-auto">
+            {/* Tab 1: Auto-Trim */}
             <button
               onClick={() => {
                 setActiveTab('auto-trim');
                 handleSnapToSubject();
               }}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
                 activeTab === 'auto-trim'
-                  ? 'bg-white text-indigo-700 shadow-xs border border-slate-200'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white text-teal-700 shadow-2xs border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
               }`}
             >
-              <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
-              <span>{isAr ? '⚡ قص الأطراف البيضاء تلقائياً (Auto-Trim)' : '⚡ Auto-Trim White Borders'}</span>
+              <Sparkles className="h-3.5 w-3.5 text-teal-600" />
+              <span>{isAr ? '⚡ إزالة الحواف البيضاء' : '⚡ Auto-Trim Margins'}</span>
             </button>
 
+            {/* Tab 2: 90° Corner Rounding (User's specific request) */}
             <button
-              onClick={() => setActiveTab('manual-crop')}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                activeTab === 'manual-crop'
-                  ? 'bg-white text-indigo-700 shadow-xs border border-slate-200'
-                  : 'text-slate-600 hover:text-slate-900'
+              onClick={() => {
+                setActiveTab('corner-round');
+                applyAspectRatio('1:1');
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                activeTab === 'corner-round'
+                  ? 'bg-white text-indigo-700 shadow-2xs border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
               }`}
             >
-              <Crop className="h-3.5 w-3.5 text-indigo-600" />
-              <span>{isAr ? '✂️ قص يدوي بمستطيل تفاعلي (Manual Box)' : '✂️ Interactive Rectangle Crop'}</span>
+              <Circle className="h-3.5 w-3.5 text-indigo-600" />
+              <span>{isAr ? '⭕ قص وتدوير الزوايا الأربع (90°)' : '⭕ 90° Corner Rounding'}</span>
+            </button>
+
+            {/* Tab 3: Interactive Crop */}
+            <button
+              onClick={() => setActiveTab('manual-crop')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                activeTab === 'manual-crop'
+                  ? 'bg-white text-slate-900 shadow-2xs border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              }`}
+            >
+              <Crop className="h-3.5 w-3.5 text-slate-600" />
+              <span>{isAr ? '✂️ قص مستطيل حر' : '✂️ Rectangle Box'}</span>
             </button>
           </div>
 
-          {/* Quick upload another image */}
+          {/* Quick upload input */}
           <div className="flex items-center gap-2">
             <input
               type="file"
@@ -470,49 +503,47 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 shadow-2xs"
+              className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 shadow-2xs transition-colors cursor-pointer"
             >
               <Upload className="h-3 w-3 text-slate-500" />
-              <span>{isAr ? 'رفع صورة أخرى' : 'Upload Another Image'}</span>
+              <span>{isAr ? 'رفع صورة' : 'Upload Image'}</span>
             </button>
           </div>
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-6 overflow-y-auto">
-          {/* Left / Center: Interactive Canvas Visualizer (8 cols) */}
-          <div className="lg:col-span-8 flex flex-col gap-3">
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 p-4 sm:p-5 overflow-y-auto">
+          {/* Visual Canvas Viewport (7 cols) */}
+          <div className="lg:col-span-7 flex flex-col gap-2.5">
             <div className="flex items-center justify-between text-xs text-slate-600 font-medium">
               <span className="flex items-center gap-1.5 font-bold text-slate-800">
-                <Eye className="h-3.5 w-3.5 text-indigo-600" />
-                {isAr ? 'معاينة منطقة القص التفاعلية' : 'Interactive Crop Area Preview'}
+                <Eye className="h-3.5 w-3.5 text-teal-600" />
+                {isAr ? 'معاينة التحديد والقص المباشر' : 'Live Interactive Crop Frame'}
               </span>
 
               {loadedImage && (
-                <div className="flex items-center gap-3 text-[11px] font-mono text-slate-500">
+                <div className="flex items-center gap-2 text-[11px] font-mono text-slate-500">
                   <span>
                     {isAr ? 'الأصل:' : 'Orig:'} {loadedImage.naturalWidth}×{loadedImage.naturalHeight}px
                   </span>
-                  <span>
-                    {isAr ? 'المقصوص:' : 'Crop:'} {cropRect.width}×{cropRect.height}px
+                  <span>•</span>
+                  <span className="text-teal-700 font-bold">
+                    {isAr ? 'القص:' : 'Crop:'} {cropRect.width}×{cropRect.height}px
                   </span>
                 </div>
               )}
             </div>
 
-            {/* Interactive Image Frame Container */}
-            <div className="relative w-full aspect-square max-h-[440px] bg-slate-900 rounded-xl overflow-hidden flex items-center justify-center p-4 border border-slate-300 shadow-inner select-none">
+            {/* Interactive Image Frame */}
+            <div className="relative w-full aspect-square max-h-[380px] bg-slate-900 rounded-xl overflow-hidden flex items-center justify-center p-3 border border-slate-300 shadow-inner select-none">
               {!imageSrc ? (
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex flex-col items-center justify-center gap-3 text-center cursor-pointer p-8 rounded-xl border-2 border-dashed border-slate-700 hover:border-indigo-400 text-slate-400 transition-colors"
+                  className="flex flex-col items-center justify-center gap-2.5 text-center cursor-pointer p-6 rounded-xl border-2 border-dashed border-slate-700 hover:border-teal-400 text-slate-400 transition-colors"
                 >
-                  <Upload className="h-10 w-10 text-indigo-400" />
-                  <p className="text-sm font-bold text-white">
-                    {isAr ? 'اضغط لرفع صورة لقص حوافها' : 'Click to upload an image to trim'}
-                  </p>
-                  <p className="text-xs text-slate-400">
-                    {isAr ? 'يدعم PNG, JPG, WebP' : 'Supports PNG, JPG, WebP'}
+                  <Upload className="h-8 w-8 text-teal-400" />
+                  <p className="text-xs font-bold text-white">
+                    {isAr ? 'اضغط لرفع صورة لقص أطرافها' : 'Click to upload an image'}
                   </p>
                 </div>
               ) : loadedImage ? (
@@ -521,8 +552,8 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
                   className="relative w-full h-full flex items-center justify-center"
                   style={{
                     backgroundImage:
-                      'radial-gradient(rgba(255,255,255,0.15) 1px, transparent 1px)',
-                    backgroundSize: '16px 16px',
+                      'radial-gradient(rgba(255,255,255,0.12) 1px, transparent 1px)',
+                    backgroundSize: '14px 14px',
                   }}
                 >
                   {/* Base Image */}
@@ -542,7 +573,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
                     <div
                       className="absolute inset-0 pointer-events-none"
                       style={{
-                        backgroundColor: 'rgba(0, 0, 0, 0.55)',
+                        backgroundColor: 'rgba(0, 0, 0, 0.6)',
                         clipPath: `polygon(
                           0% 0%, 0% 100%, 100% 100%, 100% 0%, 0% 0%,
                           ${(cropRect.x / loadedImage.naturalWidth) * 100}% ${(cropRect.y / loadedImage.naturalHeight) * 100}%,
@@ -557,18 +588,20 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
 
                   {/* Interactive Crop Frame Box */}
                   <div
-                    className="absolute border-2 border-teal-400 shadow-2xl cursor-move transition-all"
+                    className="absolute border-2 border-teal-400 cursor-move transition-all"
                     style={{
                       left: `${(cropRect.x / loadedImage.naturalWidth) * 100}%`,
                       top: `${(cropRect.y / loadedImage.naturalHeight) * 100}%`,
                       width: `${(cropRect.width / loadedImage.naturalWidth) * 100}%`,
                       height: `${(cropRect.height / loadedImage.naturalHeight) * 100}%`,
-                      boxShadow: '0 0 0 1px rgba(255,255,255,0.8), 0 0 20px rgba(13, 148, 136, 0.4)',
+                      borderRadius: getVisualBorderRadius(),
+                      boxShadow:
+                        '0 0 0 1px rgba(255,255,255,0.9), 0 0 16px rgba(13, 148, 136, 0.4)',
                     }}
                     onMouseDown={(e) => handleMouseDown(e, 'move')}
                   >
-                    {/* Grid Rule of Thirds Guide Lines */}
-                    <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none opacity-40">
+                    {/* Grid Lines */}
+                    <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 pointer-events-none opacity-30">
                       <div className="border-r border-b border-white/60"></div>
                       <div className="border-r border-b border-white/60"></div>
                       <div className="border-b border-white/60"></div>
@@ -580,57 +613,26 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
                       <div></div>
                     </div>
 
-                    {/* Corner Drag Handles */}
-                    {/* Top-Left */}
+                    {/* Corner Handles */}
                     <div
-                      className="absolute -top-1.5 -left-1.5 w-3.5 h-3.5 bg-white border-2 border-teal-600 rounded-sm cursor-nwse-resize shadow-md"
+                      className="absolute -top-1 -left-1 w-3 h-3 bg-white border-2 border-teal-600 rounded-xs cursor-nwse-resize shadow-xs"
                       onMouseDown={(e) => handleMouseDown(e, 'tl')}
                     />
-                    {/* Top-Right */}
                     <div
-                      className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-white border-2 border-teal-600 rounded-sm cursor-nesw-resize shadow-md"
+                      className="absolute -top-1 -right-1 w-3 h-3 bg-white border-2 border-teal-600 rounded-xs cursor-nesw-resize shadow-xs"
                       onMouseDown={(e) => handleMouseDown(e, 'tr')}
                     />
-                    {/* Bottom-Left */}
                     <div
-                      className="absolute -bottom-1.5 -left-1.5 w-3.5 h-3.5 bg-white border-2 border-teal-600 rounded-sm cursor-nesw-resize shadow-md"
+                      className="absolute -bottom-1 -left-1 w-3 h-3 bg-white border-2 border-teal-600 rounded-xs cursor-nesw-resize shadow-xs"
                       onMouseDown={(e) => handleMouseDown(e, 'bl')}
                     />
-                    {/* Bottom-Right */}
                     <div
-                      className="absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-white border-2 border-teal-600 rounded-sm cursor-nwse-resize shadow-md"
+                      className="absolute -bottom-1 -right-1 w-3 h-3 bg-white border-2 border-teal-600 rounded-xs cursor-nwse-resize shadow-xs"
                       onMouseDown={(e) => handleMouseDown(e, 'br')}
                     />
 
-                    {/* Edge Handles */}
-                    {/* Top */}
-                    <div
-                      className="absolute -top-1 left-1/2 -translate-x-1/2 w-6 h-2 bg-teal-400 border border-white rounded-full cursor-ns-resize"
-                      onMouseDown={(e) => handleMouseDown(e, 't')}
-                    />
-                    {/* Bottom */}
-                    <div
-                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-6 h-2 bg-teal-400 border border-white rounded-full cursor-ns-resize"
-                      onMouseDown={(e) => handleMouseDown(e, 'b')}
-                    />
-                    {/* Left */}
-                    <div
-                      className="absolute top-1/2 -translate-y-1/2 -left-1 h-6 w-2 bg-teal-400 border border-white rounded-full cursor-ew-resize"
-                      onMouseDown={(e) => handleMouseDown(e, 'l')}
-                    />
-                    {/* Right */}
-                    <div
-                      className="absolute top-1/2 -translate-y-1/2 -right-1 h-6 w-2 bg-teal-400 border border-white rounded-full cursor-ew-resize"
-                      onMouseDown={(e) => handleMouseDown(e, 'r')}
-                    />
-
-                    {/* Center Move Indicator */}
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/40 text-white p-1 rounded-full pointer-events-none opacity-60">
-                      <Move className="h-3.5 w-3.5" />
-                    </div>
-
                     {/* Dimensions Pill */}
-                    <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-teal-900 text-teal-100 text-[9px] font-mono px-2 py-0.5 rounded shadow pointer-events-none whitespace-nowrap">
+                    <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 bg-teal-950/90 text-teal-100 text-[9px] font-mono px-2 py-0.5 rounded shadow pointer-events-none whitespace-nowrap">
                       {cropRect.width} × {cropRect.height} px
                     </div>
                   </div>
@@ -638,41 +640,38 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
               ) : null}
             </div>
 
-            {/* Quick Canvas Toolbar below image */}
-            <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs">
+            {/* Quick Toolbar */}
+            <div className="flex flex-wrap items-center justify-between gap-1.5 p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs">
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={handleSnapToSubject}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-teal-700 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 transition-colors"
+                  className="flex items-center gap-1 px-2 py-1 text-xs font-bold text-teal-700 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 transition-colors cursor-pointer"
                 >
                   <Sparkles className="h-3 w-3 text-teal-600" />
-                  <span>{isAr ? 'تحديد الشعار تلقائياً' : 'Snap to Subject'}</span>
+                  <span>{isAr ? 'تحديد تلقائي' : 'Snap Subject'}</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={handleResetFull}
-                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                  className="flex items-center gap-1 px-2 py-1 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
                 >
                   <RotateCcw className="h-3 w-3 text-slate-500" />
-                  <span>{isAr ? 'إعادة كامل الصورة' : 'Full Image'}</span>
+                  <span>{isAr ? 'كامل الصورة' : 'Full'}</span>
                 </button>
               </div>
 
-              {/* Aspect Ratio Presets */}
+              {/* Aspect Ratio Buttons */}
               <div className="flex items-center gap-1">
-                <span className="text-[11px] text-slate-500 font-bold ml-1">
-                  {isAr ? 'النسبة:' : 'Ratio:'}
-                </span>
                 {(['free', '1:1', '16:9', '9:16', '4:3'] as AspectRatioPreset[]).map((r) => (
                   <button
                     key={r}
                     type="button"
                     onClick={() => applyAspectRatio(r)}
-                    className={`px-2 py-0.5 text-[11px] font-bold rounded border transition-all ${
+                    className={`px-2 py-0.5 text-[11px] font-bold rounded-md border transition-all cursor-pointer ${
                       aspectRatio === r
-                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                        ? 'bg-teal-600 text-white border-teal-600 shadow-2xs'
                         : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
@@ -683,59 +682,142 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
             </div>
           </div>
 
-          {/* Right: Controls, Auto-Trim Parameters & Actions (4 cols) */}
-          <div className="lg:col-span-4 flex flex-col gap-4">
-            {/* Trim Intelligence Card */}
-            {activeTab === 'auto-trim' ? (
-              <div className="p-4 bg-teal-50/70 border border-teal-200 rounded-xl space-y-3.5">
+          {/* Right Controls & Parameter Adjustments (5 cols) */}
+          <div className="lg:col-span-5 flex flex-col gap-3.5">
+            {/* 1. CORNER ROUNDING & 90° SHARP CORNER TRIMMING (User Primary Request) */}
+            {activeTab === 'corner-round' && (
+              <div className="p-3.5 bg-indigo-50/70 border border-indigo-200 rounded-xl space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 text-indigo-950 font-bold text-xs">
+                    <Circle className="h-4 w-4 text-indigo-600" />
+                    <span>{isAr ? 'قص وتدوير الزوايا الحادة 90°' : '90° Corner Rounding & Mask'}</span>
+                  </div>
+                  <span className="text-[10px] font-bold bg-indigo-200 text-indigo-900 px-2 py-0.5 rounded-full">
+                    {cornerShape === 'circle'
+                      ? isAr
+                        ? 'دائري كامل'
+                        : 'Full Circle'
+                      : cornerShape === 'squircle'
+                      ? isAr
+                        ? 'أيقونة أندرويد'
+                        : 'Squircle'
+                      : `${cornerRadius}px`}
+                  </span>
+                </div>
+
+                {/* Shape Mask Buttons */}
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[
+                    { id: 'rounded', nameAr: 'انحناء الزوايا', nameEn: 'Rounded', icon: Square },
+                    { id: 'squircle', nameAr: 'سكويركل أيقونة', nameEn: 'Squircle', icon: Shield },
+                    { id: 'circle', nameAr: 'دائري كامل', nameEn: 'Circle', icon: Circle },
+                  ].map((s) => {
+                    const Icon = s.icon;
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => setCornerShape(s.id as any)}
+                        className={`flex flex-col items-center justify-center p-2 text-xs font-bold rounded-lg border transition-all cursor-pointer ${
+                          cornerShape === s.id
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                            : 'bg-white text-slate-700 border-indigo-200 hover:bg-indigo-100/50'
+                        }`}
+                      >
+                        <Icon className="h-4 w-4 mb-1" />
+                        <span className="text-[10px]">{isAr ? s.nameAr : s.nameEn}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Corner Radius Slider (when rounded) */}
+                {cornerShape === 'rounded' && (
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex justify-between text-xs text-indigo-950 font-bold">
+                      <span>{isAr ? 'نصف قطر تدوير الزوايا (Radius)' : 'Corner Radius'}</span>
+                      <span className="font-mono">{cornerRadius} px</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0"
+                      max="128"
+                      value={cornerRadius}
+                      onChange={(e) => setCornerRadius(Number(e.target.value))}
+                      className="w-full accent-indigo-600 bg-indigo-200 h-1.5 rounded-lg cursor-pointer"
+                    />
+
+                    {/* Quick presets */}
+                    <div className="flex items-center gap-1 pt-1">
+                      {[
+                        { label: '0px (حادة 90°)', val: 0 },
+                        { label: '16px', val: 16 },
+                        { label: '36px', val: 36 },
+                        { label: '64px', val: 64 },
+                        { label: '90px', val: 90 },
+                      ].map((p) => (
+                        <button
+                          key={p.val}
+                          type="button"
+                          onClick={() => setCornerRadius(p.val)}
+                          className={`px-1.5 py-0.5 text-[10px] font-bold rounded border cursor-pointer ${
+                            cornerRadius === p.val
+                              ? 'bg-indigo-600 text-white border-indigo-600'
+                              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                          }`}
+                        >
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 2. AUTO-TRIM CARD */}
+            {activeTab === 'auto-trim' && (
+              <div className="p-3.5 bg-teal-50/70 border border-teal-200 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-teal-950 font-bold text-xs">
                     <Sparkles className="h-4 w-4 text-teal-600" />
-                    <span className="text-xs font-black text-teal-900">
-                      {isAr ? 'إعدادات الكشف والقص التلقائي' : 'Auto-Trim Settings'}
-                    </span>
+                    <span>{isAr ? 'إعدادات الكشف التلقائي للحواف' : 'Auto-Border Detection'}</span>
                   </div>
                   {detectedTrim && (
                     <span className="text-[10px] font-bold bg-teal-200 text-teal-900 px-2 py-0.5 rounded-full">
                       {isAr
-                        ? `حذف ${Math.round((detectedTrim.trimSavedPixels / (detectedTrim.originalWidth * detectedTrim.originalHeight)) * 100)}% حواف`
-                        : `${Math.round((detectedTrim.trimSavedPixels / (detectedTrim.originalWidth * detectedTrim.originalHeight)) * 100)}% trimmed`}
+                        ? `حذف ${Math.round((detectedTrim.trimSavedPixels / (detectedTrim.originalWidth * detectedTrim.originalHeight)) * 100)}%`
+                        : `${Math.round((detectedTrim.trimSavedPixels / (detectedTrim.originalWidth * detectedTrim.originalHeight)) * 100)}% cut`}
                     </span>
                   )}
                 </div>
 
-                {/* Trim Mode selection */}
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-teal-950 block">
-                    {isAr ? 'نوع الحواف المراد إزالتها:' : 'Border Type to Trim:'}
-                  </label>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {[
-                      { id: 'white', nameAr: 'أطراف بيضاء', nameEn: 'White Borders' },
-                      { id: 'transparent', nameAr: 'أطراف شفافة', nameEn: 'Transparent' },
-                      { id: 'corner-color', nameAr: 'لون الزوايا', nameEn: 'Corner Color' },
-                      { id: 'auto', nameAr: 'كشف ذكي', nameEn: 'Smart Auto' },
-                    ].map((m) => (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => setTrimMode(m.id as any)}
-                        className={`py-1.5 px-2 text-xs font-bold rounded-lg border transition-all text-center ${
-                          trimMode === m.id
-                            ? 'bg-teal-600 text-white border-teal-600 shadow-xs'
-                            : 'bg-white text-slate-700 border-teal-200 hover:bg-teal-100/50'
-                        }`}
-                      >
-                        {isAr ? m.nameAr : m.nameEn}
-                      </button>
-                    ))}
-                  </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {[
+                    { id: 'white', nameAr: 'أطراف بيضاء', nameEn: 'White' },
+                    { id: 'transparent', nameAr: 'شفافة', nameEn: 'Transparent' },
+                    { id: 'corner-color', nameAr: 'لون الزوايا', nameEn: 'Corners' },
+                    { id: 'auto', nameAr: 'كشف ذكي', nameEn: 'Smart' },
+                  ].map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setTrimMode(m.id as any)}
+                      className={`py-1.5 px-2 text-xs font-bold rounded-lg border transition-all cursor-pointer text-center ${
+                        trimMode === m.id
+                          ? 'bg-teal-600 text-white border-teal-600 shadow-2xs'
+                          : 'bg-white text-slate-700 border-teal-200 hover:bg-teal-100/50'
+                      }`}
+                    >
+                      {isAr ? m.nameAr : m.nameEn}
+                    </button>
+                  ))}
                 </div>
 
-                {/* Sensitivity / Tolerance Slider */}
+                {/* Sensitivity Slider */}
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs text-teal-950 font-medium">
-                    <span>{isAr ? 'حساسية اللون (Tolerance)' : 'Color Sensitivity'}</span>
+                    <span>{isAr ? 'حساسية اللون' : 'Sensitivity'}</span>
                     <span className="font-mono font-bold">{trimTolerance}%</span>
                   </div>
                   <input
@@ -746,40 +828,20 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
                     onChange={(e) => setTrimTolerance(Number(e.target.value))}
                     className="w-full accent-teal-600 bg-teal-200 h-1.5 rounded-lg cursor-pointer"
                   />
-                  <p className="text-[10px] text-teal-700">
-                    {isAr
-                      ? 'زيادة الحساسية تزيل التدرجات الرمادية الفاتحة والظلال البيضاء'
-                      : 'Higher tolerance removes faint off-white anti-aliased edges'}
-                  </p>
-                </div>
-
-                {/* Margin Padding */}
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs text-teal-950 font-medium">
-                    <span>{isAr ? 'هامش أمان حول الشعار' : 'Safety Padding Margin'}</span>
-                    <span className="font-mono font-bold">{trimPadding} px</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="30"
-                    value={trimPadding}
-                    onChange={(e) => setTrimPadding(Number(e.target.value))}
-                    className="w-full accent-teal-600 bg-teal-200 h-1.5 rounded-lg cursor-pointer"
-                  />
                 </div>
               </div>
-            ) : (
-              /* Manual Rectangle Inputs Card */
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-                <span className="text-xs font-black text-slate-900 block">
-                  {isAr ? 'إحداثيات المستطيل الدقيقة (px)' : 'Precise Rectangle Coordinates'}
-                </span>
+            )}
 
+            {/* 3. MANUAL CROP DIMENSIONS */}
+            {activeTab === 'manual-crop' && (
+              <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                <span className="text-xs font-bold text-slate-900 block">
+                  {isAr ? 'أبعاد المستطيل الدقيقة (px)' : 'Precise Rectangle (px)'}
+                </span>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-[10px] font-bold text-slate-500 block">
-                      {isAr ? 'العرض (W)' : 'Width'}
+                      {isAr ? 'العرض W' : 'Width'}
                     </label>
                     <input
                       type="number"
@@ -792,7 +854,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
                   </div>
                   <div>
                     <label className="text-[10px] font-bold text-slate-500 block">
-                      {isAr ? 'الارتفاع (H)' : 'Height'}
+                      {isAr ? 'الارتفاع H' : 'Height'}
                     </label>
                     <input
                       type="number"
@@ -803,78 +865,59 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
                       className="w-full text-xs font-mono font-bold bg-white border border-slate-300 rounded-lg p-1.5"
                     />
                   </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 block">
-                      {isAr ? 'الموقع X' : 'Position X'}
-                    </label>
-                    <input
-                      type="number"
-                      value={cropRect.x}
-                      onChange={(e) => setCropRect({ ...cropRect, x: Number(e.target.value) })}
-                      className="w-full text-xs font-mono font-bold bg-white border border-slate-300 rounded-lg p-1.5"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 block">
-                      {isAr ? 'الموقع Y' : 'Position Y'}
-                    </label>
-                    <input
-                      type="number"
-                      value={cropRect.y}
-                      onChange={(e) => setCropRect({ ...cropRect, y: Number(e.target.value) })}
-                      className="w-full text-xs font-mono font-bold bg-white border border-slate-300 rounded-lg p-1.5"
-                    />
-                  </div>
                 </div>
               </div>
             )}
 
-            {/* Live Result Thumbnail */}
+            {/* Live Result Thumbnail Preview */}
             {croppedPreviewUrl && (
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-                <span className="text-[11px] font-bold text-slate-700 block">
-                  {isAr ? 'نتيجة القص المعزولة' : 'Cropped Result Output'}
-                </span>
-                <div className="w-full h-28 bg-slate-200 rounded-lg flex items-center justify-center p-2 overflow-hidden border border-slate-300">
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                <div className="flex justify-between items-center text-[11px] font-bold text-slate-700">
+                  <span>{isAr ? 'نتيجة القص المعزولة' : 'Isolated Output'}</span>
+                  <span className="text-teal-700 font-mono text-[10px]">
+                    {cropRect.width} × {cropRect.height} px
+                  </span>
+                </div>
+                <div
+                  className="w-full h-24 rounded-lg flex items-center justify-center p-2 overflow-hidden border border-slate-300"
+                  style={{
+                    backgroundImage:
+                      'radial-gradient(rgba(0,0,0,0.08) 1px, transparent 1px)',
+                    backgroundSize: '8px 8px',
+                    backgroundColor: '#f1f5f9',
+                  }}
+                >
                   <img
                     src={croppedPreviewUrl}
                     alt="Cropped thumbnail"
-                    className="max-h-full max-w-full object-contain rounded shadow-xs"
+                    className="max-h-full max-w-full object-contain drop-shadow-xs"
                   />
-                </div>
-                <div className="flex justify-between items-center text-[10px] font-mono text-slate-500">
-                  <span>{cropRect.width} × {cropRect.height} px</span>
-                  <span className="text-emerald-600 font-bold">
-                    {isAr ? 'جاهزة للتطبيق' : 'Ready to apply'}
-                  </span>
                 </div>
               </div>
             )}
 
-            {/* Main Action Buttons */}
-            <div className="space-y-2 mt-auto pt-2">
-              {/* Apply to Logo Studio Canvas */}
+            {/* Action Buttons - Refined & Well-Organized */}
+            <div className="space-y-2 mt-auto pt-1">
+              {/* Primary Action Button */}
               <button
                 id="btn-apply-cropped-logo"
                 type="button"
                 onClick={handleApplyToCanvas}
                 disabled={!croppedPreviewUrl || isProcessing}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold text-sm rounded-xl shadow-md transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50"
               >
                 <Check className="h-4 w-4" />
                 <span>
-                  {isAr
-                    ? 'قص وتطبيق في الشعار الحالي (Apply to Logo)'
-                    : 'Crop & Apply to Active Logo'}
+                  {isAr ? 'تطبيق في الشعار الحالي' : 'Apply Cropped to Logo'}
                 </span>
               </button>
 
-              {/* Download Cropped standalone file */}
+              {/* Secondary Download Button with Format Selector */}
               <div className="flex items-center gap-2">
                 <select
                   value={exportFormat}
                   onChange={(e) => setExportFormat(e.target.value as any)}
-                  className="bg-white border border-slate-300 text-xs font-bold rounded-xl px-2.5 py-2.5 text-slate-700"
+                  className="bg-white border border-slate-300 text-xs font-bold rounded-xl px-2.5 py-2 text-slate-700 shadow-2xs outline-none"
                 >
                   <option value="png">PNG</option>
                   <option value="jpeg">JPG</option>
@@ -886,10 +929,10 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
                   type="button"
                   onClick={handleDownload}
                   disabled={!croppedPreviewUrl || isProcessing}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-xl shadow-2xs transition-colors disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-xl shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
                 >
                   <Download className="h-3.5 w-3.5 text-slate-600" />
-                  <span>{isAr ? 'تحميل الصورة المقصوصة' : 'Download Cropped Image'}</span>
+                  <span>{isAr ? 'تحميل الصورة' : 'Download File'}</span>
                 </button>
               </div>
             </div>

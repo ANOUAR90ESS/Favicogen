@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   ZoomIn,
   ZoomOut,
@@ -16,7 +17,7 @@ import { generateSvgString, renderSvgToBlob, downloadBlob } from '../utils/canva
 
 interface CanvasStageProps {
   config: LogoConfig;
-  language: SupportedLanguage;
+  language?: SupportedLanguage;
   onUpdateConfig?: (patch: Partial<LogoConfig>) => void;
   onOpenFaviconExport: () => void;
   onOpenMockups: () => void;
@@ -28,16 +29,11 @@ interface CanvasStageProps {
 
 export const CanvasStage: React.FC<CanvasStageProps> = ({
   config,
-  language,
   onUpdateConfig,
   onOpenFaviconExport,
-  onOpenMockups,
-  onOpenSocialMediaKit,
-  onOpenCropTrimModal,
-  onOpenFeatureGraphic,
-  onOpenUniversalResizer,
 }) => {
-  const isAr = language === 'ar';
+  const { t, i18n } = useTranslation();
+  const isAr = i18n.language === 'ar';
   const [zoom, setZoom] = useState<number>(100);
   const [stageBg, setStageBg] = useState<'checker' | 'slate' | 'white' | 'dark'>('slate');
   const [showGrid, setShowGrid] = useState<boolean>(false);
@@ -86,8 +82,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
           <button
             id="btn-zoom-out"
             onClick={() => setZoom((prev) => Math.max(prev - 25, 25))}
-            className="p-1 text-slate-600 hover:text-slate-900 hover:bg-white rounded transition-colors"
-            title={isAr ? 'تصغير' : 'Zoom Out'}
+            className="p-1 text-slate-600 hover:text-slate-900 hover:bg-white rounded transition-colors cursor-pointer"
+            title={t('canvasStage.zoomOut')}
           >
             <ZoomOut className="h-3.5 w-3.5" />
           </button>
@@ -97,8 +93,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
           <button
             id="btn-zoom-in"
             onClick={() => setZoom((prev) => Math.min(prev + 25, 300))}
-            className="p-1 text-slate-600 hover:text-slate-900 hover:bg-white rounded transition-colors"
-            title={isAr ? 'تكبير' : 'Zoom In'}
+            className="p-1 text-slate-600 hover:text-slate-900 hover:bg-white rounded transition-colors cursor-pointer"
+            title={t('canvasStage.zoomIn')}
           >
             <ZoomIn className="h-3.5 w-3.5" />
           </button>
@@ -106,8 +102,8 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
           <button
             id="btn-zoom-reset"
             onClick={() => setZoom(100)}
-            className="p-1 text-slate-600 hover:text-slate-900 hover:bg-white rounded transition-colors text-[11px] px-1.5"
-            title={isAr ? 'الحجم الافتراضي' : 'Reset Zoom'}
+            className="p-1 text-slate-600 hover:text-slate-900 hover:bg-white rounded transition-colors text-[11px] px-1.5 cursor-pointer"
+            title={t('canvasStage.zoomReset')}
           >
             <Maximize2 className="h-3.5 w-3.5" />
           </button>
@@ -137,11 +133,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
               className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30 ${
                 config.bgType === 'transparent' ? 'bg-emerald-600' : 'bg-slate-300'
               }`}
-              title={
-                isAr
-                  ? 'تبديل خلفية الشعار بين الشفافة (نمط المربعات) واللون المصمت'
-                  : 'Toggle SVG background between checkerboard transparent and solid color'
-              }
+              title={t('canvasStage.transparentBg')}
             >
               <span
                 className={`pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ease-in-out ${
@@ -176,9 +168,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                     : 'border-slate-400 bg-slate-800'
                 }`}
               />
-              <span>
-                {isAr ? 'خلفية شفافة' : 'Transparent Background'}
-              </span>
+              <span>{t('canvasStage.transparentBg')}</span>
             </span>
           </div>
 
@@ -186,75 +176,75 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
           <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg p-0.5">
             <button
               onClick={() => setStageBg('checker')}
-              className={`px-2 py-1 text-[11px] rounded-md font-semibold transition-all flex items-center gap-1 ${
+              className={`px-2 py-1 text-[11px] rounded-md font-semibold transition-all flex items-center gap-1 cursor-pointer ${
                 stageBg === 'checker'
                   ? 'bg-white text-indigo-700 shadow-2xs font-bold'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
-              title={isAr ? 'عرض شبكة المربعات للمسرح' : 'Stage Checkerboard Pattern'}
+              title={t('canvasStage.checkerBg')}
             >
-              <span>{isAr ? 'مربعات' : 'Check'}</span>
+              <span>{t('canvasStage.checkerBg')}</span>
             </button>
             <button
               onClick={() => setStageBg('slate')}
-              className={`px-2 py-1 text-[11px] rounded-md font-semibold transition-all ${
+              className={`px-2 py-1 text-[11px] rounded-md font-semibold transition-all cursor-pointer ${
                 stageBg === 'slate'
                   ? 'bg-white text-slate-900 shadow-2xs font-bold'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
-              title={isAr ? 'مسرح رمادي ناعم' : 'Slate Canvas'}
+              title={t('canvasStage.slateBg')}
             >
-              {isAr ? 'رمادي' : 'Slate'}
+              {t('canvasStage.slateBg')}
             </button>
             <button
               onClick={() => setStageBg('white')}
-              className={`px-2 py-1 text-[11px] rounded-md font-semibold transition-all ${
+              className={`px-2 py-1 text-[11px] rounded-md font-semibold transition-all cursor-pointer ${
                 stageBg === 'white'
                   ? 'bg-white text-slate-900 shadow-2xs font-bold'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
-              title={isAr ? 'مسرح أبيض' : 'Pure White Canvas'}
+              title={t('canvasStage.whiteBg')}
             >
-              {isAr ? 'أبيض' : 'White'}
+              {t('canvasStage.whiteBg')}
             </button>
             <button
               onClick={() => setStageBg('dark')}
-              className={`px-2 py-1 text-[11px] rounded-md font-semibold transition-all ${
+              className={`px-2 py-1 text-[11px] rounded-md font-semibold transition-all cursor-pointer ${
                 stageBg === 'dark'
                   ? 'bg-white text-slate-900 shadow-2xs font-bold'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
-              title={isAr ? 'مسرح داكن' : 'Dark Canvas'}
+              title={t('canvasStage.darkBg')}
             >
-              {isAr ? 'داكن' : 'Dark'}
+              {t('canvasStage.darkBg')}
             </button>
           </div>
 
           {/* Grid & Crosshair Toggles */}
           <button
             onClick={() => setShowGrid((p) => !p)}
-            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-semibold shadow-2xs transition-all ${
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-semibold shadow-2xs transition-all cursor-pointer ${
               showGrid
                 ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'
             }`}
-            title={isAr ? 'تبديل الشبكة الإرشادية' : 'Toggle Alignment Grid'}
+            title={t('canvasStage.gridGuide')}
           >
             <Grid className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{showGrid ? (isAr ? 'الشبكة: مفعلة' : 'Grid: On') : isAr ? 'الشبكة' : 'Grid'}</span>
+            <span className="hidden sm:inline">{t('canvasStage.gridGuide')}</span>
           </button>
 
           <button
             onClick={() => setShowCenterGuide((p) => !p)}
-            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-semibold shadow-2xs transition-all ${
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-semibold shadow-2xs transition-all cursor-pointer ${
               showCenterGuide
                 ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'
             }`}
-            title={isAr ? 'خطوط المحاذاة المركزية' : 'Toggle Center Crosshair'}
+            title={t('canvasStage.centerGuide')}
           >
             <Crosshair className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{showCenterGuide ? (isAr ? 'المركز: ظاهر' : 'Center: On') : isAr ? 'المركز' : 'Center'}</span>
+            <span className="hidden sm:inline">{t('canvasStage.centerGuide')}</span>
           </button>
         </div>
       </div>
@@ -365,7 +355,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                 : 'text-slate-600'
             }`}
           >
-            {(config.shapeMask || 'square').toUpperCase()} / {config.bgType === 'transparent' ? (isAr ? 'شفاف (TRANSPARENT)' : 'TRANSPARENT') : (config.bgType || 'solid').toUpperCase()}
+            {(config.shapeMask || 'square').toUpperCase()} / {config.bgType === 'transparent' ? 'TRANSPARENT' : (config.bgType || 'solid').toUpperCase()}
           </span>
         </div>
 
@@ -375,18 +365,18 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
           <button
             id="btn-copy-svg"
             onClick={handleCopySvg}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50 shadow-2xs transition-colors"
-            title={isAr ? 'نسخ كود الـ SVG إلى الحافظة' : 'Copy SVG XML Code'}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50 shadow-2xs transition-colors cursor-pointer"
+            title={t('canvasStage.copySvg')}
           >
             {copiedType === 'svg' ? (
               <>
                 <Check className="h-3.5 w-3.5 text-emerald-600" />
-                <span className="text-emerald-600 font-bold">{isAr ? 'تم النسخ' : 'Copied!'}</span>
+                <span className="text-emerald-600 font-bold">{t('canvasStage.copied')}</span>
               </>
             ) : (
               <>
                 <Code2 className="h-3.5 w-3.5 text-slate-600" />
-                <span>{isAr ? 'نسخ SVG' : 'Copy SVG'}</span>
+                <span>{t('canvasStage.copySvg')}</span>
               </>
             )}
           </button>
@@ -395,10 +385,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
           <button
             id="btn-quick-download-svg"
             onClick={handleQuickDownloadSvg}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50 shadow-2xs transition-colors"
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50 shadow-2xs transition-colors cursor-pointer"
           >
             <Download className="h-3.5 w-3.5 text-indigo-600" />
-            <span>SVG</span>
+            <span>{t('canvasStage.quickSvg')}</span>
           </button>
 
           {/* Quick PNG Download */}
@@ -406,23 +396,20 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             id="btn-quick-download-png"
             onClick={() => handleQuickDownloadPng(512)}
             disabled={isDownloadingQuick}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50 shadow-2xs transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50 shadow-2xs transition-colors disabled:opacity-50 cursor-pointer"
           >
             <ImageIcon className="h-3.5 w-3.5 text-emerald-600" />
-            <span>PNG 512px</span>
+            <span>{t('canvasStage.quickPng')}</span>
           </button>
-
-          {/* Header already carries Feature Graphic / Trim / Resizer / Social Kit.
-              The canvas keeps only its own end-of-flow export action. */}
 
           {/* Open Full Favicon Suite */}
           <button
             id="btn-stage-export-suite"
             onClick={onOpenFaviconExport}
-            className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-indigo-700 shadow-sm transition-all"
+            className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-indigo-700 shadow-sm transition-all cursor-pointer"
           >
             <Sparkles className="h-3.5 w-3.5 text-indigo-200" />
-            <span>{isAr ? 'حزمة Favicon الكاملة' : 'Favicon Suite'}</span>
+            <span>{t('canvasStage.faviconSuite')}</span>
           </button>
         </div>
       </div>
