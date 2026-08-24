@@ -8,6 +8,33 @@
   }
 }
 
+/*
+ * The canvas area is a size query container so the preview can be sized from
+ * the space actually left after the toolbars, on both axes.
+ *
+ * Tailwind's `@container` only sets `container-type: inline-size`, which
+ * supports cqw but silently ignores cqh — and a square that must fit a box of
+ * unknown shape needs the smaller of the two. Hence the explicit rule.
+ */
+.canvas-query {
+  container-type: size;
+}
+
+/*
+ * Toolbars that scroll sideways on a phone. The row has to stay one line so
+ * it cannot push the canvas out of its container, but a visible scrollbar
+ * inside a 40px toolbar looks broken — so the bar is hidden and the row is
+ * still swipeable.
+ */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* Custom crisp scrollbar for Professional Polish theme */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;

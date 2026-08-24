@@ -102,14 +102,14 @@ export const Navbar: React.FC<NavbarProps> = ({
     <header className="sticky top-0 z-40 w-full h-14 bg-white border-b border-slate-200 shadow-2xs px-3 sm:px-5 flex items-center justify-between shrink-0">
       <div className="mx-auto flex w-full items-center justify-between gap-2.5">
         {/* Left / Brand Identity */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 min-w-0 shrink">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white font-bold shadow-2xs shrink-0">
             <Layers className="h-4 w-4 text-white" />
           </div>
 
-          <div className="flex flex-col">
-            <div className="flex items-center gap-1.5">
-              <span className="font-bold text-xs sm:text-sm tracking-tight text-slate-900 font-sans">
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="font-bold text-xs sm:text-sm tracking-tight text-slate-900 font-sans truncate">
                 {t('nav.appTitle')}
               </span>
               <span className="hidden md:inline-flex items-center rounded-md bg-indigo-50 px-1.5 py-0.2 text-[9px] font-bold text-indigo-600 border border-indigo-100 uppercase">
@@ -136,7 +136,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Center Primary Action Buttons - Sleek & Organized */}
-        <div className="flex items-center gap-1.5 flex-wrap">
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none min-w-0 flex-1 justify-center">
           {/* History Undo / Redo & New Project */}
           <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 shadow-2xs">
             <button
@@ -320,7 +320,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Right / Export and Language */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 shrink-0">
           {/* Segmented Language Switcher */}
           <div className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 shadow-2xs">
             <button
