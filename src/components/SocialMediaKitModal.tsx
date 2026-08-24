@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next';
 import React, { useState, useMemo } from 'react';
-import { motion } from 'motion/react';
 import {
   X,
   Download,
@@ -159,60 +158,60 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       label={t('socialKitModal.socialMediaKit')}
-      className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-20"
+      className="relative w-full max-w-7xl max-h-full flex flex-col bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden text-slate-100"
       overlayClassName="z-50"
     >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-              <Share2 className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                {t('socialKitModal.socialMediaDesignKit')}
-                <span className="px-2 py-0.5 text-xs font-semibold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-full">
-                  PRO
-                </span>
-              </h2>
-              <p className="text-xs text-slate-400">
-                {t('socialKitModal.generatePreviewLogoAcross')}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Download Full Kit ZIP button */}
-            <button
-              id="download-all-social-kit-btn"
-              onClick={handleDownloadAllZip}
-              disabled={isExportingAll}
-              className="hidden sm:inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-sm font-semibold rounded-xl shadow-lg shadow-indigo-600/30 transition-all disabled:opacity-50"
-            >
-              {isExportingAll ? (
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <FileArchive className="w-4 h-4" />
-              )}
-              <span>{t('socialKitModal.exportFullKitZip')}</span>
-            </button>
-
-            <button
-              id="close-social-media-kit-modal-btn"
-              onClick={onClose}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        
-<motion.div
+      {/* Modal Header */}
+      <div
         id="social-media-kit-modal-container"
-        initial={{ opacity: 0, scale: 0.96, y: 16 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: 16 }}
-        transition={{ duration: 0.2 }}
-        className="relative w-full max-w-7xl max-h-full flex flex-col bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden text-slate-100"
+        className="flex items-center justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-800 bg-slate-900/90 backdrop-blur shrink-0"
       >
-        {/* Modal Header */}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <Share2 className="w-5 h-5 text-white" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-base sm:text-xl font-bold tracking-tight text-white flex flex-wrap items-center gap-x-2">
+              {t('socialKitModal.socialMediaDesignKit')}
+              <span className="px-2 py-0.5 text-xs font-semibold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-full">
+                PRO
+              </span>
+            </h2>
+            <p className="hidden sm:block text-xs text-slate-400">
+              {t('socialKitModal.generatePreviewLogoAcross')}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Download Full Kit ZIP button */}
+          <button
+            id="download-all-social-kit-btn"
+            onClick={handleDownloadAllZip}
+            disabled={isExportingAll}
+            title={t('socialKitModal.exportFullKitZip')}
+            aria-label={t('socialKitModal.exportFullKitZip')}
+            className="inline-flex shrink-0 items-center gap-2 px-2.5 sm:px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-sm font-semibold rounded-xl shadow-lg shadow-indigo-600/30 transition-all disabled:opacity-50"
+          >
+            {isExportingAll ? (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <FileArchive className="w-4 h-4" />
+            )}
+            <span className="hidden sm:inline">{t('socialKitModal.exportFullKitZip')}</span>
+          </button>
+
+          <button
+            id="close-social-media-kit-modal-btn"
+            onClick={onClose}
+            aria-label={t('socialKitModal.close')}
+            className="shrink-0 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
 {/* Modal Body: Two-Column Workspace */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
           
@@ -468,7 +467,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
             {/* Dedicated YouTube Studio Quick Banner */}
             {onOpenYouTubeKit && (
               <div className="p-4 rounded-xl bg-gradient-to-r from-red-950/60 via-slate-900 to-red-950/40 border border-red-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center text-white shrink-0 shadow-md shadow-red-600/30">
                     <Youtube className="w-5 h-5" />
                   </div>
@@ -677,9 +676,9 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="px-6 py-3.5 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between text-xs text-slate-400">
-          <div className="flex items-center gap-2">
-            <Info className="w-4 h-4 text-indigo-400" />
+        <div className="px-4 sm:px-6 py-3 sm:py-3.5 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between gap-3 text-xs text-slate-400 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <Info className="w-4 h-4 shrink-0 text-indigo-400" />
             <span>
               {t('socialKitModal.allAssetsRenderedPixel')}
             </span>
@@ -687,12 +686,11 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
 
           <button
             onClick={onClose}
-            className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-colors"
+            className="shrink-0 px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-colors"
           >
             {t('socialKitModal.close')}
           </button>
         </div>
-      </motion.div>
 </Modal>
   );
 };
