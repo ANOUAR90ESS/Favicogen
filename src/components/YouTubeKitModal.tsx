@@ -140,8 +140,8 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       label={t('youtubeKitModal.title')}
-      className="relative w-full max-w-6xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh]"
-      overlayClassName="z-50 p-4 sm:p-6"
+      className="relative w-full max-w-6xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-full"
+      overlayClassName="z-50"
     >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/95">

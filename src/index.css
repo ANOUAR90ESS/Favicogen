@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/*
+ * "There is vertical room to spare." Width tells you nothing about this: a
+ * 740×360 landscape phone is wider than a 390×844 portrait one and has half
+ * the height. Anything that only earns its place when there is height — a
+ * button's text label next to its icon, the size-comparison strip — is opted
+ * in with `tall:` rather than opted out with a `short:` counterpart, so the
+ * base `hidden` stays the fallback and no rule has to out-order another.
+ */
+@custom-variant tall (@media (min-height: 521px));
+
 @layer base {
   body {
     background-color: #f8fafc;

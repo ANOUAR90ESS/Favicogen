@@ -160,7 +160,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
       onClose={onClose}
       label={t('socialKitModal.socialMediaKit')}
       className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-20"
-      overlayClassName="z-50 p-2 sm:p-4 md:p-6"
+      overlayClassName="z-50"
     >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
@@ -210,7 +210,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 16 }}
         transition={{ duration: 0.2 }}
-        className="relative w-full max-w-7xl max-h-[92vh] flex flex-col bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden text-slate-100"
+        className="relative w-full max-w-7xl max-h-full flex flex-col bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden text-slate-100"
       >
         {/* Modal Header */}
 {/* Modal Body: Two-Column Workspace */}

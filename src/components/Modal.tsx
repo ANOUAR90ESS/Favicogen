@@ -134,7 +134,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200 ${overlayClassName}`}
+      className={`fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 max-md:landscape:p-2 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200 ${overlayClassName}`}
       onMouseDown={(event) => {
         // mousedown, not click: a drag that starts inside and ends on the
         // backdrop should not count as dismissing the dialog.

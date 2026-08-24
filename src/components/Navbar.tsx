@@ -102,7 +102,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     <header className="sticky top-0 z-40 w-full h-14 bg-white border-b border-slate-200 shadow-2xs px-3 sm:px-5 flex items-center justify-between shrink-0">
       <div className="mx-auto flex w-full items-center justify-between gap-2.5">
         {/* Left / Brand Identity */}
-        <div className="flex items-center gap-2.5 min-w-0 shrink">
+        <div className="flex items-center gap-2.5 min-w-0 shrink max-md:max-w-[42%]">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white font-bold shadow-2xs shrink-0">
             <Layers className="h-4 w-4 text-white" />
           </div>
@@ -125,7 +125,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="bg-transparent text-slate-700 font-medium hover:text-slate-900 focus:text-slate-900 border-b border-transparent hover:border-slate-300 focus:border-indigo-600 focus:outline-none px-0 py-0 text-[11px] transition-colors max-w-[90px] sm:max-w-[140px]"
                 title={t('common.edit')}
               />
-              <div className="hidden sm:flex items-center gap-1 px-1.5 py-0.2 bg-emerald-50 rounded-full border border-emerald-200">
+              <div className="hidden sm:tall:flex items-center gap-1 px-1.5 py-0.2 bg-emerald-50 rounded-full border border-emerald-200">
                 <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
                 <span className="text-[9px] font-bold text-emerald-700 uppercase">
                   {t('nav.autoSaved')}
@@ -136,7 +136,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Center Primary Action Buttons - Sleek & Organized */}
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none min-w-0 flex-1 justify-center">
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none min-w-0 flex-1 justify-start md:justify-center [&>*]:shrink-0">
           {/* History Undo / Redo & New Project */}
           <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 shadow-2xs">
             <button
@@ -177,7 +177,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               title={t('nav.aiGenerator')}
             >
               <Sparkles className="h-3.5 w-3.5 text-yellow-300" />
-              <span className="hidden sm:inline">{t('nav.aiGenerator')}</span>
+              <span className="hidden md:tall:inline">{t('nav.aiGenerator')}</span>
             </button>
           )}
 
@@ -214,7 +214,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               title={t('nav.text90CornerRounderCropper')}
             >
               <Scissors className="h-3.5 w-3.5 text-teal-600" />
-              <span className="hidden sm:inline">{t('nav.corners')}</span>
+              <span className="hidden md:tall:inline">{t('nav.corners')}</span>
             </button>
           )}
 
@@ -247,7 +247,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             title={`${t('nav.quickSave')}`}
           >
             <Save className="h-3.5 w-3.5 text-emerald-600" />
-            <span className="hidden sm:inline">{t('common.save')}</span>
+            <span className="hidden md:tall:inline">{t('common.save')}</span>
           </button>
 
           {/* More Tools Dropdown for Secondary Tools & Policy */}
@@ -375,7 +375,6 @@ export const Navbar: React.FC<NavbarProps> = ({
         onClose={() => setShowNewConfirm(false)}
         label={t('nav.startNewProject')}
         className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150"
-        overlayClassName="p-4"
       >
             <div className="flex items-center gap-2.5 text-amber-600 mb-2.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-50 border border-amber-200 shrink-0">
