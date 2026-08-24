@@ -345,9 +345,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                   ? 'bg-white text-indigo-700 shadow-2xs font-sans'
                   : 'text-slate-500 hover:text-slate-900 font-sans'
               }`}
-              title="التحويل إلى اللغة العربية"
+              title={t('nav.switchToArabic')}
             >
-              عربي
+              {
+                // A language's own name stays in that language, the way a
+                // "Deutsch" button does — translating it defeats the control.
+                // eslint-disable-next-line no-restricted-syntax
+                'عربي'
+              }
             </button>
           </div>
 

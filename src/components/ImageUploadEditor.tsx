@@ -72,7 +72,7 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
       if (autoTrimOnImport && result.trimmedPercent > 0) {
         setTrimFeedback(
           isAr
-            ? `تم قص الحواف الفارغة (${result.trimmedPercent}%) وملء الإطار بالكامل`
+            ? t('imageEditor.trimmedAndFilled', { percent: result.trimmedPercent })
             : `Empty borders trimmed (${result.trimmedPercent}%) and fitted edge-to-edge`
         );
       } else {
@@ -129,7 +129,7 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
         );
         setTrimFeedback(
           isAr
-            ? `تم قص الأطراف البيضاء بنجاح (حذف ${savedPct}% هوامش فارغة)`
+            ? t('imageEditor.trimmedWhite', { percent: savedPct })
             : `White borders trimmed (${savedPct}% empty margins removed)`
         );
       } else {
@@ -336,10 +336,10 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
             </label>
             <div className="grid grid-cols-4 gap-1.5">
               {[
-                { id: 'squircle', nameAr: 'سكويركل', nameEn: 'Squircle' },
-                { id: 'circle', nameAr: 'دائري', nameEn: 'Circle' },
-                { id: 'hexagon', nameAr: 'سداسي', nameEn: 'Hexagon' },
-                { id: 'none', nameAr: 'أصلي', nameEn: 'Original' },
+                { id: 'squircle', nameAr: t('imageEditor.cropSquircle'), nameEn: 'Squircle' },
+                { id: 'circle', nameAr: t('imageEditor.cropCircle'), nameEn: 'Circle' },
+                { id: 'hexagon', nameAr: t('imageEditor.cropHexagon'), nameEn: 'Hexagon' },
+                { id: 'none', nameAr: t('imageEditor.cropNone'), nameEn: 'Original' },
               ].map((crop) => (
                 <button
                   key={crop.id}

@@ -715,9 +715,9 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
                 {/* Shape Mask Buttons */}
                 <div className="grid grid-cols-3 gap-1.5">
                   {[
-                    { id: 'rounded', nameAr: 'انحناء الزوايا', nameEn: 'Rounded', icon: Square },
-                    { id: 'squircle', nameAr: 'سكويركل أيقونة', nameEn: 'Squircle', icon: Shield },
-                    { id: 'circle', nameAr: 'دائري كامل', nameEn: 'Circle', icon: Circle },
+                    { id: 'rounded', nameAr: t('imageCropTrimModal.cornerRounded'), nameEn: 'Rounded', icon: Square },
+                    { id: 'squircle', nameAr: t('imageCropTrimModal.cornerSquircle'), nameEn: 'Squircle', icon: Shield },
+                    { id: 'circle', nameAr: t('imageCropTrimModal.cornerCircle'), nameEn: 'Circle', icon: Circle },
                   ].map((s) => {
                     const Icon = s.icon;
                     return (
@@ -757,7 +757,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
                     {/* Quick presets */}
                     <div className="flex items-center gap-1 pt-1">
                       {[
-                        { label: '0px (حادة 90°)', val: 0 },
+                        { label: t('imageCropTrimModal.cornerSharp'), val: 0 },
                         { label: '16px', val: 16 },
                         { label: '36px', val: 36 },
                         { label: '64px', val: 64 },
@@ -793,7 +793,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
                   {detectedTrim && (
                     <span className="text-[10px] font-bold bg-teal-200 text-teal-900 px-2 py-0.5 rounded-full">
                       {isAr
-                        ? `حذف ${Math.round((detectedTrim.trimSavedPixels / (detectedTrim.originalWidth * detectedTrim.originalHeight)) * 100)}%`
+                        ? t('imageCropTrimModal.trimmedPercent', { percent: Math.round((detectedTrim.trimSavedPixels / (detectedTrim.originalWidth * detectedTrim.originalHeight)) * 100) })
                         : `${Math.round((detectedTrim.trimSavedPixels / (detectedTrim.originalWidth * detectedTrim.originalHeight)) * 100)}% cut`}
                     </span>
                   )}
@@ -801,10 +801,10 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
 
                 <div className="grid grid-cols-2 gap-1.5">
                   {[
-                    { id: 'white', nameAr: 'أطراف بيضاء', nameEn: 'White' },
-                    { id: 'transparent', nameAr: 'شفافة', nameEn: 'Transparent' },
-                    { id: 'corner-color', nameAr: 'لون الزوايا', nameEn: 'Corners' },
-                    { id: 'auto', nameAr: 'كشف ذكي', nameEn: 'Smart' },
+                    { id: 'white', nameAr: t('imageCropTrimModal.modeWhite'), nameEn: 'White' },
+                    { id: 'transparent', nameAr: t('imageCropTrimModal.modeTransparent'), nameEn: 'Transparent' },
+                    { id: 'corner-color', nameAr: t('imageCropTrimModal.modeCornerColor'), nameEn: 'Corners' },
+                    { id: 'auto', nameAr: t('imageCropTrimModal.modeAuto'), nameEn: 'Smart' },
                   ].map((m) => (
                     <button
                       key={m.id}

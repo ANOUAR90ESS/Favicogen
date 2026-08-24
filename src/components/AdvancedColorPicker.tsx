@@ -104,16 +104,16 @@ function generateTintsAndShades(hex: string): string[] {
 }
 
 // Generate color harmonies
-function generateHarmonies(hex: string): { name: string; colors: string[] }[] {
+function generateHarmonies(hex: string): { nameKey: string; colors: string[] }[] {
   const rgb = hexToRgb(hex);
   const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
   return [
     {
-      name: 'Complementary (المكمل)',
+      nameKey: 'colorPicker.harmonyComplementary',
       colors: [hex, hslToHex((hsl.h + 180) % 360, hsl.s, hsl.l)],
     },
     {
-      name: 'Triadic (ثلاثي متناسق)',
+      nameKey: 'colorPicker.harmonyTriadic',
       colors: [
         hex,
         hslToHex((hsl.h + 120) % 360, hsl.s, hsl.l),
@@ -121,7 +121,7 @@ function generateHarmonies(hex: string): { name: string; colors: string[] }[] {
       ],
     },
     {
-      name: 'Analogous (متجاور)',
+      nameKey: 'colorPicker.harmonyAnalogous',
       colors: [
         hslToHex((hsl.h + 330) % 360, hsl.s, hsl.l),
         hex,
@@ -294,7 +294,7 @@ export const AdvancedColorPicker: React.FC<AdvancedColorPickerProps> = ({
             <div className="space-y-1.5">
               {harmonies.map((harm, idx) => (
                 <div key={idx} className="flex items-center justify-between text-xs">
-                  <span className="text-[10px] text-slate-600 font-medium">{harm.name}</span>
+                  <span className="text-[10px] text-slate-600 font-medium">{t(harm.nameKey)}</span>
                   <div className="flex gap-1">
                     {harm.colors.map((c, i) => (
                       <button

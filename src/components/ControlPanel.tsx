@@ -45,15 +45,15 @@ const POPULAR_PALETTES = [
 ];
 
 const FONTS_LIST = [
-  { id: 'Cairo', name: 'Cairo (عربي/إنجليزي)', type: 'arabic' },
-  { id: 'Tajawal', name: 'Tajawal (عصري متناسق)', type: 'arabic' },
-  { id: 'Almarai', name: 'Almarai (أنيق وعريض)', type: 'arabic' },
-  { id: 'IBM Plex Sans Arabic', name: 'IBM Plex Sans (تقني وحديث)', type: 'arabic' },
-  { id: 'Outfit', name: 'Outfit (Modern Geometry)', type: 'latin' },
-  { id: 'Montserrat', name: 'Montserrat (Bold & Clean)', type: 'latin' },
-  { id: 'Playfair Display', name: 'Playfair Display (Luxury Serif)', type: 'latin' },
-  { id: 'Righteous', name: 'Righteous (Futuristic/Gaming)', type: 'latin' },
-  { id: 'Fira Code', name: 'Fira Code (Developer/Mono)', type: 'latin' },
+  { id: 'Cairo', nameKey: 'controlPanel.fontCairo', type: 'arabic' },
+  { id: 'Tajawal', nameKey: 'controlPanel.fontTajawal', type: 'arabic' },
+  { id: 'Almarai', nameKey: 'controlPanel.fontAlmarai', type: 'arabic' },
+  { id: 'IBM Plex Sans Arabic', nameKey: 'controlPanel.fontIbmPlex', type: 'arabic' },
+  { id: 'Outfit', nameKey: 'controlPanel.fontOutfit', type: 'latin' },
+  { id: 'Montserrat', nameKey: 'controlPanel.fontMontserrat', type: 'latin' },
+  { id: 'Playfair Display', nameKey: 'controlPanel.fontPlayfair', type: 'latin' },
+  { id: 'Righteous', nameKey: 'controlPanel.fontRighteous', type: 'latin' },
+  { id: 'Fira Code', nameKey: 'controlPanel.fontFiraCode', type: 'latin' },
 ];
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -642,7 +642,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   >
                     {FONTS_LIST.map((font) => (
                       <option key={font.id} value={font.id}>
-                        {font.name}
+                        {t(font.nameKey)}
                       </option>
                     ))}
                   </select>
@@ -731,10 +731,10 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   </span>
                   <div className="grid grid-cols-4 gap-1.5">
                     {[
-                      { id: 'straight', nameAr: 'مستقيم', nameEn: 'Straight' },
-                      { id: 'arch-up', nameAr: 'قوس علوي', nameEn: 'Arch Up' },
-                      { id: 'arch-down', nameAr: 'قوس سفلي', nameEn: 'Arch Down' },
-                      { id: 'wave', nameAr: 'موجة Wave', nameEn: 'Wave' },
+                      { id: 'straight', nameAr: t('controlPanel.curveStraight'), nameEn: 'Straight' },
+                      { id: 'arch-up', nameAr: t('controlPanel.curveArchUp'), nameEn: 'Arch Up' },
+                      { id: 'arch-down', nameAr: t('controlPanel.curveArchDown'), nameEn: 'Arch Down' },
+                      { id: 'wave', nameAr: t('controlPanel.curveWave'), nameEn: 'Wave' },
                     ].map((curve) => (
                       <button
                         key={curve.id}
@@ -895,15 +895,15 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               </label>
               <div className="grid grid-cols-3 gap-1.5">
                 {[
-                  { id: 'squircle', nameAr: 'سكويركل (iOS)', nameEn: 'Squircle' },
-                  { id: 'circle', nameAr: 'دائرة', nameEn: 'Circle' },
-                  { id: 'shield', nameAr: 'درع', nameEn: 'Shield' },
-                  { id: 'hexagon', nameAr: 'سداسي', nameEn: 'Hexagon' },
-                  { id: 'octagon', nameAr: 'ثماني', nameEn: 'Octagon' },
-                  { id: 'badge', nameAr: 'شارة ونجمة', nameEn: 'Badge Star' },
-                  { id: 'diamond', nameAr: 'ماسي', nameEn: 'Diamond' },
-                  { id: 'square', nameAr: 'مربع', nameEn: 'Square' },
-                  { id: 'pill', nameAr: 'كبسولة', nameEn: 'Pill' },
+                  { id: 'squircle', nameAr: t('controlPanel.shapeSquircleIos'), nameEn: 'Squircle' },
+                  { id: 'circle', nameAr: t('controlPanel.shapeCircle'), nameEn: 'Circle' },
+                  { id: 'shield', nameAr: t('controlPanel.shapeShield'), nameEn: 'Shield' },
+                  { id: 'hexagon', nameAr: t('controlPanel.shapeHexagon'), nameEn: 'Hexagon' },
+                  { id: 'octagon', nameAr: t('controlPanel.shapeOctagon'), nameEn: 'Octagon' },
+                  { id: 'badge', nameAr: t('controlPanel.shapeBadge'), nameEn: 'Badge Star' },
+                  { id: 'diamond', nameAr: t('controlPanel.shapeDiamond'), nameEn: 'Diamond' },
+                  { id: 'square', nameAr: t('controlPanel.shapeSquare'), nameEn: 'Square' },
+                  { id: 'pill', nameAr: t('controlPanel.shapePill'), nameEn: 'Pill' },
                 ].map((shape) => (
                   <button
                     key={shape.id}
@@ -1098,10 +1098,10 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: 'icon-top', nameAr: 'أيقونة بالأعلى ونصوص بالأسفل', nameEn: 'Icon Top + Text' },
-                  { id: 'icon-left', nameAr: 'أيقونة يسار ونصوص يمين', nameEn: 'Icon Left + Text' },
-                  { id: 'icon-only', nameAr: 'أيقونة فقط (للـ Favicon)', nameEn: 'Icon Only (Favicon)' },
-                  { id: 'text-only', nameAr: 'نصي وشعار تايبوغرافي', nameEn: 'Typography Only' },
+                  { id: 'icon-top', nameAr: t('controlPanel.layoutIconTop'), nameEn: 'Icon Top + Text' },
+                  { id: 'icon-left', nameAr: t('controlPanel.layoutIconLeft'), nameEn: 'Icon Left + Text' },
+                  { id: 'icon-only', nameAr: t('controlPanel.layoutIconOnly'), nameEn: 'Icon Only (Favicon)' },
+                  { id: 'text-only', nameAr: t('controlPanel.layoutTextOnly'), nameEn: 'Typography Only' },
                 ].map((item) => (
                   <button
                     key={item.id}

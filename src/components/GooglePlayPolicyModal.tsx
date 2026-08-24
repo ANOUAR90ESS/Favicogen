@@ -83,11 +83,11 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
         {/* Tab Navigation */}
         <div className="flex items-center gap-2 px-5 py-2.5 bg-slate-100/70 border-b border-slate-200 overflow-x-auto shrink-0">
           {[
-            { id: 'privacy', nameAr: '🔒 سياسة الخصوصية', nameEn: '🔒 Privacy Policy', icon: Lock },
-            { id: 'terms', nameAr: '📜 شروط الاستخدام والملكية', nameEn: '📜 Terms of Service', icon: FileText },
-            { id: 'legal-docs', nameAr: '📁 ملفات Legal ومستندات Markdown', nameEn: '📁 Legal Markdown Docs', icon: FolderArchive },
-            { id: 'google-play-checklist', nameAr: '📱 متطلبات Google Play', nameEn: '📱 Play Store Checklist', icon: Smartphone },
-            { id: 'data-safety', nameAr: '🛡️ أمان البيانات (Data Safety)', nameEn: '🛡️ Data Safety Form', icon: ShieldCheck },
+            { id: 'privacy', nameAr: t('policyModal.tabPrivacy'), nameEn: '🔒 Privacy Policy', icon: Lock },
+            { id: 'terms', nameAr: t('policyModal.tabTerms'), nameEn: '📜 Terms of Service', icon: FileText },
+            { id: 'legal-docs', nameAr: t('policyModal.tabFiles'), nameEn: '📁 Legal Markdown Docs', icon: FolderArchive },
+            { id: 'google-play-checklist', nameAr: t('policyModal.tabPlay'), nameEn: '📱 Play Store Checklist', icon: Smartphone },
+            { id: 'data-safety', nameAr: t('policyModal.tabDataSafety'), nameEn: '🛡️ Data Safety Form', icon: ShieldCheck },
           ].map((tab) => {
             const Icon = tab.icon;
             return (
@@ -428,7 +428,7 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                       {t('policyModal.text4ContentRating')}
                     </span>
                     <span className="text-[10px] font-mono font-bold bg-teal-100 text-teal-800 px-2 py-0.5 rounded-md">
-                      Everyone / للجميع
+                      {t('policyModal.ratingEveryone')}
                     </span>
                   </div>
                   <p className="text-xs text-slate-600">

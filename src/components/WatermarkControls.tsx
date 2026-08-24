@@ -23,7 +23,7 @@ interface WatermarkControlsProps {
 
 const WATERMARK_PRESET_TEXTS = [
   'CONFIDENTIAL',
-  'SAMPLE / عينة',
+  'SAMPLE',
   '© COPYRIGHT',
   'DRAFT',
   'PROTOTYPE',

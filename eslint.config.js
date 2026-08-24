@@ -45,25 +45,41 @@ export default tseslint.config(
     },
   },
 
-  // UI strings belong in the locale files, not in component source. This is
-  // the guard that stops the 313 inline bilingual ternaries growing back.
+  // Interface text belongs in the locale files, never in component source.
+  // This is an error, not a warning: the codebase carried 469 inline Arabic
+  // strings across sixteen components, and half of them meant an English user
+  // met a dialog they could not read. Nothing should reintroduce one.
   {
-    files: ['src/components/**/*.tsx', 'src/utils/**/*.ts'],
+    files: ['src/components/**/*.tsx'],
     rules: {
       'no-restricted-syntax': [
-        'warn',
+        'error',
         {
           selector: "Literal[value=/[\\u0600-\\u06FF]/]",
           message:
-            'Arabic UI text belongs in src/i18n/locales/ar.ts — use t() instead of an inline string.',
+            'Arabic interface text belongs in src/i18n/locales/ — use t() instead of an inline string.',
+        },
+        {
+          selector: "JSXText[value=/[\\u0600-\\u06FF]/]",
+          message:
+            'Arabic interface text belongs in src/i18n/locales/ — wrap it in {t(...)}.',
         },
       ],
     },
   },
 
-  // Locale files and legal text are the one place literal Arabic belongs.
+  // The error boundary must render when i18n itself may be the thing that
+  // broke, so its fallback is deliberately bilingual and literal.
   {
-    files: ['src/i18n/**/*.ts', 'src/Legal/**/*.ts'],
+    files: ['src/components/ErrorBoundary.tsx'],
+    rules: { 'no-restricted-syntax': 'off' },
+  },
+
+  // Data modules hold both languages side by side (nameAr/nameEn), which is
+  // the correct shape for them; the locale and legal files are literal Arabic
+  // by definition.
+  {
+    files: ['src/utils/**/*.ts', 'src/i18n/**/*.ts', 'src/Legal/**/*.ts'],
     rules: { 'no-restricted-syntax': 'off' },
   }
 );

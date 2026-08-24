@@ -2,7 +2,8 @@ import { Template, LogoConfig } from '../types';
 
 export const DEFAULT_LOGO_CONFIG: LogoConfig = {
   id: 'default_project',
-  name: 'مشروعي الجديد',
+  // Empty so the UI falls back to the translated 'Untitled project'.
+  name: '',
   updatedAt: Date.now(),
   canvasSize: 512,
   padding: 32,

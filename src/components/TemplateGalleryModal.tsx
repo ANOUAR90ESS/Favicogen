@@ -26,16 +26,16 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   const categories = [
-    { id: 'all', nameAr: 'جميع القوالب', nameEn: 'All Templates' },
-    { id: 'tech', nameAr: 'تقنية وذكاء اصطناعي', nameEn: 'Tech & AI' },
-    { id: 'minimal', nameAr: 'بسيط وأحادي', nameEn: 'Minimal & Monogram' },
-    { id: 'luxury', nameAr: 'فخامة وملكية', nameEn: 'Luxury & Royal' },
-    { id: 'arabesque', nameAr: 'زخارف إسلامية وعربية', nameEn: 'Arabesque & Islamic' },
-    { id: 'eco', nameAr: 'طبيعة وبيئة', nameEn: 'Nature & Eco' },
-    { id: 'ecommerce', nameAr: 'تجارة ومتاجر', nameEn: 'Ecommerce' },
-    { id: 'creative', nameAr: 'إبداع وفنون', nameEn: 'Creative & Art' },
-    { id: 'gaming', nameAr: 'ألعاب ورياضات', nameEn: 'Gaming & Esports' },
-    { id: 'badges', nameAr: 'شارات وأختام', nameEn: 'Badges & Seals' },
+    { id: 'all', nameAr: t('templatesModal.catAll'), nameEn: 'All Templates' },
+    { id: 'tech', nameAr: t('templatesModal.catTech'), nameEn: 'Tech & AI' },
+    { id: 'minimal', nameAr: t('templatesModal.catMinimal'), nameEn: 'Minimal & Monogram' },
+    { id: 'luxury', nameAr: t('templatesModal.catLuxury'), nameEn: 'Luxury & Royal' },
+    { id: 'arabesque', nameAr: t('templatesModal.catArabesque'), nameEn: 'Arabesque & Islamic' },
+    { id: 'eco', nameAr: t('templatesModal.catNature'), nameEn: 'Nature & Eco' },
+    { id: 'ecommerce', nameAr: t('templatesModal.catEcommerce'), nameEn: 'Ecommerce' },
+    { id: 'creative', nameAr: t('templatesModal.catCreative'), nameEn: 'Creative & Art' },
+    { id: 'gaming', nameAr: t('templatesModal.catGaming'), nameEn: 'Gaming & Esports' },
+    { id: 'badges', nameAr: t('templatesModal.catBadges'), nameEn: 'Badges & Seals' },
   ];
 
   const filteredTemplates = useMemo(() => TEMPLATES.filter((tpl) => {

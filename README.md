@@ -89,8 +89,17 @@ A few decisions worth knowing before changing things:
   `configSchema` are the boundary.
 - **Projects live in IndexedDB, not localStorage.** Base64 images blow past
   the 5MB origin cap, and a failed write must be surfaced, never swallowed.
-- **UI strings live in `src/i18n/locales/`.** A lint rule flags Arabic string
-  literals in components to keep them from creeping back.
+- **Interface text lives in `src/i18n/locales/`, and that is enforced.** An
+  Arabic string literal or JSX text node inside `src/components/` is an
+  ESLint *error*, not a warning. Two exemptions are deliberate and
+  documented in `eslint.config.js`: `ErrorBoundary`, whose fallback must
+  render when i18n itself may be what broke, and the language toggle's own
+  "عربي" label, since a language's name belongs in that language.
+  `src/utils/` data modules are exempt too — they hold both languages side
+  by side as `nameAr`/`nameEn` pairs, which is the right shape for data.
+- **Design content is not interface text.** The sample logo's brand name and
+  the template previews are Arabic on purpose; they are artwork the user
+  edits, not chrome, so they do not follow the interface language.
 - **The AI feature is opt-in at runtime, not compile time.** It ships in the
   bundle and activates when `GEMINI_API_KEY` is present. If you do decide to
   remove it, four things go together: `AILogoGeneratorModal`, both

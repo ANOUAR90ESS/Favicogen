@@ -255,14 +255,14 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
             {/* Platform Filter Pills */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
               {[
-                { id: 'all', labelAr: 'الكل', labelEn: 'All' },
-                { id: 'youtube', labelAr: 'يوتيوب', labelEn: 'YouTube' },
-                { id: 'twitter', labelAr: 'X (تويتر)', labelEn: 'X / Twitter' },
-                { id: 'instagram', labelAr: 'إنستغرام', labelEn: 'Instagram' },
-                { id: 'linkedin', labelAr: 'لينكد إن', labelEn: 'LinkedIn' },
-                { id: 'facebook', labelAr: 'فيسبوك', labelEn: 'Facebook' },
-                { id: 'discord', labelAr: 'ديسكورد', labelEn: 'Discord' },
-                { id: 'tiktok', labelAr: 'تيك توك', labelEn: 'TikTok' },
+                { id: 'all', labelAr: t('socialKitModal.platformAll'), labelEn: 'All' },
+                { id: 'youtube', labelAr: t('socialKitModal.platformYoutube'), labelEn: 'YouTube' },
+                { id: 'twitter', labelAr: t('socialKitModal.platformX'), labelEn: 'X / Twitter' },
+                { id: 'instagram', labelAr: t('socialKitModal.platformInstagram'), labelEn: 'Instagram' },
+                { id: 'linkedin', labelAr: t('socialKitModal.platformLinkedin'), labelEn: 'LinkedIn' },
+                { id: 'facebook', labelAr: t('socialKitModal.platformFacebook'), labelEn: 'Facebook' },
+                { id: 'discord', labelAr: t('socialKitModal.platformDiscord'), labelEn: 'Discord' },
+                { id: 'tiktok', labelAr: t('socialKitModal.platformTiktok'), labelEn: 'TikTok' },
               ].map((plat) => (
                 <button
                   key={plat.id}
@@ -297,10 +297,10 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { id: 'center-hero', labelAr: 'بطل في المنتصف', labelEn: 'Center Hero' },
-                    { id: 'split-hero', labelAr: 'شعار مع تفاصيل', labelEn: 'Split Side Hero' },
-                    { id: 'minimal-clean', labelAr: 'مينيمال بسيط', labelEn: 'Minimal Clean' },
-                    { id: 'brand-luxury', labelAr: 'هوية فاخرة', labelEn: 'Brand Luxury' },
+                    { id: 'center-hero', labelAr: t('socialKitModal.layoutCenterHero'), labelEn: 'Center Hero' },
+                    { id: 'split-hero', labelAr: t('socialKitModal.layoutLogoDetail'), labelEn: 'Split Side Hero' },
+                    { id: 'minimal-clean', labelAr: t('socialKitModal.layoutMinimal'), labelEn: 'Minimal Clean' },
+                    { id: 'brand-luxury', labelAr: t('socialKitModal.layoutLuxury'), labelEn: 'Brand Luxury' },
                   ].map((layout) => (
                     <button
                       key={layout.id}
@@ -329,13 +329,13 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
                 </label>
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   {[
-                    { id: 'brand', labelAr: 'ألوان الشعار', labelEn: 'Brand Match' },
-                    { id: 'dark', labelAr: 'داكن فاخر', labelEn: 'Obsidian Dark' },
-                    { id: 'sunset', labelAr: 'غروب دافئ', labelEn: 'Sunset Glow' },
-                    { id: 'emerald', labelAr: 'زمردي', labelEn: 'Emerald' },
-                    { id: 'cyberpunk', labelAr: 'سايبر بانك', labelEn: 'Cyberpunk' },
-                    { id: 'light', labelAr: 'فاتح ناصع', labelEn: 'Clean Light' },
-                    { id: 'transparent', labelAr: 'شفاف', labelEn: 'Transparent' },
+                    { id: 'brand', labelAr: t('socialKitModal.themeBrand'), labelEn: 'Brand Match' },
+                    { id: 'dark', labelAr: t('socialKitModal.themeDarkLuxe'), labelEn: 'Obsidian Dark' },
+                    { id: 'sunset', labelAr: t('socialKitModal.themeSunset'), labelEn: 'Sunset Glow' },
+                    { id: 'emerald', labelAr: t('socialKitModal.themeEmerald'), labelEn: 'Emerald' },
+                    { id: 'cyberpunk', labelAr: t('socialKitModal.themeCyberpunk'), labelEn: 'Cyberpunk' },
+                    { id: 'light', labelAr: t('socialKitModal.themeBright'), labelEn: 'Clean Light' },
+                    { id: 'transparent', labelAr: t('socialKitModal.themeTransparent'), labelEn: 'Transparent' },
                   ].map((theme) => (
                     <button
                       key={theme.id}
@@ -511,7 +511,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                 {isAr
-                  ? `الأصول الجاهزة للتصدير (${filteredPresets.length})`
+                  ? t('socialKitModal.assetsReady', { count: filteredPresets.length })
                   : `Export Assets Ready (${filteredPresets.length})`}
               </span>
               <span className="text-xs text-slate-500">

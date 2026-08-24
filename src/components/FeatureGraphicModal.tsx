@@ -268,10 +268,10 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: 'center-hero', nameAr: 'البطولة في المنتصف', nameEn: 'Center Hero' },
-                  { id: 'split-phone', nameAr: 'عرض الهاتف الذكي', nameEn: 'Split Phone 3D' },
-                  { id: 'arabesque', nameAr: 'الزخرفة الهندسية', nameEn: 'Arabesque Pattern' },
-                  { id: 'mesh-gradient', nameAr: 'البطاقة الزجاجية', nameEn: 'Glass Showcase' },
+                  { id: 'center-hero', nameAr: t('featureGraphicModal.layoutCenterHero'), nameEn: 'Center Hero' },
+                  { id: 'split-phone', nameAr: t('featureGraphicModal.layoutPhone'), nameEn: 'Split Phone 3D' },
+                  { id: 'arabesque', nameAr: t('featureGraphicModal.layoutGeometric'), nameEn: 'Arabesque Pattern' },
+                  { id: 'mesh-gradient', nameAr: t('featureGraphicModal.layoutGlassCard'), nameEn: 'Glass Showcase' },
                 ].map((item) => (
                   <button
                     key={item.id}
@@ -296,13 +296,13 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
               </label>
               <div className="grid grid-cols-4 gap-1.5">
                 {[
-                  { id: 'brand', nameAr: 'الشعار', nameEn: 'Brand', color: 'from-indigo-600 to-cyan-500' },
-                  { id: 'sunset', nameAr: 'غروب', nameEn: 'Sunset', color: 'from-rose-500 to-amber-500' },
-                  { id: 'cyber', nameAr: 'سايبر', nameEn: 'Cyber', color: 'from-slate-900 to-indigo-950' },
-                  { id: 'emerald', nameAr: 'زمردي', nameEn: 'Emerald', color: 'from-emerald-900 to-teal-600' },
-                  { id: 'gold', nameAr: 'ملكي', nameEn: 'Gold', color: 'from-amber-950 to-amber-600' },
-                  { id: 'dark', nameAr: 'داكن', nameEn: 'Dark', color: 'from-slate-950 to-slate-800' },
-                  { id: 'light', nameAr: 'فاتح', nameEn: 'Light', color: 'from-slate-100 to-slate-200' },
+                  { id: 'brand', nameAr: t('featureGraphicModal.themeLogo'), nameEn: 'Brand', color: 'from-indigo-600 to-cyan-500' },
+                  { id: 'sunset', nameAr: t('featureGraphicModal.themeSunset'), nameEn: 'Sunset', color: 'from-rose-500 to-amber-500' },
+                  { id: 'cyber', nameAr: t('featureGraphicModal.themeCyber'), nameEn: 'Cyber', color: 'from-slate-900 to-indigo-950' },
+                  { id: 'emerald', nameAr: t('featureGraphicModal.themeEmerald'), nameEn: 'Emerald', color: 'from-emerald-900 to-teal-600' },
+                  { id: 'gold', nameAr: t('featureGraphicModal.themeRoyal'), nameEn: 'Gold', color: 'from-amber-950 to-amber-600' },
+                  { id: 'dark', nameAr: t('featureGraphicModal.themeDark'), nameEn: 'Dark', color: 'from-slate-950 to-slate-800' },
+                  { id: 'light', nameAr: t('featureGraphicModal.themeLight'), nameEn: 'Light', color: 'from-slate-100 to-slate-200' },
                 ].map((th) => (
                   <button
                     key={th.id}
