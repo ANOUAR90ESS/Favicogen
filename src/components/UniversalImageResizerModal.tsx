@@ -44,7 +44,9 @@ import {
   generateMultiSizeZip,
   convertUnitsToPixels,
 } from '../utils/imageResizer';
-import { generateSvgString, downloadBlob } from '../utils/canvasRenderer';
+import { generateSvgString } from '../utils/canvasRenderer';
+import { downloadBlob } from '../utils/download';
+import { embedFontsInSvg } from '../utils/fontEmbedder';
 
 interface UniversalImageResizerModalProps {
   isOpen: boolean;
@@ -147,8 +149,10 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
   };
 
   // Renders the studio logo into a fresh source image for the resizer.
-  const loadStudioLogoAsSource = () => {
-    const svg = generateSvgString(currentLogoConfig, 512);
+  const loadStudioLogoAsSource = async () => {
+    // Fonts must travel with the markup: this SVG becomes a raster source, and
+    // an <img> cannot reach the page's web fonts.
+    const svg = await embedFontsInSvg(generateSvgString(currentLogoConfig, 512));
     const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
     applySourceImage(URL.createObjectURL(blob), true);
     setSourceDimensions({ width: 512, height: 512 });
@@ -157,7 +161,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
   // Initialize with current logo SVG from studio canvas if no image uploaded yet
   useEffect(() => {
     if (isOpen && !sourceImageSrc) {
-      loadStudioLogoAsSource();
+      void loadStudioLogoAsSource();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, currentLogoConfig, sourceImageSrc]);
@@ -575,7 +579,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
 
                 {/* Reset to current studio logo button */}
                 <button
-                  onClick={loadStudioLogoAsSource}
+                  onClick={() => void loadStudioLogoAsSource()}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition-colors"
                   title={isAr ? 'استرجاع الشعار الحالي من مساحة العمل' : 'Reset to current studio canvas logo'}
                 >

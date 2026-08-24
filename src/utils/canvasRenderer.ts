@@ -8,6 +8,7 @@ import {
   SocialBannerOptions,
 } from '../types';
 import { ICON_LIBRARY } from './iconLibrary';
+import { embedFontsInSvg } from './fontEmbedder';
 
 export const FAVICON_SPECS: FaviconSpec[] = [
   {
@@ -692,6 +693,11 @@ export async function rasterizeSvg(
   format: 'png' | 'jpeg' | 'webp' = 'png',
   quality = 0.95
 ): Promise<Blob> {
+  // An SVG loaded through <img> renders in an isolated document that cannot
+  // reach the page's web fonts, so the bytes have to travel with the markup.
+  // Without this the export silently falls back to a system face.
+  const withFonts = await embedFontsInSvg(svgString);
+
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
     canvas.width = Math.max(1, Math.round(width));
@@ -704,7 +710,7 @@ export async function rasterizeSvg(
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 
-    const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const blob = new Blob([withFonts], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const img = new Image();
 
@@ -880,7 +886,8 @@ export async function generateFaviconZip(
   const svgString = generateSvgString(config, 512);
 
   // 1. Root & Documentation
-  zip.file('favicon.svg', svgString);
+  // The .svg the user ships must carry its fonts too, not just the rasters.
+  zip.file('favicon.svg', await embedFontsInSvg(svgString));
   zip.file('site.webmanifest', generateWebmanifestJson(brandName, themeColor));
   zip.file('html-head-snippet.html', generateHtmlHeadSnippet(brandName, themeColor));
   zip.file(
@@ -1967,7 +1974,7 @@ Upload directly via YouTube Studio -> Customization -> Branding.
   zip.file('05_youtube_video_thumbnail_1280x720.png', thumbBlob);
 
   // 6. Vector Master SVG
-  zip.file('06_youtube_banner_master.svg', bannerSvgClean);
+  zip.file('06_youtube_banner_master.svg', await embedFontsInSvg(bannerSvgClean));
 
   return await zip.generateAsync({ type: 'blob' });
 }
@@ -2027,7 +2034,7 @@ Included in this package:
     }
   }
   if (avatarFolder) {
-    avatarFolder.file('vector_master_1x1.svg', baseSvg);
+    avatarFolder.file('vector_master_1x1.svg', await embedFontsInSvg(baseSvg));
   }
 
   // 2. Process Banners and Covers (16:9, 3:1, 4:1)
@@ -2053,21 +2060,13 @@ Included in this package:
     1080
   );
   if (bannerFolder) {
-    bannerFolder.file('banner_master_16x9.svg', bannerMasterSvg);
+    bannerFolder.file('banner_master_16x9.svg', await embedFontsInSvg(bannerMasterSvg));
   }
 
   return await zip.generateAsync({ type: 'blob' });
 }
 
-export function downloadBlob(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
+// Downloads live in ./download — re-exported here so existing imports keep working.
+export { downloadBlob, downloadText, downloadSvg } from './download';
 
 

@@ -1,5 +1,6 @@
 import { LogoConfig } from '../types';
 import { DEFAULT_LOGO_CONFIG } from './templates';
+import { downloadText } from './download';
 
 const STORAGE_KEY_CURRENT = 'logo_studio_current_project';
 const STORAGE_KEY_PROJECTS = 'logo_studio_saved_projects';
@@ -84,11 +85,6 @@ export function deleteSavedProject(id: string): SavedProjectItem[] {
 }
 
 export function exportProjectAsJson(config: LogoConfig) {
-  const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(config, null, 2));
-  const downloadAnchor = document.createElement('a');
-  downloadAnchor.setAttribute('href', dataStr);
-  downloadAnchor.setAttribute('download', `${(config.text || config.name || 'logo-design').replace(/\s+/g, '_')}_project.json`);
-  document.body.appendChild(downloadAnchor);
-  downloadAnchor.click();
-  downloadAnchor.remove();
+  const filename = `${(config.text || config.name || 'logo-design').replace(/\s+/g, '_')}_project.json`;
+  downloadText(JSON.stringify(config, null, 2), filename, 'application/json');
 }

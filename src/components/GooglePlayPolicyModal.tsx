@@ -18,6 +18,7 @@ import {
 import { SupportedLanguage } from '../types';
 import { PRIVACY_POLICY_MD, PRIVACY_POLICY_AR } from '../Legal/privacyPolicy';
 import { TERMS_OF_SERVICE_MD, TERMS_OF_SERVICE_AR } from '../Legal/termsOfService';
+import { downloadText } from '../utils/download';
 
 interface GooglePlayPolicyModalProps {
   isOpen: boolean;
@@ -41,18 +42,6 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
     navigator.clipboard.writeText(text);
     setCopiedSection(id);
     setTimeout(() => setCopiedSection(null), 2500);
-  };
-
-  const downloadFile = (filename: string, content: string) => {
-    const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
   };
 
   const activePrivacyText = isAr ? PRIVACY_POLICY_AR : PRIVACY_POLICY_MD;
@@ -138,7 +127,7 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => downloadFile('PRIVACY_POLICY.md', activePrivacyText)}
+                    onClick={() => downloadText(activePrivacyText, 'PRIVACY_POLICY.md', 'text/markdown')}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 shadow-2xs transition-all cursor-pointer"
                   >
                     <Download className="h-3.5 w-3.5 text-slate-500" />
@@ -246,7 +235,7 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => downloadFile('TERMS_OF_SERVICE.md', activeTermsText)}
+                    onClick={() => downloadText(activeTermsText, 'TERMS_OF_SERVICE.md', 'text/markdown')}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 shadow-2xs transition-all cursor-pointer"
                   >
                     <Download className="h-3.5 w-3.5 text-slate-500" />
@@ -334,7 +323,7 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                   </p>
                   <div className="flex items-center gap-2 pt-1">
                     <button
-                      onClick={() => downloadFile('PRIVACY_POLICY.md', PRIVACY_POLICY_MD)}
+                      onClick={() => downloadText(PRIVACY_POLICY_MD, 'PRIVACY_POLICY.md', 'text/markdown')}
                       className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl shadow-2xs transition-all cursor-pointer"
                     >
                       <Download className="h-3.5 w-3.5 text-slate-500" />
@@ -377,7 +366,7 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                   </p>
                   <div className="flex items-center gap-2 pt-1">
                     <button
-                      onClick={() => downloadFile('TERMS_OF_SERVICE.md', TERMS_OF_SERVICE_MD)}
+                      onClick={() => downloadText(TERMS_OF_SERVICE_MD, 'TERMS_OF_SERVICE.md', 'text/markdown')}
                       className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl shadow-2xs transition-all cursor-pointer"
                     >
                       <Download className="h-3.5 w-3.5 text-slate-500" />

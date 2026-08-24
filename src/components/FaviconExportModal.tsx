@@ -23,8 +23,8 @@ import {
   generateWebmanifestJson,
   generateFeatureGraphicSvg,
   rasterizeSvg,
-  downloadBlob,
 } from '../utils/canvasRenderer';
+import { downloadBlob, downloadText, downloadSvg } from '../utils/download';
 
 interface FaviconExportModalProps {
   isOpen: boolean;
@@ -99,8 +99,7 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
 
       if (format === 'svg') {
         const cleanName = fileName.replace(/\.png$/i, '.svg');
-        const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-        downloadBlob(blob, cleanName);
+        await downloadSvg(svgString, cleanName);
         return;
       }
 

@@ -31,8 +31,8 @@ import {
   renderSvgToBlob,
   rasterizeSvg,
   generateSocialMediaKitZip,
-  downloadBlob,
 } from '../utils/canvasRenderer';
+import { downloadBlob, downloadSvg } from '../utils/download';
 
 interface SocialMediaKitModalProps {
   isOpen: boolean;
@@ -98,8 +98,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
 
       if (preset.type === 'profile' || preset.ratio === '1:1') {
         if (format === 'svg') {
-          const blob = new Blob([base1x1Svg], { type: 'image/svg+xml;charset=utf-8' });
-          downloadBlob(blob, filename);
+          await downloadSvg(base1x1Svg, filename);
         } else {
           const blob = await renderSvgToBlob(base1x1Svg, preset.width, 'png');
           downloadBlob(blob, filename);
@@ -113,8 +112,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
           preset.height
         );
         if (format === 'svg') {
-          const blob = new Blob([bannerSvg], { type: 'image/svg+xml;charset=utf-8' });
-          downloadBlob(blob, filename);
+          await downloadSvg(bannerSvg, filename);
         } else {
           const blob = await rasterizeSvg(bannerSvg, preset.width, preset.height, 'png');
           downloadBlob(blob, filename);

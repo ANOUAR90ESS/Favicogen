@@ -13,7 +13,8 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { LogoConfig, SupportedLanguage } from '../types';
-import { generateSvgString, renderSvgToBlob, downloadBlob } from '../utils/canvasRenderer';
+import { generateSvgString, renderSvgToBlob } from '../utils/canvasRenderer';
+import { downloadBlob, downloadSvg } from '../utils/download';
 
 interface CanvasStageProps {
   config: LogoConfig;
@@ -68,9 +69,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     }
   };
 
-  const handleQuickDownloadSvg = () => {
-    const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-    downloadBlob(blob, `${(config.text || config.name || 'logo').replace(/\s+/g, '_')}.svg`);
+  const handleQuickDownloadSvg = async () => {
+    await downloadSvg(
+      svgString,
+      `${(config.text || config.name || 'logo').replace(/\s+/g, '_')}.svg`
+    );
   };
 
   return (
