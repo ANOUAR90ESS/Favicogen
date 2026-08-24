@@ -195,7 +195,7 @@ export const SavedProjectsModal: React.FC<SavedProjectsModalProps> = ({
                     className="group relative flex flex-col rounded-2xl border border-slate-200 bg-white hover:border-indigo-400 hover:shadow-md p-4 transition-all duration-200 cursor-pointer shadow-2xs"
                   >
                     {/* Thumbnail */}
-                    <div className="flex h-36 w-full items-center justify-center rounded-xl bg-slate-50 border border-slate-200 p-2 overflow-hidden group-hover:scale-[1.02] transition-transform">
+                    <div className="flex h-36 w-full items-center justify-center rounded-xl checkerboard ring-1 ring-slate-200 p-2 overflow-hidden group-hover:scale-[1.02] transition-transform">
                       <div className="w-24 h-24 drop-shadow-xs" dangerouslySetInnerHTML={{ __html: svgThumbnail }} />
                     </div>
 

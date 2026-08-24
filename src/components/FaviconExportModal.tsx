@@ -363,7 +363,7 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
               >
                 <div className="flex items-center gap-3">
                   {/* Mini Preview Box */}
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 border border-slate-200 overflow-hidden shrink-0">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-lg checkerboard ring-1 ring-slate-200 overflow-hidden shrink-0">
                     <div
                       style={{ width: Math.min(spec.size, 38), height: Math.min(spec.size, 38) }}
                       dangerouslySetInnerHTML={{ __html: svgString }}

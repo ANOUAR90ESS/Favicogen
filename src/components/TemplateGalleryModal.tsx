@@ -138,7 +138,7 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
                   className="group relative flex flex-col rounded-2xl border border-slate-200 bg-white hover:border-indigo-400 hover:shadow-md p-4 transition-all duration-200 shadow-2xs"
                 >
                   {/* Visual Preview */}
-                  <div className="flex h-44 w-full items-center justify-center rounded-xl bg-slate-50 border border-slate-200 p-3 overflow-hidden group-hover:scale-[1.02] transition-transform">
+                  <div className="flex h-44 w-full items-center justify-center rounded-xl checkerboard ring-1 ring-slate-200 p-3 overflow-hidden group-hover:scale-[1.02] transition-transform">
                     <div
                       className="w-32 h-32 drop-shadow-sm"
                       dangerouslySetInnerHTML={{ __html: svgPreview }}
