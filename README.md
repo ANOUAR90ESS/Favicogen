@@ -7,6 +7,21 @@ social media kits. Everything renders client-side from a single vector source.
 
 Bilingual (English / Arabic) with full RTL support.
 
+## AI logo generation — supported, and optional
+
+The AI generator (prompt, plus an optional reference image, via Google Gemini)
+is **a supported feature**. Set `GEMINI_API_KEY` to enable it; leave it unset
+and the button reports the key is missing while everything else works
+normally. Nothing else in the app depends on it.
+
+This is worth stating plainly because commit `bbbf3ae` is titled
+"refactor: remove the AI features" and that removal never happened — the
+modal, both endpoints and the `@google/genai` dependency all stayed wired up.
+The title is misleading; the feature is live. Its endpoints are rate-limited
+per IP (5/minute, 30/hour) and covered by the privacy policy's "Optional AI
+Features" section, which discloses that prompts and any attached reference
+image are sent to Google.
+
 ## Getting started
 
 ```bash
@@ -76,6 +91,11 @@ A few decisions worth knowing before changing things:
   the 5MB origin cap, and a failed write must be surfaced, never swallowed.
 - **UI strings live in `src/i18n/locales/`.** A lint rule flags Arabic string
   literals in components to keep them from creeping back.
+- **The AI feature is opt-in at runtime, not compile time.** It ships in the
+  bundle and activates when `GEMINI_API_KEY` is present. If you do decide to
+  remove it, four things go together: `AILogoGeneratorModal`, both
+  `/api/ai/*` routes, the `@google/genai` dependency, and the privacy
+  policy's AI section.
 
 ## Testing
 
