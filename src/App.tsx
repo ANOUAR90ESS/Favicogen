@@ -1,20 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import { Navbar } from './components/Navbar';
+import { LazyMount } from './components/LazyMount';
 import { ControlPanel } from './components/ControlPanel';
 import { CanvasStage } from './components/CanvasStage';
-import { FaviconExportModal } from './components/FaviconExportModal';
-import { TemplateGalleryModal } from './components/TemplateGalleryModal';
-import { LiveMockupsModal } from './components/LiveMockupsModal';
-import { SavedProjectsModal } from './components/SavedProjectsModal';
-import { FeatureGraphicModal } from './components/FeatureGraphicModal';
-import { UniversalImageResizerModal } from './components/UniversalImageResizerModal';
-import { SocialMediaKitModal } from './components/SocialMediaKitModal';
-import { ImageCropTrimModal } from './components/ImageCropTrimModal';
-import { AILogoGeneratorModal } from './components/AILogoGeneratorModal';
-import { YouTubeKitModal } from './components/YouTubeKitModal';
-import { GooglePlayPolicyModal } from './components/GooglePlayPolicyModal';
 import { LogoConfig, SupportedLanguage, Template } from './types';
 import { DEFAULT_LOGO_CONFIG } from './utils/templates';
 import {
@@ -33,6 +23,21 @@ import {
 import { generateSvgString } from './utils/canvasRenderer';
 import { smartImportImage } from './utils/smartImport';
 import { runProductionComplianceCheck } from './utils/productionCheck';
+
+
+// Every modal is code-split: none of them is needed to paint the first frame,
+// and together with JSZip they were most of a 990 kB entry bundle.
+const FaviconExportModal = lazy(() => import('./components/FaviconExportModal').then((m) => ({ default: m.FaviconExportModal })));
+const TemplateGalleryModal = lazy(() => import('./components/TemplateGalleryModal').then((m) => ({ default: m.TemplateGalleryModal })));
+const LiveMockupsModal = lazy(() => import('./components/LiveMockupsModal').then((m) => ({ default: m.LiveMockupsModal })));
+const SavedProjectsModal = lazy(() => import('./components/SavedProjectsModal').then((m) => ({ default: m.SavedProjectsModal })));
+const FeatureGraphicModal = lazy(() => import('./components/FeatureGraphicModal').then((m) => ({ default: m.FeatureGraphicModal })));
+const UniversalImageResizerModal = lazy(() => import('./components/UniversalImageResizerModal').then((m) => ({ default: m.UniversalImageResizerModal })));
+const SocialMediaKitModal = lazy(() => import('./components/SocialMediaKitModal').then((m) => ({ default: m.SocialMediaKitModal })));
+const ImageCropTrimModal = lazy(() => import('./components/ImageCropTrimModal').then((m) => ({ default: m.ImageCropTrimModal })));
+const AILogoGeneratorModal = lazy(() => import('./components/AILogoGeneratorModal').then((m) => ({ default: m.AILogoGeneratorModal })));
+const YouTubeKitModal = lazy(() => import('./components/YouTubeKitModal').then((m) => ({ default: m.YouTubeKitModal })));
+const GooglePlayPolicyModal = lazy(() => import('./components/GooglePlayPolicyModal').then((m) => ({ default: m.GooglePlayPolicyModal })));
 
 const HISTORY_LIMIT = 30;
 /** Edits to one field closer together than this collapse into a single step. */
@@ -514,115 +519,133 @@ export function App() {
         </div>
       </footer>
 
-      {/* MODALS */}
+      {/* MODALS — loaded on demand */}
+      <Suspense fallback={null}>
       {/* 0. AI Logo & YouTube Banner Generator with Gemini AI */}
-      <AILogoGeneratorModal
-        isOpen={isAIGeneratorOpen}
-        onClose={() => setIsAIGeneratorOpen(false)}
-        language={language}
-        config={config}
-        onApplyLogo={(updates) => {
-          handleConfigChange(updates);
-        }}
-        onOpenYouTubeKit={() => {
-          setIsAIGeneratorOpen(false);
-          setIsYouTubeKitOpen(true);
-        }}
-        onOpenFaviconExport={() => {
-          setIsAIGeneratorOpen(false);
-          setIsFaviconExportOpen(true);
-        }}
-        onOpenFeatureGraphic={() => {
-          setIsAIGeneratorOpen(false);
-          setIsFeatureGraphicOpen(true);
-        }}
-        onOpenUniversalResizer={() => {
-          setIsAIGeneratorOpen(false);
-          setIsUniversalResizerOpen(true);
-        }}
-        onOpenMockups={() => {
-          setIsAIGeneratorOpen(false);
-          setIsMockupsOpen(true);
-        }}
-      />
+      <LazyMount when={isAIGeneratorOpen}>
+        <AILogoGeneratorModal
+          isOpen={isAIGeneratorOpen}
+          onClose={() => setIsAIGeneratorOpen(false)}
+          language={language}
+          config={config}
+          onApplyLogo={(updates) => {
+            handleConfigChange(updates);
+          }}
+          onOpenYouTubeKit={() => {
+            setIsAIGeneratorOpen(false);
+            setIsYouTubeKitOpen(true);
+          }}
+          onOpenFaviconExport={() => {
+            setIsAIGeneratorOpen(false);
+            setIsFaviconExportOpen(true);
+          }}
+          onOpenFeatureGraphic={() => {
+            setIsAIGeneratorOpen(false);
+            setIsFeatureGraphicOpen(true);
+          }}
+          onOpenUniversalResizer={() => {
+            setIsAIGeneratorOpen(false);
+            setIsUniversalResizerOpen(true);
+          }}
+          onOpenMockups={() => {
+            setIsAIGeneratorOpen(false);
+            setIsMockupsOpen(true);
+          }}
+        />
+      </LazyMount>
 
       {/* 0. Dedicated YouTube Channel Branding Studio */}
-      <YouTubeKitModal
-        isOpen={isYouTubeKitOpen}
-        onClose={() => setIsYouTubeKitOpen(false)}
-        config={config}
-        lang={language}
-        onOpenAIGenerator={() => {
-          setIsYouTubeKitOpen(false);
-          setIsAIGeneratorOpen(true);
-        }}
-      />
+      <LazyMount when={isYouTubeKitOpen}>
+        <YouTubeKitModal
+          isOpen={isYouTubeKitOpen}
+          onClose={() => setIsYouTubeKitOpen(false)}
+          config={config}
+          onOpenAIGenerator={() => {
+            setIsYouTubeKitOpen(false);
+            setIsAIGeneratorOpen(true);
+          }}
+        />
+      </LazyMount>
 
       {/* 1. Universal Image Resizer & Multi-Size Converter */}
-      <UniversalImageResizerModal
-        isOpen={isUniversalResizerOpen}
-        onClose={() => setIsUniversalResizerOpen(false)}
-        language={language}
-        currentLogoConfig={config}
-      />
+      <LazyMount when={isUniversalResizerOpen}>
+        <UniversalImageResizerModal
+          isOpen={isUniversalResizerOpen}
+          onClose={() => setIsUniversalResizerOpen(false)}
+          language={language}
+          currentLogoConfig={config}
+        />
+      </LazyMount>
 
       {/* 2. Complete Favicon Package & Export Suite */}
-      <FaviconExportModal
-        isOpen={isFaviconExportOpen}
-        onClose={() => setIsFaviconExportOpen(false)}
-        config={config}
-        language={language}
-      />
+      <LazyMount when={isFaviconExportOpen}>
+        <FaviconExportModal
+          isOpen={isFaviconExportOpen}
+          onClose={() => setIsFaviconExportOpen(false)}
+          config={config}
+          language={language}
+        />
+      </LazyMount>
 
       {/* 3. Social Media Design Kit */}
-      <SocialMediaKitModal
-        isOpen={isSocialMediaKitOpen}
-        onClose={() => setIsSocialMediaKitOpen(false)}
-        config={config}
-        lang={language}
-        onOpenYouTubeKit={() => {
-          setIsSocialMediaKitOpen(false);
-          setIsYouTubeKitOpen(true);
-        }}
-        onOpenAIGenerator={() => {
-          setIsSocialMediaKitOpen(false);
-          setIsAIGeneratorOpen(true);
-        }}
-      />
+      <LazyMount when={isSocialMediaKitOpen}>
+        <SocialMediaKitModal
+          isOpen={isSocialMediaKitOpen}
+          onClose={() => setIsSocialMediaKitOpen(false)}
+          config={config}
+          lang={language}
+          onOpenYouTubeKit={() => {
+            setIsSocialMediaKitOpen(false);
+            setIsYouTubeKitOpen(true);
+          }}
+          onOpenAIGenerator={() => {
+            setIsSocialMediaKitOpen(false);
+            setIsAIGeneratorOpen(true);
+          }}
+        />
+      </LazyMount>
 
       {/* 4. Google Play Feature Graphic Modal */}
-      <FeatureGraphicModal
-        isOpen={isFeatureGraphicOpen}
-        onClose={() => setIsFeatureGraphicOpen(false)}
-        config={config}
-        language={language}
-      />
+      <LazyMount when={isFeatureGraphicOpen}>
+        <FeatureGraphicModal
+          isOpen={isFeatureGraphicOpen}
+          onClose={() => setIsFeatureGraphicOpen(false)}
+          config={config}
+          language={language}
+        />
+      </LazyMount>
 
       {/* 5. Templates Gallery */}
-      <TemplateGalleryModal
-        isOpen={isTemplatesOpen}
-        onClose={() => setIsTemplatesOpen(false)}
-        currentConfig={config}
-        onSelectTemplate={handleSelectTemplate}
-        language={language}
-      />
+      <LazyMount when={isTemplatesOpen}>
+        <TemplateGalleryModal
+          isOpen={isTemplatesOpen}
+          onClose={() => setIsTemplatesOpen(false)}
+          currentConfig={config}
+          onSelectTemplate={handleSelectTemplate}
+          language={language}
+        />
+      </LazyMount>
 
       {/* 6. Realistic Live Mockups */}
-      <LiveMockupsModal
-        isOpen={isMockupsOpen}
-        onClose={() => setIsMockupsOpen(false)}
-        config={config}
-        language={language}
-      />
+      <LazyMount when={isMockupsOpen}>
+        <LiveMockupsModal
+          isOpen={isMockupsOpen}
+          onClose={() => setIsMockupsOpen(false)}
+          config={config}
+          language={language}
+        />
+      </LazyMount>
 
       {/* 7. Saved Projects Vault */}
-      <SavedProjectsModal
-        isOpen={isSavedProjectsOpen}
-        onClose={() => setIsSavedProjectsOpen(false)}
-        onLoadProject={(loaded) => handleConfigChange(loaded)}
-        onNewProject={handleNewProject}
-        language={language}
-      />
+      <LazyMount when={isSavedProjectsOpen}>
+        <SavedProjectsModal
+          isOpen={isSavedProjectsOpen}
+          onClose={() => setIsSavedProjectsOpen(false)}
+          onLoadProject={(loaded) => handleConfigChange(loaded)}
+          onNewProject={handleNewProject}
+          language={language}
+        />
+      </LazyMount>
 
       {/* 8. Image Auto-Trim & Manual Crop Modal */}
       {isCropTrimModalOpen && (
@@ -649,11 +672,15 @@ export function App() {
       )}
 
       {/* 9. Google Play Compliance & Privacy Policy Modal */}
-      <GooglePlayPolicyModal
-        isOpen={isGooglePlayPolicyOpen}
-        onClose={() => setIsGooglePlayPolicyOpen(false)}
-        language={language}
-      />
+      <LazyMount when={isGooglePlayPolicyOpen}>
+        <GooglePlayPolicyModal
+          isOpen={isGooglePlayPolicyOpen}
+          onClose={() => setIsGooglePlayPolicyOpen(false)}
+          language={language}
+        />
+      </LazyMount>
+
+      </Suspense>
 
       {/* Quick Save Toast Notification */}
       {saveToast && (

@@ -1,4 +1,3 @@
-import JSZip from 'jszip';
 import {
   LogoConfig,
   FaviconSpec,
@@ -892,6 +891,7 @@ export async function generateFaviconZip(
   config: LogoConfig,
   options: FaviconZipOptions = {}
 ): Promise<Blob> {
+  const { default: JSZip } = await import('jszip');
   const zip = new JSZip();
   const brandName = config.text || config.name || 'Brand';
   const themeColor = config.bgColor1 || '#0f172a';
@@ -1929,6 +1929,7 @@ export async function generateYouTubeKitZip(
   config: LogoConfig,
   bannerOptions: SocialBannerOptions
 ): Promise<Blob> {
+  const { default: JSZip } = await import('jszip');
   const zip = new JSZip();
 
   const brandName = config.text || config.name || 'YouTube_Channel';
@@ -2025,6 +2026,7 @@ export async function generateSocialMediaKitZip(
   config: LogoConfig,
   bannerOptions: SocialBannerOptions
 ): Promise<Blob> {
+  const { default: JSZip } = await import('jszip');
   const zip = new JSZip();
 
   const avatarFolder = zip.folder('01_Profile_Pictures_1x1');

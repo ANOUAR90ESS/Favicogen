@@ -1,4 +1,3 @@
-import JSZip from 'jszip';
 import { UniversalResizeOptions, ResizePreset } from '../types';
 import { createIcoFile } from './canvasRenderer';
 
@@ -233,6 +232,7 @@ export async function generateMultiSizeZip(
   baseOptions: Partial<UniversalResizeOptions> = {},
   projectName = 'resized_assets'
 ): Promise<Blob> {
+  const { default: JSZip } = await import('jszip');
   const zip = new JSZip();
   const loadedImg = typeof imgOrSrc === 'string' ? await loadImageElement(imgOrSrc) : imgOrSrc;
 
