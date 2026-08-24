@@ -1,6 +1,8 @@
-import express, { Request, Response } from "express";
+import express, { NextFunction, Request, Response } from "express";
 import path from "path";
 import dotenv from "dotenv";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 
@@ -35,9 +37,96 @@ async function startServer() {
   const PORT = Number(process.env.PORT) || 3000;
   const HOST = process.env.HOST || "0.0.0.0";
 
-  // Allow larger payloads for base64 reference images
-  app.use(express.json({ limit: "25mb" }));
-  app.use(express.urlencoded({ extended: true, limit: "25mb" }));
+  const isProduction = process.env.NODE_ENV === "production";
+
+  // Behind a load balancer the client IP arrives in X-Forwarded-For; without
+  // this every request looks like it comes from the proxy and the rate limit
+  // applies to all users at once.
+  app.set("trust proxy", 1);
+
+  app.use(
+    helmet({
+      // The app inlines styles and loads Google Fonts, and rasterizes SVG
+      // through blob: URLs, so the default CSP would break it.
+      contentSecurityPolicy: isProduction
+        ? {
+            directives: {
+              defaultSrc: ["'self'"],
+              scriptSrc: ["'self'"],
+              styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+              fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+              imgSrc: ["'self'", "data:", "blob:"],
+              connectSrc: [
+                "'self'",
+                "https://fonts.googleapis.com",
+                "https://fonts.gstatic.com",
+              ],
+              objectSrc: ["'none'"],
+              frameAncestors: ["'none'"],
+              baseUri: ["'self'"],
+            },
+          }
+        : false,
+      // Blob URLs feed <img> during rasterization.
+      crossOriginResourcePolicy: { policy: "same-site" },
+      crossOriginEmbedderPolicy: false,
+    })
+  );
+
+  // Same-origin by default. Set ALLOWED_ORIGINS to a comma-separated list to
+  // permit specific cross-origin callers.
+  const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  app.use("/api", (req: Request, res: Response, next: NextFunction) => {
+    const origin = req.headers.origin;
+
+    if (origin && allowedOrigins.includes(origin)) {
+      res.setHeader("Access-Control-Allow-Origin", origin);
+      res.setHeader("Vary", "Origin");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+      res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    } else if (origin) {
+      return res.status(403).json({ success: false, error: "Origin not allowed." });
+    }
+
+    if (req.method === "OPTIONS") return res.sendStatus(204);
+    return next();
+  });
+
+  // The AI routes spend the operator's Gemini quota, and nothing about them
+  // is authenticated, so an open endpoint is someone else's bill. These
+  // limits are per IP.
+  const aiLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    limit: 30,
+    standardHeaders: "draft-7",
+    legacyHeaders: false,
+    message: {
+      success: false,
+      error: "Too many AI requests from this address. Please try again later.",
+    },
+  });
+
+  const burstLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 5,
+    standardHeaders: "draft-7",
+    legacyHeaders: false,
+    message: {
+      success: false,
+      error: "You are sending AI requests too quickly. Please wait a moment.",
+    },
+  });
+
+  app.use("/api/ai", burstLimiter, aiLimiter);
+
+  // Sized for a single base64 reference image; the client caps uploads at
+  // 10MB, so 25MB was headroom nobody needed and an easy memory-pressure lever.
+  app.use(express.json({ limit: "12mb" }));
+  app.use(express.urlencoded({ extended: true, limit: "12mb" }));
 
   // Health check
   app.get("/api/health", (_req: Request, res: Response) => {
