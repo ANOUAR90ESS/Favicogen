@@ -18,7 +18,8 @@ import {
 } from 'lucide-react';
 import { LogoConfig, SupportedLanguage } from '../types';
 import { autoTrimImage } from '../utils/imageCropper';
-import { smartImportImage, readFileAsDataUrl, buildFullBleedImagePatch } from '../utils/smartImport';
+import { smartImportImage, buildFullBleedImagePatch } from '../utils/smartImport';
+import { intakeImageFile, isIntakeFailure, ACCEPT_ATTRIBUTE } from '../utils/imageIntake';
 
 interface ImageUploadEditorProps {
   config: LogoConfig;
@@ -61,8 +62,21 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
     setIsAutoTrimming(true);
     setTrimFeedback(null);
     try {
-      const dataUrl = await readFileAsDataUrl(file);
-      const result = await smartImportImage(dataUrl, { autoTrim: autoTrimOnImport });
+      const intake = await intakeImageFile(file);
+      if (isIntakeFailure(intake)) {
+        setTrimFeedback(
+          intake.reason === 'too-large'
+            ? isAr
+              ? 'حجم الصورة يتجاوز 25 ميجابايت. اختر ملفاً أصغر.'
+              : 'That image is larger than 25 MB. Pick a smaller file.'
+            : isAr
+              ? 'تعذّرت قراءة هذا الملف كصورة.'
+              : 'That file could not be read as an image.'
+        );
+        return;
+      }
+
+      const result = await smartImportImage(intake.dataUrl, { autoTrim: autoTrimOnImport });
 
       onChange({ ...result.patch, uploadedImageFilters: filters });
 
@@ -184,7 +198,7 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
             type="file"
             ref={fileInputRef}
             onChange={handleImageFile}
-            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+            accept={ACCEPT_ATTRIBUTE}
             className="hidden"
           />
           <div className="flex flex-col items-center gap-2">
@@ -245,7 +259,7 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
                 type="file"
                 ref={fileInputRef}
                 onChange={handleImageFile}
-                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                accept={ACCEPT_ATTRIBUTE}
                 className="hidden"
               />
               <button

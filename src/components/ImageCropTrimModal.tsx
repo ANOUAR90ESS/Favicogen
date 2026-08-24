@@ -27,6 +27,7 @@ import {
   CropMaskShape,
 } from '../utils/imageCropper';
 import { downloadBlob } from '../utils/canvasRenderer';
+import { intakeImageFile, isIntakeFailure, ACCEPT_ATTRIBUTE } from '../utils/imageIntake';
 
 interface ImageCropTrimModalProps {
   isOpen: boolean;
@@ -51,6 +52,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
 
   // Active Image Source
   const [imageSrc, setImageSrc] = useState<string | null>(initialImageSrc || null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [loadedImage, setLoadedImage] = useState<HTMLImageElement | null>(null);
 
   // Modes: 'auto-trim' | 'manual-crop' | 'corner-round'
@@ -174,16 +176,27 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
   }, [loadedImage, cropRect, activeTab, cornerShape, cornerRadius]);
 
   // Handle local file upload
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      if (evt.target?.result) {
-        setImageSrc(evt.target.result as string);
-      }
-    };
-    reader.readAsDataURL(file);
+
+    const intake = await intakeImageFile(file);
+    if (isIntakeFailure(intake)) {
+      setUploadError(
+        intake.reason === 'too-large'
+          ? isAr
+            ? 'حجم الصورة يتجاوز 25 ميجابايت. اختر ملفاً أصغر.'
+            : 'That image is larger than 25 MB. Pick a smaller file.'
+          : isAr
+            ? 'تعذّرت قراءة هذا الملف كصورة.'
+            : 'That file could not be read as an image.'
+      );
+      return;
+    }
+
+    setUploadError(null);
+    setImageSrc(intake.dataUrl);
   };
 
   // Preset Ratio Enforcer
@@ -497,10 +510,16 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
             <input
               type="file"
               ref={fileInputRef}
-              onChange={handleFileUpload}
-              accept="image/png,image/jpeg,image/webp,image/svg+xml"
+              onChange={(e) => void handleFileUpload(e)}
+              accept={ACCEPT_ATTRIBUTE}
               className="hidden"
             />
+
+            {uploadError && (
+              <p role="alert" className="text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-2.5 py-2">
+                {uploadError}
+              </p>
+            )}
             <button
               onClick={() => fileInputRef.current?.click()}
               className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 shadow-2xs transition-colors cursor-pointer"

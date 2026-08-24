@@ -13,6 +13,7 @@ import {
   WatermarkPosition,
 } from '../types';
 import { AdvancedColorPicker } from './AdvancedColorPicker';
+import { intakeImageFile, isIntakeFailure, ACCEPT_ATTRIBUTE } from '../utils/imageIntake';
 
 interface WatermarkControlsProps {
   config: LogoConfig;
@@ -60,21 +61,20 @@ export const WatermarkControls: React.FC<WatermarkControlsProps> = ({
     });
   };
 
-  const handleWatermarkImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleWatermarkImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result) {
-        updateWatermark({
-          type: 'custom-image',
-          customImageSrc: result,
-          enabled: true,
-        });
-      }
-    };
-    reader.readAsDataURL(file);
+
+    // A watermark is drawn small, so it never needs more than 512px.
+    const intake = await intakeImageFile(file, { maxDimension: 512 });
+    if (isIntakeFailure(intake)) return;
+
+    updateWatermark({
+      type: 'custom-image',
+      customImageSrc: intake.dataUrl,
+      enabled: true,
+    });
   };
 
   return (
@@ -166,8 +166,8 @@ export const WatermarkControls: React.FC<WatermarkControlsProps> = ({
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/png,image/jpeg,image/svg+xml"
-              onChange={handleWatermarkImageUpload}
+              accept={ACCEPT_ATTRIBUTE}
+              onChange={(e) => void handleWatermarkImageUpload(e)}
               className="hidden"
             />
           </div>

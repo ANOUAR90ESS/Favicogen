@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle2, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { ControlPanel } from './components/ControlPanel';
 import { CanvasStage } from './components/CanvasStage';
@@ -21,9 +21,17 @@ import {
   loadCurrentProject,
   saveCurrentProject,
   saveProjectToList,
+  StorageFailure,
 } from './utils/storage';
+import {
+  intakeImageFile,
+  isIntakeFailure,
+  MAX_UPLOAD_BYTES,
+  formatBytes,
+  ACCEPT_ATTRIBUTE,
+} from './utils/imageIntake';
 import { generateSvgString } from './utils/canvasRenderer';
-import { smartImportImage, readFileAsDataUrl } from './utils/smartImport';
+import { smartImportImage } from './utils/smartImport';
 import { runProductionComplianceCheck } from './utils/productionCheck';
 
 const HISTORY_LIMIT = 30;
@@ -43,14 +51,34 @@ export function App() {
     runProductionComplianceCheck();
   }, []);
 
-  const [config, setConfig] = useState<LogoConfig>(() => loadCurrentProject());
+  const [config, setConfig] = useState<LogoConfig>(DEFAULT_LOGO_CONFIG);
+  const [isRestoring, setIsRestoring] = useState<boolean>(true);
 
   // Undo stack and cursor live in one state value
   const [history, setHistory] = useState<{ entries: LogoConfig[]; index: number }>(() => ({
-    entries: [config],
+    entries: [DEFAULT_LOGO_CONFIG],
     index: 0,
   }));
   const [lastSavedAt, setLastSavedAt] = useState<number>(Date.now());
+  const [storageWarning, setStorageWarning] = useState<StorageFailure | null>(null);
+
+  // Restore the last session. Projects live in IndexedDB, so this is async;
+  // until it resolves the canvas shows the default design rather than a
+  // half-loaded one.
+  useEffect(() => {
+    let cancelled = false;
+
+    loadCurrentProject().then((restored) => {
+      if (cancelled) return;
+      setConfig(restored);
+      setHistory({ entries: [restored], index: 0 });
+      setIsRestoring(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Modal open states
   const [isTemplatesOpen, setIsTemplatesOpen] = useState<boolean>(false);
@@ -82,14 +110,25 @@ export function App() {
     localStorage.setItem('logo_studio_lang', nextLang);
   };
 
-  // Debounced auto-save of whatever is currently on the canvas.
+  // Debounced auto-save of whatever is currently on the canvas. Held back
+  // until the restore finishes, so an empty default never overwrites saved work.
   useEffect(() => {
+    if (isRestoring) return;
+
     const timer = setTimeout(() => {
-      saveCurrentProject(config);
-      setLastSavedAt(Date.now());
+      void saveCurrentProject(config).then((result) => {
+        if (result.ok) {
+          setLastSavedAt(Date.now());
+          setStorageWarning(null);
+        } else {
+          // Reporting "saved" over a failed write is how work goes missing.
+          setStorageWarning(result.failure ?? 'unknown');
+        }
+      });
     }, 500);
+
     return () => clearTimeout(timer);
-  }, [config]);
+  }, [config, isRestoring]);
 
   // State change with History support & Partial Patch Safety
   const handleConfigChange = useCallback(
@@ -128,12 +167,19 @@ export function App() {
   }, [history]);
 
   // Quick Manual Save
-  const handleQuickSave = useCallback(() => {
+  const handleQuickSave = useCallback(async () => {
     const currentConf = configRef.current;
     const thumb = generateSvgString(currentConf, 200);
-    saveProjectToList(currentConf, thumb);
+    const result = await saveProjectToList(currentConf, thumb);
+
+    if (!result.ok) {
+      setStorageWarning(result.failure ?? 'unknown');
+      return;
+    }
+
     const now = Date.now();
     setLastSavedAt(now);
+    setStorageWarning(null);
 
     setSaveToast({
       id: now,
@@ -188,8 +234,17 @@ export function App() {
 
     setImportStatus(t('nav.smartImport'));
     try {
-      const dataUrl = await readFileAsDataUrl(file);
-      const result = await smartImportImage(dataUrl, { autoTrim: true });
+      const intake = await intakeImageFile(file);
+      if (isIntakeFailure(intake)) {
+        setImportStatus(
+          intake.reason === 'too-large'
+            ? t('common.imageTooLarge', { limit: formatBytes(MAX_UPLOAD_BYTES) })
+            : t('common.imageUnreadable')
+        );
+        return;
+      }
+
+      const result = await smartImportImage(intake.dataUrl, { autoTrim: true });
 
       handleConfigChange({
         ...result.patch,
@@ -207,7 +262,7 @@ export function App() {
       setIsFaviconExportOpen(true);
     } catch (err) {
       console.error('Smart import failed:', err);
-      setImportStatus(isAr ? 'تعذر استيراد الصورة' : 'Could not import the image');
+      setImportStatus(t('common.imageUnreadable'));
     } finally {
       setTimeout(() => setImportStatus(null), 5000);
     }
@@ -249,7 +304,7 @@ export function App() {
       ) {
         if (!isInput) {
           e.preventDefault();
-          handleQuickSave();
+          void handleQuickSave();
           return;
         }
       }
@@ -257,7 +312,7 @@ export function App() {
       // Standard Ctrl+S / Cmd+S for Quick Save
       if ((e.metaKey || e.ctrlKey) && (e.key === 's' || e.key === 'S') && !e.shiftKey) {
         e.preventDefault();
-        handleQuickSave();
+        void handleQuickSave();
         return;
       }
 
@@ -301,9 +356,33 @@ export function App() {
         type="file"
         ref={smartImportInputRef}
         onChange={handleSmartImportFile}
-        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+        accept={ACCEPT_ATTRIBUTE}
         className="hidden"
       />
+
+      {/* Storage problems are loud: a silent failure here loses the user's work. */}
+      {storageWarning && (
+        <div
+          role="alert"
+          className="shrink-0 flex items-start gap-3 px-4 py-2.5 bg-amber-50 border-b border-amber-300 text-amber-900"
+        >
+          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-600" />
+          <p className="text-xs font-semibold leading-relaxed flex-1">
+            {storageWarning === 'quota'
+              ? t('common.storageQuotaFull')
+              : storageWarning === 'unavailable'
+                ? t('common.storageUnavailable')
+                : t('common.storageFailed')}
+          </p>
+          <button
+            onClick={() => setStorageWarning(null)}
+            className="p-0.5 rounded hover:bg-amber-100 transition-colors cursor-pointer shrink-0"
+            aria-label={t('common.close')}
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Pipeline progress / result toast */}
       {importStatus && (

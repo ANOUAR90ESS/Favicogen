@@ -38,6 +38,7 @@ import {
   ResizeCategory,
 } from '../types';
 import { RESIZE_PRESETS } from '../utils/resizePresets';
+import { intakeImageFile, isIntakeFailure, ACCEPT_ATTRIBUTE } from '../utils/imageIntake';
 import {
   loadImageElement,
   renderResizedImageToBlob,
@@ -177,25 +178,19 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
   }, []);
 
   // Load Image and update original source dimensions
-  const handleImageFile = (file: File) => {
-    if (!file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      const img = new Image();
-      img.onload = () => {
-        applySourceImage(result, false);
-        setSourceDimensions({ width: img.naturalWidth || 512, height: img.naturalHeight || 512 });
-        // Set initial resize options to match source image
-        setOptions((prev) => ({
-          ...prev,
-          width: img.naturalWidth || 512,
-          height: img.naturalHeight || 512,
-        }));
-      };
-      img.src = result;
-    };
-    reader.readAsDataURL(file);
+  const handleImageFile = async (file: File) => {
+    // The resizer is the one place a large source is legitimate, so it keeps
+    // more resolution than the logo canvas does.
+    const intake = await intakeImageFile(file, { maxDimension: 4096 });
+    if (isIntakeFailure(intake)) return;
+
+    applySourceImage(intake.dataUrl, false);
+    setSourceDimensions({ width: intake.width || 512, height: intake.height || 512 });
+    setOptions((prev) => ({
+      ...prev,
+      width: intake.width || 512,
+      height: intake.height || 512,
+    }));
   };
 
   // Re-render live preview whenever options or source image change
@@ -412,7 +407,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
             <input
               type="file"
               ref={fileInputRef}
-              accept="image/*"
+              accept={ACCEPT_ATTRIBUTE}
               className="hidden"
               onChange={(e) => {
                 if (e.target.files?.[0]) handleImageFile(e.target.files[0]);

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   X,
@@ -35,16 +35,30 @@ export const SavedProjectsModal: React.FC<SavedProjectsModalProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const isAr = i18n.language === 'ar';
-  const [projects, setProjects] = useState<SavedProjectItem[]>(() => getSavedProjects());
+  const [projects, setProjects] = useState<SavedProjectItem[]>([]);
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Projects live in IndexedDB, so the list is fetched when the modal opens
+  // rather than read synchronously during render.
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+
+    void getSavedProjects().then((list) => {
+      if (!cancelled) setProjects(list);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
-  const handleDelete = (id: string, e: React.MouseEvent) => {
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const updated = deleteSavedProject(id);
-    setProjects(updated);
+    setProjects(await deleteSavedProject(id));
   };
 
   const handleExport = (config: LogoConfig, e: React.MouseEvent) => {
@@ -198,7 +212,7 @@ export const SavedProjectsModal: React.FC<SavedProjectsModalProps> = ({
                           <FileJson className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={(e) => handleDelete(item.id, e)}
+                          onClick={(e) => void handleDelete(item.id, e)}
                           className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                           title="Delete Project"
                         >
