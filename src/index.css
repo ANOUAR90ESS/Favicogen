@@ -31,6 +31,22 @@
 }
 
 /*
+ * The standard "this area is transparent" backdrop. It belongs *behind* an
+ * asset, never around it: a preview that mats the artwork in white is telling
+ * the user their export has a white border when it does not.
+ */
+.checkerboard {
+  background-color: #ffffff;
+  background-image:
+    linear-gradient(45deg, #e2e8f0 25%, transparent 25%),
+    linear-gradient(-45deg, #e2e8f0 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #e2e8f0 75%),
+    linear-gradient(-45deg, transparent 75%, #e2e8f0 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+
+/*
  * Toolbars that scroll sideways on a phone. The row has to stay one line so
  * it cannot push the canvas out of its container, but a visible scrollbar
  * inside a 40px toolbar looks broken — so the bar is hidden and the row is

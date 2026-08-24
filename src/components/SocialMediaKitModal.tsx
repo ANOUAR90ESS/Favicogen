@@ -581,10 +581,8 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
                       {isProfile && (
                         <div className="relative flex items-center justify-center py-2">
                           <div
-                            className={`relative shadow-2xl overflow-hidden transition-transform duration-300 group-hover:scale-105 ${
-                              preset.cropStyle === 'circle'
-                                ? 'rounded-full border-2 border-indigo-500/40 w-32 h-32'
-                                : 'rounded-2xl border-2 border-indigo-500/40 w-32 h-32'
+                            className={`relative w-32 h-32 transition-transform duration-300 group-hover:scale-105 ${
+                              preset.cropStyle === 'circle' ? 'rounded-full overflow-hidden' : ''
                             }`}
                           >
                             <div
@@ -604,7 +602,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
                       {isBanner && (
                         <div className="w-full relative flex items-center justify-center">
                           <div
-                            className="w-full shadow-2xl rounded-lg overflow-hidden border border-slate-700/50"
+                            className="w-full overflow-hidden"
                             style={{
                               aspectRatio: `${preset.width} / ${preset.height}`,
                               maxHeight: '260px',

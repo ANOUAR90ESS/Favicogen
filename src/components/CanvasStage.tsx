@@ -271,16 +271,14 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             transformOrigin: 'center center',
             transition: 'transform 0.15s ease-out',
           }}
-          className={`relative m-auto flex max-w-full max-h-full items-center justify-center shadow-xl rounded-2xl border p-1.5 sm:p-2 ${
-            config.bgType === 'transparent'
-              ? 'bg-[linear-gradient(45deg,#e2e8f0_25%,transparent_25%),linear-gradient(-45deg,#e2e8f0_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#e2e8f0_75%),linear-gradient(-45deg,transparent_75%,#e2e8f0_75%)] [background-size:16px_16px] [background-position:0_0,0_8px,8px_-8px,-8px_0] bg-white border-slate-300'
-              : 'bg-white border-slate-200/80'
+          className={`relative m-auto flex max-w-full max-h-full items-center justify-center shadow-xl ring-1 ${
+            config.bgType === 'transparent' ? 'checkerboard ring-slate-300' : 'bg-white ring-slate-200/80'
           }`}
         >
           {/* Main SVG Render Container */}
           <div
             id="logo-svg-canvas-container"
-            className="w-[min(320px,92cqw,92cqh)] h-[min(320px,92cqw,92cqh)] sm:w-[min(380px,92cqw,92cqh)] sm:h-[min(380px,92cqw,92cqh)] md:w-[min(400px,92cqw,92cqh)] md:h-[min(400px,92cqw,92cqh)] relative drop-shadow-md flex items-center justify-center rounded-xl overflow-hidden"
+            className="w-[min(320px,92cqw,92cqh)] h-[min(320px,92cqw,92cqh)] sm:w-[min(380px,92cqw,92cqh)] sm:h-[min(380px,92cqw,92cqh)] md:w-[min(400px,92cqw,92cqh)] md:h-[min(400px,92cqw,92cqh)] relative flex items-center justify-center"
             dangerouslySetInnerHTML={{ __html: svgString }}
           />
 
