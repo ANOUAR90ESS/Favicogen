@@ -151,7 +151,6 @@ export function generateHarmonies(baseHex: string): ColorHarmony[] {
   // 1. Complementary Harmony (opposite side of color wheel: h + 180)
   const compHue = (h + 180) % 360;
   const compColor = hslToHex(compHue, s, l);
-  const compDark = hslToHex(compHue, Math.min(100, s + 10), Math.max(12, l - 30));
   const compLight = hslToHex(compHue, Math.max(30, s - 10), Math.min(92, l + 25));
   const baseDark = hslToHex(h, Math.min(100, s + 15), Math.max(12, l - 30));
   const baseLight = hslToHex(h, Math.max(20, s - 15), Math.min(92, l + 30));

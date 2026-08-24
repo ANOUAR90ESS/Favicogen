@@ -4,7 +4,6 @@ import {
   Upload,
   Download,
   Image as ImageIcon,
-  Layers,
   Sparkles,
   Sliders,
   Maximize2,
@@ -16,15 +15,8 @@ import {
   Check,
   Search,
   Package,
-  FileCode,
   Palette,
-  Eye,
   Crop,
-  CheckCircle2,
-  Smartphone,
-  Globe,
-  Monitor,
-  Printer,
   Copy,
   FolderDown,
   RefreshCw,
@@ -40,11 +32,9 @@ import {
 import { RESIZE_PRESETS } from '../utils/resizePresets';
 import { intakeImageFile, isIntakeFailure, ACCEPT_ATTRIBUTE } from '../utils/imageIntake';
 import {
-  loadImageElement,
   renderResizedImageToBlob,
   generateMultiSizeZip,
-  convertUnitsToPixels,
-} from '../utils/imageResizer';
+  } from '../utils/imageResizer';
 import { generateSvgString } from '../utils/canvasRenderer';
 import { downloadBlob } from '../utils/download';
 import { embedFontsInSvg } from '../utils/fontEmbedder';

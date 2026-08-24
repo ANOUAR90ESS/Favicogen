@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
 /**
  * Defers mounting children until the first time `when` is true, then keeps
@@ -19,10 +19,11 @@ export const LazyMount: React.FC<{ when: boolean; children: React.ReactNode }> =
 }) => {
   const [hasOpened, setHasOpened] = useState(when);
 
-  useEffect(() => {
-    if (when) setHasOpened(true);
-  }, [when]);
+  // Adjusting state during render (rather than in an effect) is React's
+  // documented pattern for this, and it mounts the child in the same pass
+  // instead of costing an extra one.
+  if (when && !hasOpened) setHasOpened(true);
 
-  if (!hasOpened) return null;
+  if (!hasOpened && !when) return null;
   return <>{children}</>;
 };

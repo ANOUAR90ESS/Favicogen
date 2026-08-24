@@ -3,17 +3,13 @@ import {
   X,
   Download,
   Image as ImageIcon,
-  Sparkles,
-  Smartphone,
   Layers,
-  Star,
   Check,
   Eye,
   Info,
   ShieldCheck,
   Palette,
   Sliders,
-  Maximize2,
   Copy,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';

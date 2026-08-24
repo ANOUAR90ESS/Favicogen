@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push to the same branch makes the older run irrelevant.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Test
+        run: bun run test
+
+      - name: Build
+        run: bun run build
+
+      - name: Check the assets the manifest promises are present
+        run: |
+          set -e
+          for asset in icon-192.png icon-512.png favicon.svg manifest.json \
+                       legal/PRIVACY_POLICY.md legal/PRIVACY_POLICY.ar.md \
+                       legal/TERMS_OF_SERVICE.md legal/TERMS_OF_SERVICE.ar.md; do
+            test -f "dist/$asset" || { echo "missing dist/$asset"; exit 1; }
+          done
+          echo "all declared assets present"
+
+      - name: Check both locales define the same keys
+        run: bun run check:i18n

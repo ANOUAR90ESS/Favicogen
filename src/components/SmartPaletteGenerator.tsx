@@ -2,11 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
   Sparkles,
   Check,
-  Copy,
-  RefreshCw,
   Palette,
-  ArrowRight,
-  Sliders,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Sparkles,
   Upload,
@@ -7,24 +7,16 @@ import {
   RefreshCw,
   Download,
   Check,
-  ArrowRight,
   Layers,
   Youtube,
   Trash2,
-  Sliders,
   AlertCircle,
-  Copy,
   CheckCircle2,
   Palette,
-  ExternalLink,
-  ChevronRight,
   X,
   PackageCheck,
   Smartphone,
-  Eye,
-  SlidersHorizontal,
-  Zap,
-} from 'lucide-react';
+  } from 'lucide-react';
 import { LogoConfig, SupportedLanguage } from '../types';
 import { Modal } from './Modal';
 
@@ -121,14 +113,11 @@ const PROMPT_SUGGESTIONS = [
 export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
   isOpen,
   onClose,
-  config,
   language = 'ar',
   onApplyLogo,
   onOpenYouTubeKit,
   onOpenFaviconExport,
   onOpenFeatureGraphic,
-  onOpenUniversalResizer,
-  onOpenMockups,
 }) => {
   const isAr = language === 'ar';
   const [prompt, setPrompt] = useState<string>('');
@@ -141,8 +130,6 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
-  const [appliedSuccess, setAppliedSuccess] = useState<boolean>(false);
-  const [autoOpenInStudio, setAutoOpenInStudio] = useState<boolean>(true);
   const [enhancedSuggestions, setEnhancedSuggestions] = useState<{
     suggestedColors?: string[];
     suggestedTitle?: string;
@@ -203,7 +190,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
       } else {
         setErrorMsg(data.error || (isAr ? 'تعذر تحسين الوصف' : 'Failed to enhance prompt'));
       }
-    } catch (err: any) {
+    } catch {
       setErrorMsg(isAr ? 'خطأ أثناء الاتصال بخدمة الذكاء الاصطناعي' : 'Error communicating with AI service');
     } finally {
       setIsEnhancing(false);
@@ -229,7 +216,6 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
     }
 
     onApplyLogo(updates, imageUrl);
-    setAppliedSuccess(true);
   };
 
   const handleGenerate = async () => {
@@ -240,7 +226,6 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
 
     setIsGenerating(true);
     setErrorMsg(null);
-    setAppliedSuccess(false);
 
     try {
       const res = await fetch('/api/ai/generate-logo', {

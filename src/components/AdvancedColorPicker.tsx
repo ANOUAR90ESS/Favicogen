@@ -1,15 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
-  Palette,
-  Pipette,
   Plus,
   Trash2,
-  Bookmark,
-  Check,
-  Sparkles,
   Sliders,
-  Copy,
-} from 'lucide-react';
+  } from 'lucide-react';
 import { SupportedLanguage, SavedColorPalette } from '../types';
 
 interface AdvancedColorPickerProps {
@@ -152,7 +146,9 @@ export const AdvancedColorPicker: React.FC<AdvancedColorPickerProps> = ({
     try {
       const stored = localStorage.getItem(STORAGE_PALETTES_KEY);
       if (stored) return JSON.parse(stored);
-    } catch (e) {}
+    } catch {
+      // A corrupt saved palette is not worth surfacing; fall back to defaults.
+    }
     return [
       { id: '1', name: 'Cyber Indigo', colors: ['#4338ca', '#312e81', '#38bdf8', '#818cf8'] },
       { id: '2', name: 'Royal Gold', colors: ['#18140c', '#facc15', '#ca8a04', '#fef08a'] },

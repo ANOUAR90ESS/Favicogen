@@ -6,20 +6,12 @@ import {
   Sliders,
   CheckCircle2,
   Sparkles,
-  Layers,
   Monitor,
   Smartphone,
-  Tv,
-  Check,
-  Share2,
-  Copy,
-  Info,
   ShieldCheck,
-  Maximize2,
   Play,
   Bell,
   Search,
-  ThumbsUp,
   X
 } from 'lucide-react';
 import { LogoConfig, SocialBannerOptions } from '../types';
@@ -49,7 +41,6 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'banner' | 'avatar' | 'watermark' | 'thumbnail' | 'channel-mockup'>('banner');
-  const [previewDevice, setPreviewDevice] = useState<'all' | 'desktop' | 'mobile' | 'tv'>('all');
   const [showSafeZones, setShowSafeZones] = useState<boolean>(true);
   const [isExportingZip, setIsExportingZip] = useState<boolean>(false);
   const [copiedNotification, setCopiedNotification] = useState<string | null>(null);
@@ -59,7 +50,7 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
   const [channelHandle, setChannelHandle] = useState<string>(`@${(config.text || 'channel').toLowerCase().replace(/\s+/g, '')}`);
   const [channelTagline, setChannelTagline] = useState<string>(config.tagline || 'شروحات، محتوى حصري، وبثوث مباشرة يومية');
   const [uploadSchedule, setUploadSchedule] = useState<string>('فيديوهات جديدة كل أسبوع');
-  const [subscribersMock, setSubscribersMock] = useState<string>('128 ألف مشترك');
+  const [subscribersMock] = useState<string>('128 ألف مشترك');
   const [selectedTheme, setSelectedTheme] = useState<'youtube-red' | 'dark' | 'brand' | 'cyberpunk' | 'royal-gold' | 'emerald'>('youtube-red');
   const [selectedLayout, setSelectedLayout] = useState<'youtube-channel' | 'center-hero' | 'split-hero' | 'minimal-clean'>('youtube-channel');
 

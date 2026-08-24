@@ -8,7 +8,6 @@ import {
   Search as SearchIcon,
   Layers,
   Lock,
-  Globe,
   Star,
   RefreshCw,
   Plus,

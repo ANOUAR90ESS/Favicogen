@@ -1,19 +1,12 @@
 import React, { useRef, useState } from 'react';
 import {
   Upload,
-  Image as ImageIcon,
-  Sliders,
-  RotateCw,
-  Trash2,
+  Image as Trash2,
   Maximize,
   Sparkles,
   Crop,
-  Layers,
-  Sun,
-  Contrast,
   RefreshCw,
   Scissors,
-  Check,
   Loader2,
 } from 'lucide-react';
 import { LogoConfig, SupportedLanguage } from '../types';

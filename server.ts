@@ -145,7 +145,6 @@ async function startServer() {
         referenceImage,
         style = "modern-vector",
         aspectRatio = "1:1",
-        target = "logo", // 'logo' | 'banner' | 'avatar'
       } = req.body;
 
       if (!prompt || typeof prompt !== "string" || !prompt.trim()) {

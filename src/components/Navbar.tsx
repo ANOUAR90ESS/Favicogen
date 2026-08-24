@@ -18,8 +18,7 @@ import {
   Save,
   ShieldCheck,
   MoreHorizontal,
-  ChevronDown,
-} from 'lucide-react';
+  } from 'lucide-react';
 import { SupportedLanguage } from '../types';
 import { Modal } from './Modal';
 
@@ -68,7 +67,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSavedProjects,
   onOpenGooglePlayPolicy,
   onQuickSave,
-  language,
   onToggleLanguage,
 }) => {
   const { t, i18n } = useTranslation();

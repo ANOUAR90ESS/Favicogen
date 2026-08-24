@@ -930,7 +930,11 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
             {/* Smart Color Palette Generator (AI Harmonies) */}
             <div className="pt-2">
-              <SmartPaletteGenerator config={config} onChange={updateConfig} language={language} />
+              <SmartPaletteGenerator
+                config={config}
+                onChange={updateConfig}
+                language={language || (isAr ? 'ar' : 'en')}
+              />
             </div>
 
             {/* Quick Curated Color Palettes */}

@@ -9,14 +9,10 @@ import {
   RotateCcw,
   Eye,
   Upload,
-  Move,
   Square,
   Circle,
   Shield,
-  Layers,
-  Sliders,
-  Maximize2,
-} from 'lucide-react';
+  } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { SupportedLanguage } from '../types';
 import {
@@ -61,7 +57,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
 
   // Auto-Trim Settings
   const [trimTolerance, setTrimTolerance] = useState<number>(18);
-  const [trimPadding, setTrimPadding] = useState<number>(0);
+  const [trimPadding] = useState<number>(0);
   const [trimMode, setTrimMode] = useState<'auto' | 'white' | 'transparent' | 'corner-color'>('white');
   const [detectedTrim, setDetectedTrim] = useState<TrimResult | null>(null);
 

@@ -199,7 +199,6 @@ export function generateSvgString(config: LogoConfig, targetSize = 512): string 
   const iconGradId = `iconGrad_${uid}`;
   const textGradId = `textGrad_${uid}`;
   const clipId = `maskClip_${uid}`;
-  const imageClipId = `imageClip_${uid}`;
   const imageFilterId = `imageFilter_${uid}`;
   const curvePathId = `textCurve_${uid}`;
   const iconFilterId = `iconFilter_${uid}`;
@@ -1686,7 +1685,6 @@ export function generateSocialBannerSvg(
   const badgeText = options.badgeText || 'OFFICIAL CHANNEL • 2026';
   const channelHandle = options.channelHandle || `@${(config.text || 'channel').toLowerCase().replace(/\s+/g, '')}`;
   const uploadSchedule = options.uploadSchedule || 'NEW VIDEOS EVERY WEEK';
-  const socialLinks = options.socialLinks || 'YouTube • Instagram • X';
 
   // Extract inner SVG content (strip outer <svg> tags)
   const innerSvgContent = logoSvg.replace(/^<svg[^>]*>|<\/svg>$/gi, '');
@@ -1933,7 +1931,6 @@ export async function generateYouTubeKitZip(
   const zip = new JSZip();
 
   const brandName = config.text || config.name || 'YouTube_Channel';
-  const safeTitle = brandName.toLowerCase().replace(/[^a-z0-9]/gi, '_');
 
   // Documentation file
   zip.file(

@@ -1,26 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import {
   X,
   Download,
   Share2,
-  Image as ImageIcon,
-  Layout,
-  Palette,
-  Sparkles,
-  Layers,
+  Image as Sparkles,
   Check,
-  Eye,
   Sliders,
-  Maximize2,
   FileArchive,
   Info,
-  Smartphone,
-  Monitor,
   Copy,
-  ExternalLink,
   Shield,
-  Crop,
   Youtube,
 } from 'lucide-react';
 import { LogoConfig, SupportedLanguage, SocialBannerOptions, SocialMediaPreset } from '../types';
@@ -72,7 +62,6 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
   const [isExportingAll, setIsExportingAll] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [selectedPresetPreview, setSelectedPresetPreview] = useState<SocialMediaPreset | null>(null);
 
   // Filter presets
   const filteredPresets = useMemo(() => {

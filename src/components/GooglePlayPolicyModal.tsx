@@ -8,13 +8,11 @@ import {
   Copy,
   Download,
   Smartphone,
-  ExternalLink,
   Lock,
   Award,
   Check,
   FolderArchive,
-  BookOpen,
-} from 'lucide-react';
+  } from 'lucide-react';
 import { SupportedLanguage } from '../types';
 import { PRIVACY_POLICY_MD, PRIVACY_POLICY_AR, PRIVACY_POLICY_URL } from '../Legal/privacyPolicy';
 import { TERMS_OF_SERVICE_MD, TERMS_OF_SERVICE_AR, TERMS_OF_SERVICE_URL } from '../Legal/termsOfService';
@@ -32,7 +30,7 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
   onClose,
   language,
 }) => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const isAr = language === 'ar' || i18n.language === 'ar';
   const [activeTab, setActiveTab] = useState<'privacy' | 'terms' | 'google-play-checklist' | 'data-safety' | 'legal-docs'>('privacy');
   const [copiedSection, setCopiedSection] = useState<string | null>(null);

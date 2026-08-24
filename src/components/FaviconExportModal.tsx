@@ -24,7 +24,7 @@ import {
   generateFeatureGraphicSvg,
   rasterizeSvg,
 } from '../utils/canvasRenderer';
-import { downloadBlob, downloadText, downloadSvg } from '../utils/download';
+import { downloadBlob, downloadSvg } from '../utils/download';
 import { Modal } from './Modal';
 
 interface FaviconExportModalProps {
