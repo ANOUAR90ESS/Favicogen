@@ -170,8 +170,10 @@ export interface FaviconSpec {
   size: number;
   fileName: string;
   format: 'png' | 'ico' | 'svg' | 'webp' | 'jpeg';
+  /** Language-neutral, e.g. "16x16 px". */
   label: string;
-  description: string;
+  descriptionAr: string;
+  descriptionEn: string;
   isFaviconStandard?: boolean;
   isAppleTouch?: boolean;
   isAndroidChrome?: boolean;

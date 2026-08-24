@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X, LayoutGrid, Search, Sparkles } from 'lucide-react';
 import { LogoConfig, SupportedLanguage, Template } from '../types';
 import { TEMPLATES } from '../utils/templates';
 import { generateSvgString } from '../utils/canvasRenderer';
+import { Modal } from './Modal';
 
 interface TemplateGalleryModalProps {
   isOpen: boolean;
@@ -24,22 +25,20 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  if (!isOpen) return null;
-
   const categories = [
-    { id: 'all', nameAr: 'جميع القوالب', nameEn: 'All Templates' },
-    { id: 'tech', nameAr: 'تقنية وذكاء اصطناعي', nameEn: 'Tech & AI' },
-    { id: 'minimal', nameAr: 'بسيط وأحادي', nameEn: 'Minimal & Monogram' },
-    { id: 'luxury', nameAr: 'فخامة وملكية', nameEn: 'Luxury & Royal' },
-    { id: 'arabesque', nameAr: 'زخارف إسلامية وعربية', nameEn: 'Arabesque & Islamic' },
-    { id: 'eco', nameAr: 'طبيعة وبيئة', nameEn: 'Nature & Eco' },
-    { id: 'ecommerce', nameAr: 'تجارة ومتاجر', nameEn: 'Ecommerce' },
-    { id: 'creative', nameAr: 'إبداع وفنون', nameEn: 'Creative & Art' },
-    { id: 'gaming', nameAr: 'ألعاب ورياضات', nameEn: 'Gaming & Esports' },
-    { id: 'badges', nameAr: 'شارات وأختام', nameEn: 'Badges & Seals' },
+    { id: 'all', nameAr: t('templatesModal.catAll'), nameEn: 'All Templates' },
+    { id: 'tech', nameAr: t('templatesModal.catTech'), nameEn: 'Tech & AI' },
+    { id: 'minimal', nameAr: t('templatesModal.catMinimal'), nameEn: 'Minimal & Monogram' },
+    { id: 'luxury', nameAr: t('templatesModal.catLuxury'), nameEn: 'Luxury & Royal' },
+    { id: 'arabesque', nameAr: t('templatesModal.catArabesque'), nameEn: 'Arabesque & Islamic' },
+    { id: 'eco', nameAr: t('templatesModal.catNature'), nameEn: 'Nature & Eco' },
+    { id: 'ecommerce', nameAr: t('templatesModal.catEcommerce'), nameEn: 'Ecommerce' },
+    { id: 'creative', nameAr: t('templatesModal.catCreative'), nameEn: 'Creative & Art' },
+    { id: 'gaming', nameAr: t('templatesModal.catGaming'), nameEn: 'Gaming & Esports' },
+    { id: 'badges', nameAr: t('templatesModal.catBadges'), nameEn: 'Badges & Seals' },
   ];
 
-  const filteredTemplates = TEMPLATES.filter((tpl) => {
+  const filteredTemplates = useMemo(() => TEMPLATES.filter((tpl) => {
     const matchesCat = selectedCategory === 'all' || tpl.category === selectedCategory;
     const matchesSearch =
       !searchQuery ||
@@ -47,11 +46,31 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
       tpl.nameEn.toLowerCase().includes(searchQuery.toLowerCase()) ||
       tpl.category.includes(searchQuery.toLowerCase());
     return matchesCat && matchesSearch;
-  });
+  }), [selectedCategory, searchQuery]);
+
+  // Each preview is a full SVG render; without this they were regenerated for
+  // every template on every keystroke in the search field.
+  const previews = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const template of filteredTemplates) {
+      const previewConfig: LogoConfig = {
+        ...currentConfig,
+        ...template.config,
+        id: template.id,
+      };
+      map[template.id] = generateSvgString(previewConfig, 300);
+    }
+    return map;
+  }, [filteredTemplates, currentConfig]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="flex flex-col w-full max-w-5xl max-h-[90vh] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      label={t('templatesModal.title')}
+      className="flex flex-col w-full max-w-5xl max-h-[90vh] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden"
+      overlayClassName="z-50 p-3 sm:p-6 bg-slate-900/60"
+    >
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 bg-slate-50/80">
           <div className="flex items-center gap-3">
@@ -60,10 +79,10 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                {t('templateModal.title')}
+                {t('templatesModal.title')}
               </h2>
               <p className="text-xs text-slate-500">
-                {t('templateModal.subtitle')}
+                {t('templatesModal.subtitle')}
               </p>
             </div>
           </div>
@@ -84,7 +103,7 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('templateModal.searchPlaceholder')}
+              placeholder={t('templatesModal.searchPlaceholder')}
               className="w-full bg-white border border-slate-200 rounded-xl pr-9 pl-3 py-2 text-xs font-medium text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none shadow-2xs"
             />
           </div>
@@ -111,12 +130,7 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar bg-slate-50/30">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredTemplates.map((template) => {
-              const previewConfig: LogoConfig = {
-                ...currentConfig,
-                ...template.config,
-                id: template.id,
-              };
-              const svgPreview = generateSvgString(previewConfig, 300);
+              const svgPreview = previews[template.id];
 
               return (
                 <div
@@ -150,7 +164,7 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
                       className="flex items-center gap-1 rounded-xl bg-indigo-50 border border-indigo-200 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all shadow-2xs cursor-pointer"
                     >
                       <Sparkles className="h-3 w-3" />
-                      <span>{t('templateModal.apply')}</span>
+                      <span>{t('templatesModal.useTemplate')}</span>
                     </button>
                   </div>
                 </div>
@@ -158,7 +172,6 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
             })}
           </div>
         </div>
-      </div>
-    </div>
+      </Modal>
   );
 };

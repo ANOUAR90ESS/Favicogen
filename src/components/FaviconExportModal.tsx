@@ -23,8 +23,9 @@ import {
   generateWebmanifestJson,
   generateFeatureGraphicSvg,
   rasterizeSvg,
-  downloadBlob,
 } from '../utils/canvasRenderer';
+import { downloadBlob, downloadSvg } from '../utils/download';
+import { Modal } from './Modal';
 
 interface FaviconExportModalProps {
   isOpen: boolean;
@@ -61,13 +62,11 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
     [brandName, config.bgColor1]
   );
 
-  if (!isOpen) return null;
-
   // Full Favicon ZIP generator with JSZip and live progress
   const handleDownloadZip = async () => {
     try {
       setIsZipping(true);
-      setZipProgress({ percent: 0, status: isAr ? 'بدء إعداد الحزمة...' : 'Initializing ZIP package...' });
+      setZipProgress({ percent: 0, status: t('faviconModal.initializingZipPackage') });
       const zipBlob = await generateFaviconZip(config, {
         includeWebp,
         includeJpeg,
@@ -99,8 +98,7 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
 
       if (format === 'svg') {
         const cleanName = fileName.replace(/\.png$/i, '.svg');
-        const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-        downloadBlob(blob, cleanName);
+        await downloadSvg(svgString, cleanName);
         return;
       }
 
@@ -146,8 +144,13 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="flex flex-col w-full max-w-4xl max-h-[90vh] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      label={t('faviconModal.title')}
+      className="flex flex-col w-full max-w-4xl max-h-[90vh] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden"
+      overlayClassName="z-50 p-3 sm:p-6 bg-slate-900/60"
+    >
         {/* Modal Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 bg-slate-50/80">
           <div className="flex items-center gap-3">
@@ -180,13 +183,13 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
               <div className="space-y-1.5 text-center sm:text-start">
                 <div className="inline-flex items-center gap-1.5 rounded-full bg-indigo-100 border border-indigo-200 px-2.5 py-0.5 text-xs font-bold text-indigo-800">
                   <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
-                  <span>{t('faviconModal.allInOne')}</span>
+                  <span>{t('faviconModal.bundleTitle')}</span>
                 </div>
                 <h3 className="text-lg font-bold text-slate-900">
-                  {t('faviconModal.exportZip')}
+                  {t('faviconModal.exportZipBtn')}
                 </h3>
                 <p className="text-xs text-slate-600 max-w-xl">
-                  {t('faviconModal.zipDescription')}
+                  {t('faviconModal.bundleDesc')}
                 </p>
               </div>
 
@@ -200,7 +203,7 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
                 <span>
                   {isZipping
                     ? `${t('faviconModal.packaging')} (${zipProgress.percent}%)...`
-                    : t('faviconModal.exportZip')}
+                    : t('faviconModal.exportZipBtn')}
                 </span>
               </button>
             </div>
@@ -234,7 +237,7 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
                   onChange={(e) => setIncludePlayFeature(e.target.checked)}
                   className="rounded border-slate-300 text-indigo-600 focus:ring-0 w-3.5 h-3.5"
                 />
-                <span>{t('faviconModal.playStoreBanner')}</span>
+                <span>{t('faviconModal.includePlayBanner')}</span>
               </label>
 
               <label className="flex items-center gap-2 text-slate-700 font-semibold cursor-pointer select-none">
@@ -336,7 +339,7 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
               {t('faviconModal.sizesList')}
             </span>
             <div className="flex items-center gap-1 bg-slate-100 border border-slate-200 rounded-lg p-1">
-              <span className="text-[11px] text-slate-500 px-1 font-medium">{t('faviconModal.formatLabel')}</span>
+              <span className="text-[11px] text-slate-500 px-1 font-medium">{t('faviconModal.sizesList')}</span>
               {(['png', 'svg', 'ico', 'webp', 'jpeg'] as const).map((fmt) => (
                 <button
                   key={fmt}
@@ -381,7 +384,7 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-500 line-clamp-1">{spec.description}</p>
+                    <p className="text-[11px] text-slate-500 line-clamp-1">{isAr ? spec.descriptionAr : spec.descriptionEn}</p>
                   </div>
                 </div>
 
@@ -412,7 +415,7 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
                   className="flex items-center gap-1 text-xs text-slate-600 font-semibold hover:text-slate-900 px-2.5 py-1 rounded-lg bg-white border border-slate-200 shadow-2xs cursor-pointer"
                 >
                   {copiedType === 'manifest' ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
-                  <span>{t('faviconModal.copyManifest')}</span>
+                  <span>{t('faviconModal.manifestJson')}</span>
                 </button>
 
                 <button
@@ -427,7 +430,7 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
                   ) : (
                     <>
                       <Copy className="h-3.5 w-3.5" />
-                      <span>{t('faviconModal.copyHtml')}</span>
+                      <span>{t('faviconModal.copyHtmlCode')}</span>
                     </>
                   )}
                 </button>
@@ -453,7 +456,6 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
             {t('common.close')}
           </button>
         </div>
-      </div>
-    </div>
+      </Modal>
   );
 };

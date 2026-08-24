@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   X,
@@ -17,6 +17,9 @@ import {
   exportProjectAsJson,
 } from '../utils/storage';
 import { generateSvgString } from '../utils/canvasRenderer';
+import { parseLogoConfig } from '../utils/configSchema';
+import { sanitizeSvgDocument } from '../utils/svgSanitizer';
+import { Modal } from './Modal';
 
 interface SavedProjectsModalProps {
   isOpen: boolean;
@@ -34,15 +37,28 @@ export const SavedProjectsModal: React.FC<SavedProjectsModalProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const isAr = i18n.language === 'ar';
-  const [projects, setProjects] = useState<SavedProjectItem[]>(() => getSavedProjects());
+  const [projects, setProjects] = useState<SavedProjectItem[]>([]);
+  const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!isOpen) return null;
+  // Projects live in IndexedDB, so the list is fetched when the modal opens
+  // rather than read synchronously during render.
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
 
-  const handleDelete = (id: string, e: React.MouseEvent) => {
+    void getSavedProjects().then((list) => {
+      if (!cancelled) setProjects(list);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
+
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const updated = deleteSavedProject(id);
-    setProjects(updated);
+    setProjects(await deleteSavedProject(id));
   };
 
   const handleExport = (config: LogoConfig, e: React.MouseEvent) => {
@@ -52,25 +68,35 @@ export const SavedProjectsModal: React.FC<SavedProjectsModalProps> = ({
 
   const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
+
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const parsed = JSON.parse(event.target?.result as string);
-        if (parsed && typeof parsed === 'object') {
-          onLoadProject(parsed);
-          onClose();
-        }
+        // Project files are made to be shared, so this is attacker input:
+        // coerce every field to its declared type and range before it can
+        // reach the renderer.
+        const config = parseLogoConfig(JSON.parse(event.target?.result as string));
+        onLoadProject(config);
+        onClose();
       } catch (err) {
         console.error('Invalid JSON project:', err);
+        setImportError(t('savedProjectsModal.importFailed'));
       }
     };
+    reader.onerror = () => setImportError(t('savedProjectsModal.importFailed'));
     reader.readAsText(file);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="flex flex-col w-full max-w-4xl max-h-[90vh] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      label={t('savedProjectsModal.title')}
+      className="flex flex-col w-full max-w-4xl max-h-[90vh] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden"
+      overlayClassName="z-50 p-3 sm:p-6 bg-slate-900/60"
+    >
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 bg-slate-50/80">
           <div className="flex items-center gap-3">
@@ -79,10 +105,10 @@ export const SavedProjectsModal: React.FC<SavedProjectsModalProps> = ({
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                {t('projectsModal.title')}
+                {t('savedProjectsModal.title')}
               </h2>
               <p className="text-xs text-slate-500">
-                {t('projectsModal.subtitle')}
+                {t('savedProjectsModal.subtitle')}
               </p>
             </div>
           </div>
@@ -95,12 +121,18 @@ export const SavedProjectsModal: React.FC<SavedProjectsModalProps> = ({
               accept=".json,application/json"
               className="hidden"
             />
+
+            {importError && (
+              <p role="alert" className="w-full text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-2.5 py-2">
+                {importError}
+              </p>
+            )}
             <button
               onClick={() => fileInputRef.current?.click()}
               className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-2xs transition-colors cursor-pointer"
             >
               <Upload className="h-3.5 w-3.5" />
-              <span>{t('projectsModal.importJson')}</span>
+              <span>{t('savedProjectsModal.importJson')}</span>
             </button>
 
             <button
@@ -111,7 +143,7 @@ export const SavedProjectsModal: React.FC<SavedProjectsModalProps> = ({
               className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition-colors cursor-pointer"
             >
               <Plus className="h-3.5 w-3.5" />
-              <span>{t('projectsModal.newProject')}</span>
+              <span>{t('savedProjectsModal.newDesignBtn')}</span>
             </button>
 
             <button
@@ -129,16 +161,20 @@ export const SavedProjectsModal: React.FC<SavedProjectsModalProps> = ({
             <div className="flex flex-col items-center justify-center text-center p-12 space-y-3">
               <FolderOpen className="h-12 w-12 text-slate-400" />
               <p className="text-sm font-bold text-slate-700">
-                {t('projectsModal.emptyTitle')}
+                {t('savedProjectsModal.emptyTitle')}
               </p>
               <p className="text-xs text-slate-500 max-w-sm font-medium">
-                {t('projectsModal.emptyDesc')}
+                {t('savedProjectsModal.emptyDesc')}
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {projects.map((item) => {
-                const svgThumbnail = generateSvgString(item.config, 200);
+                // The thumbnail was already rendered when the project was saved;
+                // regenerating it on every render wasted the stored copy.
+                const svgThumbnail =
+                  sanitizeSvgDocument(item.thumbnailSvg || '') ||
+                  generateSvgString(item.config, 200);
                 const dateStr = new Date(item.updatedAt).toLocaleDateString(
                   isAr ? 'ar-EG' : 'en-US',
                   {
@@ -167,7 +203,7 @@ export const SavedProjectsModal: React.FC<SavedProjectsModalProps> = ({
                     <div className="mt-3 flex items-center justify-between">
                       <div className="space-y-0.5 max-w-[65%]">
                         <h4 className="text-sm font-bold text-slate-800 truncate">
-                          {item.name || t('common.untitled')}
+                          {item.name || t('common.untitledProject')}
                         </h4>
                         <div className="flex items-center gap-1 text-[11px] text-slate-400 font-medium">
                           <Clock className="h-3 w-3" />
@@ -185,7 +221,7 @@ export const SavedProjectsModal: React.FC<SavedProjectsModalProps> = ({
                           <FileJson className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={(e) => handleDelete(item.id, e)}
+                          onClick={(e) => void handleDelete(item.id, e)}
                           className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                           title="Delete Project"
                         >
@@ -199,7 +235,6 @@ export const SavedProjectsModal: React.FC<SavedProjectsModalProps> = ({
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </Modal>
   );
 };

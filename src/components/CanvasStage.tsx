@@ -13,7 +13,8 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { LogoConfig, SupportedLanguage } from '../types';
-import { generateSvgString, renderSvgToBlob, downloadBlob } from '../utils/canvasRenderer';
+import { generateSvgString, renderSvgToBlob } from '../utils/canvasRenderer';
+import { downloadBlob, downloadSvg } from '../utils/download';
 
 interface CanvasStageProps {
   config: LogoConfig;
@@ -68,9 +69,11 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
     }
   };
 
-  const handleQuickDownloadSvg = () => {
-    const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-    downloadBlob(blob, `${(config.text || config.name || 'logo').replace(/\s+/g, '_')}.svg`);
+  const handleQuickDownloadSvg = async () => {
+    await downloadSvg(
+      svgString,
+      `${(config.text || config.name || 'logo').replace(/\s+/g, '_')}.svg`
+    );
   };
 
   return (
@@ -83,7 +86,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             id="btn-zoom-out"
             onClick={() => setZoom((prev) => Math.max(prev - 25, 25))}
             className="p-1 text-slate-600 hover:text-slate-900 hover:bg-white rounded transition-colors cursor-pointer"
-            title={t('canvasStage.zoomOut')}
+            title={t('stage.zoomOut')}
           >
             <ZoomOut className="h-3.5 w-3.5" />
           </button>
@@ -94,7 +97,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             id="btn-zoom-in"
             onClick={() => setZoom((prev) => Math.min(prev + 25, 300))}
             className="p-1 text-slate-600 hover:text-slate-900 hover:bg-white rounded transition-colors cursor-pointer"
-            title={t('canvasStage.zoomIn')}
+            title={t('stage.zoomIn')}
           >
             <ZoomIn className="h-3.5 w-3.5" />
           </button>
@@ -103,7 +106,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             id="btn-zoom-reset"
             onClick={() => setZoom(100)}
             className="p-1 text-slate-600 hover:text-slate-900 hover:bg-white rounded transition-colors text-[11px] px-1.5 cursor-pointer"
-            title={t('canvasStage.zoomReset')}
+            title={t('stage.resetZoom')}
           >
             <Maximize2 className="h-3.5 w-3.5" />
           </button>
@@ -133,7 +136,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
               className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30 ${
                 config.bgType === 'transparent' ? 'bg-emerald-600' : 'bg-slate-300'
               }`}
-              title={t('canvasStage.transparentBg')}
+              title={t('stage.transparentBg')}
             >
               <span
                 className={`pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ease-in-out ${
@@ -168,7 +171,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                     : 'border-slate-400 bg-slate-800'
                 }`}
               />
-              <span>{t('canvasStage.transparentBg')}</span>
+              <span>{t('stage.labelTransparent')}</span>
             </span>
           </div>
 
@@ -181,9 +184,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                   ? 'bg-white text-indigo-700 shadow-2xs font-bold'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
-              title={t('canvasStage.checkerBg')}
+              title={t('stage.transparencyToggle')}
             >
-              <span>{t('canvasStage.checkerBg')}</span>
+              <span>{t('stage.labelChecker')}</span>
             </button>
             <button
               onClick={() => setStageBg('slate')}
@@ -192,9 +195,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                   ? 'bg-white text-slate-900 shadow-2xs font-bold'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
-              title={t('canvasStage.slateBg')}
+              title={t('stage.slateBg')}
             >
-              {t('canvasStage.slateBg')}
+              {t('stage.labelSlate')}
             </button>
             <button
               onClick={() => setStageBg('white')}
@@ -203,9 +206,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                   ? 'bg-white text-slate-900 shadow-2xs font-bold'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
-              title={t('canvasStage.whiteBg')}
+              title={t('stage.whiteBg')}
             >
-              {t('canvasStage.whiteBg')}
+              {t('stage.labelWhite')}
             </button>
             <button
               onClick={() => setStageBg('dark')}
@@ -214,9 +217,9 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                   ? 'bg-white text-slate-900 shadow-2xs font-bold'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
-              title={t('canvasStage.darkBg')}
+              title={t('stage.darkToggle')}
             >
-              {t('canvasStage.darkBg')}
+              {t('stage.labelDark')}
             </button>
           </div>
 
@@ -228,10 +231,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                 ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'
             }`}
-            title={t('canvasStage.gridGuide')}
+            title={t('stage.gridToggle')}
           >
             <Grid className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{t('canvasStage.gridGuide')}</span>
+            <span className="hidden sm:inline">{t('stage.labelGrid')}</span>
           </button>
 
           <button
@@ -241,10 +244,10 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
                 ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900'
             }`}
-            title={t('canvasStage.centerGuide')}
+            title={t('stage.safeZoneToggle')}
           >
             <Crosshair className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">{t('canvasStage.centerGuide')}</span>
+            <span className="hidden sm:inline">{t('stage.labelSafeZone')}</span>
           </button>
         </div>
       </div>
@@ -366,17 +369,17 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             id="btn-copy-svg"
             onClick={handleCopySvg}
             className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50 shadow-2xs transition-colors cursor-pointer"
-            title={t('canvasStage.copySvg')}
+            title={t('stage.copySvgBtn')}
           >
             {copiedType === 'svg' ? (
               <>
                 <Check className="h-3.5 w-3.5 text-emerald-600" />
-                <span className="text-emerald-600 font-bold">{t('canvasStage.copied')}</span>
+                <span className="text-emerald-600 font-bold">{t('common.copied')}</span>
               </>
             ) : (
               <>
                 <Code2 className="h-3.5 w-3.5 text-slate-600" />
-                <span>{t('canvasStage.copySvg')}</span>
+                <span>{t('stage.copySvgBtn')}</span>
               </>
             )}
           </button>
@@ -388,7 +391,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50 shadow-2xs transition-colors cursor-pointer"
           >
             <Download className="h-3.5 w-3.5 text-indigo-600" />
-            <span>{t('canvasStage.quickSvg')}</span>
+            <span>{t('stage.downloadSvgBtn')}</span>
           </button>
 
           {/* Quick PNG Download */}
@@ -399,7 +402,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50 shadow-2xs transition-colors disabled:opacity-50 cursor-pointer"
           >
             <ImageIcon className="h-3.5 w-3.5 text-emerald-600" />
-            <span>{t('canvasStage.quickPng')}</span>
+            <span>{t('stage.downloadPngBtn')}</span>
           </button>
 
           {/* Open Full Favicon Suite */}
@@ -409,7 +412,7 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
             className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-indigo-700 shadow-sm transition-all cursor-pointer"
           >
             <Sparkles className="h-3.5 w-3.5 text-indigo-200" />
-            <span>{t('canvasStage.faviconSuite')}</span>
+            <span>{t('nav.exportFavicon')}</span>
           </button>
         </div>
       </div>

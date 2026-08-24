@@ -1,10 +1,10 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   X,
   Upload,
   Download,
   Image as ImageIcon,
-  Layers,
   Sparkles,
   Sliders,
   Maximize2,
@@ -16,15 +16,8 @@ import {
   Check,
   Search,
   Package,
-  FileCode,
   Palette,
-  Eye,
   Crop,
-  CheckCircle2,
-  Smartphone,
-  Globe,
-  Monitor,
-  Printer,
   Copy,
   FolderDown,
   RefreshCw,
@@ -38,13 +31,15 @@ import {
   ResizeCategory,
 } from '../types';
 import { RESIZE_PRESETS } from '../utils/resizePresets';
+import { intakeImageFile, isIntakeFailure, ACCEPT_ATTRIBUTE } from '../utils/imageIntake';
 import {
-  loadImageElement,
   renderResizedImageToBlob,
   generateMultiSizeZip,
-  convertUnitsToPixels,
-} from '../utils/imageResizer';
-import { generateSvgString, downloadBlob } from '../utils/canvasRenderer';
+  } from '../utils/imageResizer';
+import { generateSvgString } from '../utils/canvasRenderer';
+import { downloadBlob } from '../utils/download';
+import { embedFontsInSvg } from '../utils/fontEmbedder';
+import { Modal } from './Modal';
 
 interface UniversalImageResizerModalProps {
   isOpen: boolean;
@@ -59,6 +54,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
   language,
   currentLogoConfig,
 }) => {
+  const { t } = useTranslation();
   const isAr = language === 'ar';
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -147,8 +143,10 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
   };
 
   // Renders the studio logo into a fresh source image for the resizer.
-  const loadStudioLogoAsSource = () => {
-    const svg = generateSvgString(currentLogoConfig, 512);
+  const loadStudioLogoAsSource = async () => {
+    // Fonts must travel with the markup: this SVG becomes a raster source, and
+    // an <img> cannot reach the page's web fonts.
+    const svg = await embedFontsInSvg(generateSvgString(currentLogoConfig, 512));
     const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
     applySourceImage(URL.createObjectURL(blob), true);
     setSourceDimensions({ width: 512, height: 512 });
@@ -157,7 +155,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
   // Initialize with current logo SVG from studio canvas if no image uploaded yet
   useEffect(() => {
     if (isOpen && !sourceImageSrc) {
-      loadStudioLogoAsSource();
+      void loadStudioLogoAsSource();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, currentLogoConfig, sourceImageSrc]);
@@ -173,25 +171,19 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
   }, []);
 
   // Load Image and update original source dimensions
-  const handleImageFile = (file: File) => {
-    if (!file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      const img = new Image();
-      img.onload = () => {
-        applySourceImage(result, false);
-        setSourceDimensions({ width: img.naturalWidth || 512, height: img.naturalHeight || 512 });
-        // Set initial resize options to match source image
-        setOptions((prev) => ({
-          ...prev,
-          width: img.naturalWidth || 512,
-          height: img.naturalHeight || 512,
-        }));
-      };
-      img.src = result;
-    };
-    reader.readAsDataURL(file);
+  const handleImageFile = async (file: File) => {
+    // The resizer is the one place a large source is legitimate, so it keeps
+    // more resolution than the logo canvas does.
+    const intake = await intakeImageFile(file, { maxDimension: 4096 });
+    if (isIntakeFailure(intake)) return;
+
+    applySourceImage(intake.dataUrl, false);
+    setSourceDimensions({ width: intake.width || 512, height: intake.height || 512 });
+    setOptions((prev) => ({
+      ...prev,
+      width: intake.width || 512,
+      height: intake.height || 512,
+    }));
   };
 
   // Re-render live preview whenever options or source image change
@@ -372,11 +364,14 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
     });
   }, [selectedCategory, searchQuery]);
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-900/75 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="flex flex-col w-full max-w-7xl max-h-[95vh] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      label={t('universalResizerModal.universalImageResizer')}
+      className="flex flex-col w-full max-w-7xl max-h-[95vh] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden"
+      overlayClassName="z-50 p-2 sm:p-4 md:p-6 bg-slate-900/75"
+    >
         {/* Modal Top Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 bg-slate-50/90">
           <div className="flex items-center gap-3">
@@ -386,19 +381,15 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-black text-slate-900">
-                  {isAr
-                    ? 'تحويل وتغيير مقاسات الصور لجميع المقاسات والأحجام'
-                    : 'Universal Image Resizer & Multi-Size Converter'}
+                  {t('universalResizerModal.universalImageResizerMulti')}
                 </h2>
                 <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2.5 py-0.5 text-[10px] font-bold text-indigo-800 border border-indigo-200">
                   <Sparkles className="h-3 w-3" />
-                  {isAr ? 'أي مقاس وأي أبعاد' : 'Any Dimension & Tamaño'}
+                  {t('universalResizerModal.anyDimensionTamaño')}
                 </span>
               </div>
               <p className="text-xs text-slate-500 line-clamp-1">
-                {isAr
-                  ? 'غيّر حجم أي صورة بدقة فائقة إلى أي مقاس مخصص، أو اختر من مكتبة المقاسات الرسمية لـ Google Play، App Store، الويب، والسوشيال ميديا.'
-                  : 'Resize any image to custom WxH dimensions or export standard sizes for Google Play, App Store, Favicons & Social Media.'}
+                {t('universalResizerModal.resizeAnyImageCustom')}
               </p>
             </div>
           </div>
@@ -408,7 +399,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
             <input
               type="file"
               ref={fileInputRef}
-              accept="image/*"
+              accept={ACCEPT_ATTRIBUTE}
               className="hidden"
               onChange={(e) => {
                 if (e.target.files?.[0]) handleImageFile(e.target.files[0]);
@@ -419,7 +410,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 shadow-2xs transition-colors"
             >
               <Upload className="h-3.5 w-3.5 text-indigo-600" />
-              <span>{isAr ? 'رفع صورة جديدة' : 'Upload Image'}</span>
+              <span>{t('universalResizerModal.uploadImage')}</span>
             </button>
 
             <button
@@ -443,7 +434,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
               }`}
             >
               <Sliders className="h-4 w-4" />
-              <span>{isAr ? 'مقاس مخصص وتحكم كامل' : 'Custom Dimensions (WxH)'}</span>
+              <span>{t('universalResizerModal.customDimensionsWxh')}</span>
             </button>
 
             <button
@@ -455,7 +446,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
               }`}
             >
               <Package className="h-4 w-4" />
-              <span>{isAr ? 'مكتبة المقاسات الجاهزة' : 'Standard Presets Library'}</span>
+              <span>{t('universalResizerModal.standardPresetsLibrary')}</span>
               <span className="rounded-full bg-slate-100 px-1.5 py-0.2 text-[10px] text-slate-600 font-bold">
                 {RESIZE_PRESETS.length}
               </span>
@@ -470,7 +461,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
               }`}
             >
               <FolderDown className="h-4 w-4" />
-              <span>{isAr ? 'حزمة التصدير الدفعي (.ZIP)' : 'Batch Export Suite (.ZIP)'}</span>
+              <span>{t('universalResizerModal.batchExportSuiteZip')}</span>
               <span className="rounded-full bg-indigo-100 text-indigo-800 px-1.5 py-0.2 text-[10px] font-bold">
                 {selectedPresetIds.length}
               </span>
@@ -479,7 +470,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
 
           {/* Quick Source Pill */}
           <div className="hidden md:flex items-center gap-2 text-xs text-slate-500">
-            <span>{isAr ? 'المصدر الحالي:' : 'Source:'}</span>
+            <span>{t('universalResizerModal.source')}</span>
             <span className="font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md text-[11px]">
               {sourceDimensions.width} × {sourceDimensions.height} px
             </span>
@@ -548,7 +539,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
               ) : (
                 <div className="flex flex-col items-center justify-center gap-2 text-slate-500">
                   <ImageIcon className="h-10 w-10 text-slate-600 animate-pulse" />
-                  <span className="text-xs">{isAr ? 'جارِ معالجة الصورة...' : 'Processing image...'}</span>
+                  <span className="text-xs">{t('universalResizerModal.processingImage')}</span>
                 </div>
               )}
             </div>
@@ -563,24 +554,24 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                   {copiedNotification ? (
                     <>
                       <Check className="h-3.5 w-3.5 text-emerald-400" />
-                      <span className="text-emerald-400 font-bold">{isAr ? 'تم النسخ!' : 'Copied!'}</span>
+                      <span className="text-emerald-400 font-bold">{t('universalResizerModal.copied')}</span>
                     </>
                   ) : (
                     <>
                       <Copy className="h-3.5 w-3.5 text-slate-400" />
-                      <span>{isAr ? 'نسخ للحافظة' : 'Copy'}</span>
+                      <span>{t('universalResizerModal.copy')}</span>
                     </>
                   )}
                 </button>
 
                 {/* Reset to current studio logo button */}
                 <button
-                  onClick={loadStudioLogoAsSource}
+                  onClick={() => void loadStudioLogoAsSource()}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-semibold transition-colors"
-                  title={isAr ? 'استرجاع الشعار الحالي من مساحة العمل' : 'Reset to current studio canvas logo'}
+                  title={t('universalResizerModal.resetCurrentStudioCanvas')}
                 >
                   <RefreshCw className="h-3.5 w-3.5 text-indigo-400" />
-                  <span>{isAr ? 'شعار الاستوديو' : 'Studio Logo'}</span>
+                  <span>{t('universalResizerModal.studioLogo')}</span>
                 </button>
               </div>
 
@@ -622,7 +613,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                       <Maximize2 className="h-4 w-4 text-indigo-600" />
-                      {isAr ? 'الأبعاد والمقاس المخصص' : 'Custom Dimensions'}
+                      {t('universalResizerModal.customDimensions')}
                     </label>
 
                     {/* Lock Aspect Ratio Toggle */}
@@ -637,12 +628,12 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                       {options.maintainAspectRatio ? (
                         <>
                           <Lock className="h-3 w-3 text-indigo-600" />
-                          <span>{isAr ? 'النسبة مقفلة' : 'Ratio Locked'}</span>
+                          <span>{t('universalResizerModal.ratioLocked')}</span>
                         </>
                       ) : (
                         <>
                           <Unlock className="h-3 w-3 text-slate-400" />
-                          <span>{isAr ? 'نسبة حرة' : 'Free Ratio'}</span>
+                          <span>{t('universalResizerModal.freeRatio')}</span>
                         </>
                       )}
                     </button>
@@ -652,7 +643,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                     {/* Width Input */}
                     <div className="rounded-xl border border-slate-200 bg-white p-2.5 shadow-2xs">
                       <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">
-                        {isAr ? 'العرض (Width)' : 'Width'}
+                        {t('universalResizerModal.width')}
                       </span>
                       <div className="flex items-center gap-1.5">
                         <input
@@ -670,7 +661,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                     {/* Height Input */}
                     <div className="rounded-xl border border-slate-200 bg-white p-2.5 shadow-2xs">
                       <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">
-                        {isAr ? 'الارتفاع (Height)' : 'Height'}
+                        {t('universalResizerModal.height')}
                       </span>
                       <div className="flex items-center gap-1.5">
                         <input
@@ -690,17 +681,17 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                 {/* Aspect Ratio Presets Pills */}
                 <div>
                   <span className="text-[11px] font-bold text-slate-500 block mb-1.5">
-                    {isAr ? 'نسب الأبعاد القياسية (Aspect Ratio)' : 'Quick Aspect Ratios'}
+                    {t('universalResizerModal.quickAspectRatios')}
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {[
-                      { label: '1:1 (مربع)', rw: 1, rh: 1 },
-                      { label: '16:9 (عريض)', rw: 16, rh: 9 },
-                      { label: '9:16 (ستوري)', rw: 9, rh: 16 },
+                      { label: t('universalResizerModal.ratioSquare'), rw: 1, rh: 1 },
+                      { label: t('universalResizerModal.ratioWide'), rw: 16, rh: 9 },
+                      { label: t('universalResizerModal.ratioStory'), rw: 9, rh: 16 },
                       { label: '1024:500 (Play)', rw: 1024, rh: 500 },
                       { label: '4:3', rw: 4, rh: 3 },
-                      { label: '4:5 (إنستغرام)', rw: 4, rh: 5 },
-                      { label: '1.91:1 (مشاركة)', rw: 191, rh: 100 },
+                      { label: t('universalResizerModal.ratioInstagram'), rw: 4, rh: 5 },
+                      { label: t('universalResizerModal.ratioShare'), rw: 191, rh: 100 },
                     ].map((r, idx) => (
                       <button
                         key={idx}
@@ -717,14 +708,14 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                 <div>
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5 mb-2">
                     <Crop className="h-4 w-4 text-indigo-600" />
-                    {isAr ? 'طريقة ملء وملاءمة الصورة (Fit Mode)' : 'Scaling & Fit Mode'}
+                    {t('universalResizerModal.scalingFitMode')}
                   </label>
                   <div className="grid grid-cols-4 gap-1.5">
                     {[
-                      { id: 'contain', nameAr: 'احتواء', nameEn: 'Contain' },
-                      { id: 'cover', nameAr: 'قص وملء', nameEn: 'Cover' },
-                      { id: 'stretch', nameAr: 'تمديد', nameEn: 'Stretch' },
-                      { id: 'pad', nameAr: 'حشو', nameEn: 'Padding' },
+                      { id: 'contain', nameAr: t('universalResizerModal.fitContain'), nameEn: 'Contain' },
+                      { id: 'cover', nameAr: t('universalResizerModal.fitCover'), nameEn: 'Cover' },
+                      { id: 'stretch', nameAr: t('universalResizerModal.fitStretch'), nameEn: 'Stretch' },
+                      { id: 'pad', nameAr: t('universalResizerModal.fitPad'), nameEn: 'Padding' },
                     ].map((fit) => (
                       <button
                         key={fit.id}
@@ -745,14 +736,14 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                 <div>
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5 mb-2">
                     <Palette className="h-4 w-4 text-indigo-600" />
-                    {isAr ? 'خلفية الإطار عند الاحتواء' : 'Background Canvas Style'}
+                    {t('universalResizerModal.backgroundCanvasStyle')}
                   </label>
                   <div className="grid grid-cols-4 gap-1.5 mb-2">
                     {[
-                      { id: 'transparent', nameAr: 'شفاف', nameEn: 'Transparent' },
-                      { id: 'solid', nameAr: 'لون مصمت', nameEn: 'Solid' },
-                      { id: 'blur-fill', nameAr: 'ضبابي مموه', nameEn: 'Blur Fill' },
-                      { id: 'gradient', nameAr: 'تدرج لوني', nameEn: 'Gradient' },
+                      { id: 'transparent', nameAr: t('universalResizerModal.bgTransparent'), nameEn: 'Transparent' },
+                      { id: 'solid', nameAr: t('universalResizerModal.bgSolid'), nameEn: 'Solid' },
+                      { id: 'blur-fill', nameAr: t('universalResizerModal.bgBlur'), nameEn: 'Blur Fill' },
+                      { id: 'gradient', nameAr: t('universalResizerModal.bgGradient'), nameEn: 'Gradient' },
                     ].map((bg) => (
                       <button
                         key={bg.id}
@@ -809,14 +800,14 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                 {/* 4. Shape Mask & Corners */}
                 <div>
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block mb-2">
-                    {isAr ? 'قص وشكل الحواف (Shape Mask)' : 'Corner Mask & Shape'}
+                    {t('universalResizerModal.cornerMaskShape')}
                   </label>
                   <div className="grid grid-cols-4 gap-1.5">
                     {[
-                      { id: 'none', nameAr: 'مستطيل / مربع', nameEn: 'None' },
-                      { id: 'rounded', nameAr: 'حواف مستديرة', nameEn: 'Rounded' },
-                      { id: 'squircle', nameAr: 'سكويركل آبل', nameEn: 'Squircle' },
-                      { id: 'circle', nameAr: 'دائري', nameEn: 'Circle' },
+                      { id: 'none', nameAr: t('universalResizerModal.shapeRect'), nameEn: 'None' },
+                      { id: 'rounded', nameAr: t('universalResizerModal.shapeRounded'), nameEn: 'Rounded' },
+                      { id: 'squircle', nameAr: t('universalResizerModal.shapeSquircle'), nameEn: 'Squircle' },
+                      { id: 'circle', nameAr: t('universalResizerModal.shapeCircle'), nameEn: 'Circle' },
                     ].map((shape) => (
                       <button
                         key={shape.id}
@@ -837,7 +828,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                 <div className="pt-2 border-t border-slate-200">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-bold text-slate-700">
-                      {isAr ? 'التدوير والانعكاس' : 'Transform & Orientation'}
+                      {t('universalResizerModal.transformOrientation')}
                     </span>
                     <div className="flex items-center gap-1.5">
                       <button
@@ -845,7 +836,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                           setOptions((p) => ({ ...p, rotation: ((p.rotation + 90) % 360) as any }))
                         }
                         className="flex items-center gap-1 p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-xs font-bold text-slate-700"
-                        title={isAr ? 'تدوير 90 درجة' : 'Rotate 90°'}
+                        title={t('universalResizerModal.rotate90')}
                       >
                         <RotateCw className="h-3.5 w-3.5 text-indigo-600" />
                         <span>{options.rotation}°</span>
@@ -860,7 +851,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                             ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
                             : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
                         }`}
-                        title={isAr ? 'انعكاس أفقي' : 'Flip Horizontal'}
+                        title={t('universalResizerModal.flipHorizontal')}
                       >
                         <FlipHorizontal className="h-3.5 w-3.5" />
                       </button>
@@ -874,7 +865,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                             ? 'bg-indigo-50 border-indigo-300 text-indigo-700'
                             : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
                         }`}
-                        title={isAr ? 'انعكاس رأسي' : 'Flip Vertical'}
+                        title={t('universalResizerModal.flipVertical')}
                       >
                         <FlipVertical className="h-3.5 w-3.5" />
                       </button>
@@ -886,7 +877,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                 <div className="pt-2 border-t border-slate-200 space-y-2">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                      {isAr ? 'صيغة التصدير وجودة الضغط' : 'Output Format & Quality'}
+                      {t('universalResizerModal.outputFormatQuality')}
                     </label>
                     <span className="text-xs font-mono font-bold text-indigo-600">
                       {Math.round(options.quality * 100)}%
@@ -934,7 +925,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={isAr ? 'بحث في المقاسات والمنصات...' : 'Search sizes (512, 1024, Instagram, etc)...'}
+                    placeholder={t('universalResizerModal.searchSizes5121024')}
                     className="w-full rounded-xl border border-slate-200 bg-white pr-9 pl-3 py-2 text-xs font-semibold text-slate-800 focus:border-indigo-500 focus:outline-none shadow-2xs"
                   />
                 </div>
@@ -942,7 +933,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                 {/* Category Filter Pills */}
                 <div className="flex flex-wrap gap-1">
                   {[
-                    { id: 'all', nameAr: 'الكل', nameEn: 'All' },
+                    { id: 'all', nameAr: t('universalResizerModal.categoryAll'), nameEn: 'All' },
                     { id: 'google-play', nameAr: 'Google Play', nameEn: 'Google Play' },
                     { id: 'app-store', nameAr: 'App Store', nameEn: 'App Store' },
                     { id: 'web-favicon', nameAr: 'Web & Favicons', nameEn: 'Web & Favicons' },
@@ -998,7 +989,7 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                         onClick={() => applyPreset(preset)}
                         className="px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-600 text-indigo-700 hover:text-white border border-indigo-200 text-xs font-bold transition-colors shrink-0"
                       >
-                        {isAr ? 'تطبيق' : 'Apply'}
+                        {t('universalResizerModal.apply')}
                       </button>
                     </div>
                   ))}
@@ -1013,16 +1004,14 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                   <div className="flex items-center justify-between mb-1">
                     <h4 className="text-xs font-black text-indigo-950 flex items-center gap-1.5">
                       <FolderDown className="h-4 w-4 text-indigo-600" />
-                      {isAr ? 'تصدير حزمة المقاسات دفعة واحدة' : 'Multi-Size Batch Exporter'}
+                      {t('universalResizerModal.multiSizeBatchExporter')}
                     </h4>
                     <span className="text-xs font-bold text-indigo-700 bg-white px-2 py-0.5 rounded-md border border-indigo-200">
-                      {selectedPresetIds.length} / {RESIZE_PRESETS.length} {isAr ? 'محدد' : 'Selected'}
+                      {selectedPresetIds.length} / {RESIZE_PRESETS.length} {t('universalResizerModal.selected')}
                     </span>
                   </div>
                   <p className="text-[11px] text-indigo-800">
-                    {isAr
-                      ? 'حدد المقاسات المطلوبة وسيقوم المحول بإنشاء ملف ZIP منظم بمجلدات لكل منصة بدقة فائقة.'
-                      : 'Select sizes to generate a structured ZIP folder containing all platform assets.'}
+                    {t('universalResizerModal.selectSizesGenerateStructured')}
                   </p>
 
                   <div className="flex items-center gap-2 mt-3">
@@ -1030,14 +1019,14 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                       onClick={() => setSelectedPresetIds(RESIZE_PRESETS.map((p) => p.id))}
                       className="text-[11px] font-bold text-indigo-700 hover:underline"
                     >
-                      {isAr ? 'تحديد الكل (Select All)' : 'Select All'}
+                      {t('universalResizerModal.selectAll')}
                     </button>
                     <span className="text-indigo-300">•</span>
                     <button
                       onClick={() => setSelectedPresetIds([])}
                       className="text-[11px] font-bold text-slate-500 hover:underline"
                     >
-                      {isAr ? 'إلغاء التحديد' : 'Deselect All'}
+                      {t('universalResizerModal.deselectAll')}
                     </button>
                   </div>
                 </div>
@@ -1096,11 +1085,9 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
                   <Download className="h-4 w-4" />
                   <span>
                     {isExportingBatch
-                      ? isAr
-                        ? 'جارِ إنشاء وتجميع ملف ZIP...'
-                        : 'Generating ZIP Archive...'
+                      ? t('universalResizerModal.generatingZipArchive')
                       : isAr
-                      ? `تحميل حزمة المقاسات المحددة (${selectedPresetIds.length} ملفات .ZIP)`
+                      ? t('universalResizerModal.downloadSelected', { count: selectedPresetIds.length })
                       : `Download Selected Sizes (${selectedPresetIds.length} Assets .ZIP)`}
                   </span>
                 </button>
@@ -1108,7 +1095,6 @@ export const UniversalImageResizerModal: React.FC<UniversalImageResizerModalProp
             )}
           </div>
         </div>
-      </div>
-    </div>
+      </Modal>
   );
 };

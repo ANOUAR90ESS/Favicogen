@@ -1,30 +1,26 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useMemo } from 'react';
 import {
   Sparkles,
   Check,
-  Copy,
-  RefreshCw,
   Palette,
-  ArrowRight,
-  Sliders,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
-import { LogoConfig, SupportedLanguage } from '../types';
+import { LogoConfig } from '../types';
 import { generateHarmonies, ColorHarmony, getContrastRatio } from '../utils/paletteGenerator';
 
 interface SmartPaletteGeneratorProps {
   config: LogoConfig;
   onChange: (patch: Partial<LogoConfig>) => void;
-  language: SupportedLanguage;
 }
 
 export const SmartPaletteGenerator: React.FC<SmartPaletteGeneratorProps> = ({
   config,
   onChange,
-  language,
 }) => {
-  const isAr = language === 'ar';
+  const { t, i18n } = useTranslation();
+  const isAr = i18n.language === 'ar';
   const [baseColorSource, setBaseColorSource] = useState<'primary-bg' | 'icon' | 'text' | 'custom'>('primary-bg');
   const [customBaseColor, setCustomBaseColor] = useState<string>('#4338ca');
   const [copiedHex, setCopiedHex] = useState<string | null>(null);
@@ -86,15 +82,13 @@ export const SmartPaletteGenerator: React.FC<SmartPaletteGeneratorProps> = ({
           </div>
           <div>
             <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
-              <span>{isAr ? 'مولد لوحات الألوان الذكي' : 'Smart Color Palette Generator'}</span>
+              <span>{t('smartPalette.smartColorPaletteGenerator')}</span>
               <span className="rounded bg-indigo-100 text-indigo-800 text-[9px] font-black px-1.5 py-0.2">
                 AI HARMONY
               </span>
             </h4>
             <p className="text-[10px] text-slate-500">
-              {isAr
-                ? 'يقترح لوحات وتدرجات متكاملة ومكملة بناءً على لون الشعار'
-                : 'Suggests complementary color palettes based on active brand hue'}
+              {t('smartPalette.suggestsComplementaryColorPalettes')}
             </p>
           </div>
         </div>
@@ -113,7 +107,7 @@ export const SmartPaletteGenerator: React.FC<SmartPaletteGeneratorProps> = ({
           {/* Base Color Source Switcher */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-[11px] text-slate-600 font-semibold">
-              <span>{isAr ? 'اللون الأساسي المعتمد:' : 'Base Color Anchor:'}</span>
+              <span>{t('smartPalette.baseColorAnchor')}</span>
               <div className="flex items-center gap-1.5">
                 <div
                   className="w-3.5 h-3.5 rounded-full border border-slate-300 shadow-2xs"
@@ -133,7 +127,7 @@ export const SmartPaletteGenerator: React.FC<SmartPaletteGeneratorProps> = ({
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                {isAr ? 'الخلفية' : 'Background'}
+                {t('smartPalette.background')}
               </button>
               <button
                 type="button"
@@ -144,7 +138,7 @@ export const SmartPaletteGenerator: React.FC<SmartPaletteGeneratorProps> = ({
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                {isAr ? 'الأيقونة' : 'Icon'}
+                {t('smartPalette.icon')}
               </button>
               <button
                 type="button"
@@ -155,7 +149,7 @@ export const SmartPaletteGenerator: React.FC<SmartPaletteGeneratorProps> = ({
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                {isAr ? 'النص' : 'Text'}
+                {t('smartPalette.text')}
               </button>
               <label
                 className={`py-1 px-1 rounded-md font-bold transition-all truncate text-center cursor-pointer flex items-center justify-center gap-1 ${
@@ -164,7 +158,7 @@ export const SmartPaletteGenerator: React.FC<SmartPaletteGeneratorProps> = ({
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <span>{isAr ? 'مخصص' : 'Custom'}</span>
+                <span>{t('smartPalette.custom')}</span>
                 <input
                   type="color"
                   value={customBaseColor}
@@ -219,12 +213,12 @@ export const SmartPaletteGenerator: React.FC<SmartPaletteGeneratorProps> = ({
                       {isApplied ? (
                         <>
                           <Check className="h-3 w-3" />
-                          <span>{isAr ? 'تم التطبيق!' : 'Applied'}</span>
+                          <span>{t('smartPalette.applied')}</span>
                         </>
                       ) : (
                         <>
                           <Palette className="h-3 w-3" />
-                          <span>{isAr ? 'تطبيق' : 'Apply'}</span>
+                          <span>{t('smartPalette.apply')}</span>
                         </>
                       )}
                     </button>

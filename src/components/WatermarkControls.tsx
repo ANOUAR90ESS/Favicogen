@@ -13,6 +13,7 @@ import {
   WatermarkPosition,
 } from '../types';
 import { AdvancedColorPicker } from './AdvancedColorPicker';
+import { intakeImageFile, isIntakeFailure, ACCEPT_ATTRIBUTE } from '../utils/imageIntake';
 
 interface WatermarkControlsProps {
   config: LogoConfig;
@@ -22,7 +23,7 @@ interface WatermarkControlsProps {
 
 const WATERMARK_PRESET_TEXTS = [
   'CONFIDENTIAL',
-  'SAMPLE / عينة',
+  'SAMPLE',
   '© COPYRIGHT',
   'DRAFT',
   'PROTOTYPE',
@@ -32,10 +33,8 @@ const WATERMARK_PRESET_TEXTS = [
 export const WatermarkControls: React.FC<WatermarkControlsProps> = ({
   config,
   onChange,
-  language,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isAr = i18n.language === 'ar';
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const watermark: WatermarkConfig = config.watermark || {
@@ -60,21 +59,20 @@ export const WatermarkControls: React.FC<WatermarkControlsProps> = ({
     });
   };
 
-  const handleWatermarkImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleWatermarkImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result) {
-        updateWatermark({
-          type: 'custom-image',
-          customImageSrc: result,
-          enabled: true,
-        });
-      }
-    };
-    reader.readAsDataURL(file);
+
+    // A watermark is drawn small, so it never needs more than 512px.
+    const intake = await intakeImageFile(file, { maxDimension: 512 });
+    if (isIntakeFailure(intake)) return;
+
+    updateWatermark({
+      type: 'custom-image',
+      customImageSrc: intake.dataUrl,
+      enabled: true,
+    });
   };
 
   return (
@@ -166,8 +164,8 @@ export const WatermarkControls: React.FC<WatermarkControlsProps> = ({
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/png,image/jpeg,image/svg+xml"
-              onChange={handleWatermarkImageUpload}
+              accept={ACCEPT_ATTRIBUTE}
+              onChange={(e) => void handleWatermarkImageUpload(e)}
               className="hidden"
             />
           </div>
@@ -298,7 +296,6 @@ export const WatermarkControls: React.FC<WatermarkControlsProps> = ({
                 label={t('controlPanel.watermarkTab.color')}
                 color={watermark.color || '#ffffff'}
                 onChange={(c) => updateWatermark({ color: c })}
-                language={language || (isAr ? 'ar' : 'en')}
                 showShades={false}
               />
             </div>

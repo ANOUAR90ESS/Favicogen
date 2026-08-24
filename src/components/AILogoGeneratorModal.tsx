@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import React, { useState, useRef } from 'react';
 import {
   Sparkles,
   Upload,
@@ -7,25 +8,18 @@ import {
   RefreshCw,
   Download,
   Check,
-  ArrowRight,
   Layers,
   Youtube,
   Trash2,
-  Sliders,
   AlertCircle,
-  Copy,
   CheckCircle2,
   Palette,
-  ExternalLink,
-  ChevronRight,
   X,
   PackageCheck,
   Smartphone,
-  Eye,
-  SlidersHorizontal,
-  Zap,
-} from 'lucide-react';
+  } from 'lucide-react';
 import { LogoConfig, SupportedLanguage } from '../types';
+import { Modal } from './Modal';
 
 interface AILogoGeneratorModalProps {
   isOpen: boolean;
@@ -43,92 +37,82 @@ interface AILogoGeneratorModalProps {
 const AI_STYLE_PRESETS = [
   {
     id: 'minimal',
-    nameAr: 'شعار مينيمالي أنيق',
-    nameEn: 'Minimalist Vector',
-    desc: 'خطوط واضحة وأشكال هندسية راقية',
+    nameKey: 'aiGeneratorModal.styleMinimalName',
+    descKey: 'aiGeneratorModal.styleMinimalDesc',
     icon: '✨',
-    badge: 'الأكثر شعبية',
+    badgeKey: 'aiGeneratorModal.styleMinimalBadge',
   },
   {
     id: 'modern-3d',
-    nameAr: 'ثلاثي الأبعاد حديث 3D',
-    nameEn: 'Modern 3D Glossy',
-    desc: 'إضاءة سينمائية وتدرجات لونية غنية',
+    nameKey: 'aiGeneratorModal.style3dName',
+    descKey: 'aiGeneratorModal.style3dDesc',
     icon: '🔮',
-    badge: 'تطبيقات وأيقونات',
+    badgeKey: 'aiGeneratorModal.style3dBadge',
   },
   {
     id: 'luxury-gold',
-    nameAr: 'فخامة ملكية & ذهبي',
-    nameEn: 'Luxury Gold Emblem',
-    desc: 'تطريز ذهبي وزخارف فاخرة على خلفية داكنة',
+    nameKey: 'aiGeneratorModal.styleGoldName',
+    descKey: 'aiGeneratorModal.styleGoldDesc',
     icon: '👑',
-    badge: 'براندات فاخرة',
+    badgeKey: 'aiGeneratorModal.styleGoldBadge',
   },
   {
     id: 'cyberpunk',
-    nameAr: 'سايبر بانك & نيون',
-    nameEn: 'Cyberpunk Neon',
-    desc: 'ألوان نيون مشعة وطابع مستقبلي للألعاب',
+    nameKey: 'aiGeneratorModal.styleCyberName',
+    descKey: 'aiGeneratorModal.styleCyberDesc',
     icon: '⚡',
-    badge: 'ستريمرز ويوتيوب',
+    badgeKey: 'aiGeneratorModal.styleCyberBadge',
   },
   {
     id: 'arabesque',
-    nameAr: 'زخرفة عربية وإسلامية',
-    nameEn: 'Arabesque Modern',
-    desc: 'خط عربي حديث وزخارف أندلسية راقية',
+    nameKey: 'aiGeneratorModal.styleArabesqueName',
+    descKey: 'aiGeneratorModal.styleArabesqueDesc',
     icon: '🌙',
-    badge: 'هوية عربية',
+    badgeKey: 'aiGeneratorModal.styleArabesqueBadge',
   },
   {
     id: 'flat-vector',
-    nameAr: 'فيكتور مسطح Flat Design',
-    nameEn: 'Flat Clean Vector',
-    desc: 'ألوان مشرقة وهوية بصرية سويسرية نقية',
+    nameKey: 'aiGeneratorModal.styleFlatName',
+    descKey: 'aiGeneratorModal.styleFlatDesc',
     icon: '🎯',
-    badge: 'شركات وتقنية',
+    badgeKey: 'aiGeneratorModal.styleFlatBadge',
   },
   {
     id: 'mascot',
-    nameAr: 'ماسكوت وشخصيات ألعاب',
-    nameEn: 'Gaming Mascot',
-    desc: 'شخصيات كرتونية ديناميكية لقنوات الألعاب',
+    nameKey: 'aiGeneratorModal.styleMascotName',
+    descKey: 'aiGeneratorModal.styleMascotDesc',
     icon: '🎮',
-    badge: 'قنوات جيمنج',
+    badgeKey: 'aiGeneratorModal.styleMascotBadge',
   },
   {
     id: 'youtube-banner',
-    nameAr: 'خلفية قناة يوتيوب بانورامية',
-    nameEn: 'YouTube Channel Header',
-    desc: 'تصميم عريض 16:9 مخصص كخلفية لغلاف القناة',
+    nameKey: 'aiGeneratorModal.styleBannerName',
+    descKey: 'aiGeneratorModal.styleBannerDesc',
     icon: '📺',
-    badge: 'بانر 16:9',
+    badgeKey: 'aiGeneratorModal.styleBannerBadge',
   },
 ];
 
 const PROMPT_SUGGESTIONS = [
-  'شعار صقر ذهبي متناسق هندسياً لقناة ألعاب ويوتيوب فاخرة',
-  'أيقونة قطرة قهوة مع ورقة شجر بأسلوب فيكتور مينيمالي أنيق',
-  'رمز ذكاء اصطناعي عصري برأس إلكتروني ودوائر نيون زرقاء',
-  'شعار حرف عربي مزخرف بتقنية ثلاثية الأبعاد وذهب لامع',
-  'درع محارب سايبر بانك مستقبلي مع خوذة نيون لقناة جيمنج',
-  'أيقونة كاميرا مع موجات صوتية سينمائية لصناع محتوى يوتيوب',
-  'شعار شركة ناشئة هندسي على شكل مكعب متداخل متدرج الألوان',
+  'aiGeneratorModal.promptFalcon',
+  'aiGeneratorModal.promptCoffee',
+  'aiGeneratorModal.promptAi',
+  'aiGeneratorModal.promptArabicLetter',
+  'aiGeneratorModal.promptCyberShield',
+  'aiGeneratorModal.promptCamera',
+  'aiGeneratorModal.promptStartup',
 ];
 
 export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
   isOpen,
   onClose,
-  config,
   language = 'ar',
   onApplyLogo,
   onOpenYouTubeKit,
   onOpenFaviconExport,
   onOpenFeatureGraphic,
-  onOpenUniversalResizer,
-  onOpenMockups,
 }) => {
+  const { t } = useTranslation();
   const isAr = language === 'ar';
   const [prompt, setPrompt] = useState<string>('');
   const [selectedStyle, setSelectedStyle] = useState<string>('minimal');
@@ -140,8 +124,6 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState<string | null>(null);
-  const [appliedSuccess, setAppliedSuccess] = useState<boolean>(false);
-  const [autoOpenInStudio, setAutoOpenInStudio] = useState<boolean>(true);
   const [enhancedSuggestions, setEnhancedSuggestions] = useState<{
     suggestedColors?: string[];
     suggestedTitle?: string;
@@ -150,8 +132,6 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
-
-  if (!isOpen) return null;
 
   const showToast = (msg: string) => {
     setSuccessToast(msg);
@@ -162,7 +142,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
-        setErrorMsg(isAr ? 'حجم الصورة المرجعية كبير جداً (الحد الأقصى 10 ميجابايت)' : 'Reference image is too large (max 10MB)');
+        setErrorMsg('aiGeneratorModal.referenceImageIsToo');
         return;
       }
       setReferenceFileName(file.name);
@@ -177,7 +157,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
 
   const handleEnhancePrompt = async () => {
     if (!prompt.trim()) {
-      setErrorMsg(isAr ? 'الرجاء كتابة وصف أولي أولاً لتحسينه بالذكاء الاصطناعي' : 'Please type an initial prompt first');
+      setErrorMsg('aiGeneratorModal.pleaseTypeInitialPrompt');
       return;
     }
     setIsEnhancing(true);
@@ -200,12 +180,12 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
           setPrompt(data.data.enhancedPromptEn);
         }
         setEnhancedSuggestions(data.data);
-        showToast(isAr ? '✨ تم تحسين الوصف واقتراح الهوية بنجاح!' : '✨ Prompt enhanced with smart branding!');
+        showToast('aiGeneratorModal.promptEnhancedSmartBranding');
       } else {
-        setErrorMsg(data.error || (isAr ? 'تعذر تحسين الوصف' : 'Failed to enhance prompt'));
+        setErrorMsg(data.error || ('aiGeneratorModal.failedEnhancePrompt'));
       }
-    } catch (err: any) {
-      setErrorMsg(isAr ? 'خطأ أثناء الاتصال بخدمة الذكاء الاصطناعي' : 'Error communicating with AI service');
+    } catch {
+      setErrorMsg('aiGeneratorModal.errorCommunicatingAiService');
     } finally {
       setIsEnhancing(false);
     }
@@ -230,18 +210,16 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
     }
 
     onApplyLogo(updates, imageUrl);
-    setAppliedSuccess(true);
   };
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
-      setErrorMsg(isAr ? 'يرجى إدخال وصف الشعار أو الفكرة المطلوبة' : 'Please enter a logo prompt or idea');
+      setErrorMsg('aiGeneratorModal.pleaseEnterLogoPrompt');
       return;
     }
 
     setIsGenerating(true);
     setErrorMsg(null);
-    setAppliedSuccess(false);
 
     try {
       const res = await fetch('/api/ai/generate-logo', {
@@ -264,17 +242,17 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
         // Auto-apply immediately to studio state
         applyGeneratedLogoToStudio(data.imageUrl, data.enhancedSuggestions);
 
-        showToast(isAr ? '🎉 تم إنشاء الشعار وتطبيقه في الاستوديو بنجاح!' : '🎉 Logo created & applied to studio successfully!');
+        showToast('aiGeneratorModal.logoCreatedAppliedStudio');
 
         // Smooth scroll to result area
         setTimeout(() => {
           resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }, 150);
       } else {
-        setErrorMsg(data.error || (isAr ? 'فشل إنشاء الصورة، يرجى المحاولة بوصف آخر' : 'Failed to generate image, please try another prompt'));
+        setErrorMsg(data.error || ('aiGeneratorModal.failedGenerateImagePlease'));
       }
     } catch (err: any) {
-      setErrorMsg(err.message || (isAr ? 'حدث خطأ أثناء معالجة الطلب' : 'An error occurred while generating'));
+      setErrorMsg(err.message || ('aiGeneratorModal.anErrorOccurredWhile'));
     } finally {
       setIsGenerating(false);
     }
@@ -336,12 +314,13 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
   };
 
   return (
-    <div
-      id="ai-logo-generator-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-3 sm:p-6 overflow-y-auto"
-      dir={isAr ? 'rtl' : 'ltr'}
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      label={'aiGeneratorModal.aiLogoGenerator'}
+      className="relative w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
+      overlayClassName="z-50 p-3 sm:p-6"
     >
-      <div className="relative w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-slate-900/90 shrink-0">
           <div className="flex items-center gap-3">
@@ -351,16 +330,14 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-bold text-white tracking-wide">
-                  {isAr ? 'توليد الشعارات وبانرات يوتيوب بالذكاء الاصطناعي' : 'AI Logo & YouTube Kit Creator'}
+                  {'aiGeneratorModal.aiLogoYoutubeKit'}
                 </h2>
                 <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-pink-300 border border-pink-500/30">
                   Gemini AI 3.1
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                {isAr
-                  ? 'يتم تطبيق الشعار المنشأ فوراً في استوديو التصميم لتصدير حزمة الأيقونات والملفات الكاملة'
-                  : 'Generated designs are instantly applied to the Studio canvas ready for full package exports'}
+                {'aiGeneratorModal.generatedDesignsAreInstantly'}
               </p>
             </div>
           </div>
@@ -389,7 +366,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
             {/* Aspect Ratio Selector */}
             <div>
               <label className="block text-xs font-bold text-slate-300 mb-2 uppercase tracking-wider">
-                {isAr ? 'نوع المخرج ونسبة الأبعاد:' : 'Output Type & Aspect Ratio:'}
+                {'aiGeneratorModal.outputTypeAspectRatio'}
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <button
@@ -408,8 +385,8 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                     1:1
                   </div>
                   <div className={isAr ? 'text-right' : 'text-left'}>
-                    <div className="font-bold text-xs">{isAr ? 'شعار / أيقونة / Favicon' : 'Logo / App Icon / Favicon'}</div>
-                    <div className="text-[11px] opacity-75">1024 × 1024 px ({isAr ? 'مربع متناسق' : 'Square'})</div>
+                    <div className="font-bold text-xs">{'aiGeneratorModal.logoAppIconFavicon'}</div>
+                    <div className="text-[11px] opacity-75">1024 × 1024 px ({'aiGeneratorModal.square'})</div>
                   </div>
                 </button>
 
@@ -431,9 +408,9 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                   <div className={isAr ? 'text-right' : 'text-left'}>
                     <div className="font-bold text-xs flex items-center gap-1.5">
                       <Youtube className="w-3.5 h-3.5 text-red-500 inline shrink-0" />
-                      <span>{isAr ? 'بانر وغلاف يوتيوب' : 'YouTube Channel Banner'}</span>
+                      <span>{'aiGeneratorModal.youtubeChannelBanner'}</span>
                     </div>
-                    <div className="text-[11px] opacity-75">2560 × 1440 px ({isAr ? 'بانوراما عريض' : 'Landscape'})</div>
+                    <div className="text-[11px] opacity-75">2560 × 1440 px ({'aiGeneratorModal.landscape'})</div>
                   </div>
                 </button>
               </div>
@@ -443,7 +420,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <span>{isAr ? 'وصف الشعار أو الفكرة (Prompt):' : 'Logo Description / Prompt:'}</span>
+                  <span>{'aiGeneratorModal.logoDescriptionPrompt'}</span>
                   <span className="text-rose-400">*</span>
                 </label>
                 <button
@@ -453,7 +430,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                   className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-purple-500/15 text-purple-300 hover:bg-purple-500/25 border border-purple-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   <Wand2 className={`w-3.5 h-3.5 ${isEnhancing ? 'animate-spin' : ''}`} />
-                  {isEnhancing ? (isAr ? 'جاري التحسين...' : 'Enhancing...') : (isAr ? 'تحسين الوصف بالذكاء الاصطناعي' : 'Smart Prompt AI')}
+                  {isEnhancing ? ('aiGeneratorModal.enhancing') : ('aiGeneratorModal.smartPromptAi')}
                 </button>
               </div>
 
@@ -462,9 +439,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   placeholder={
-                    isAr
-                      ? 'مثال: شعار صقر ذهبي متدرج لقناة ألعاب وتقنية، بخلفية داكنة فخمة وأشكال هندسية نظيفة...'
-                      : 'E.g., Modern golden falcon vector logo for a gaming and tech brand with sleek geometric lines...'
+                    'aiGeneratorModal.eGModernGolden'
                   }
                   rows={3}
                   className="w-full bg-slate-950/70 border border-slate-700/80 rounded-xl p-3 text-xs sm:text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition resize-none leading-relaxed"
@@ -474,17 +449,17 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
               {/* Suggestions chips */}
               <div className="space-y-1">
                 <span className="text-[11px] text-slate-400 block font-medium">
-                  {isAr ? 'أفكار سريعة للإلهام (انقر للاختيار):' : 'Quick Prompt Ideas (Click to use):'}
+                  {'aiGeneratorModal.quickPromptIdeasClick'}
                 </span>
                 <div className="flex flex-wrap gap-1.5 max-h-16 overflow-y-auto pr-1">
-                  {PROMPT_SUGGESTIONS.map((sug, idx) => (
+                  {PROMPT_SUGGESTIONS.map((sugKey, idx) => (
                     <button
                       key={idx}
                       type="button"
-                      onClick={() => setPrompt(sug)}
+                      onClick={() => setPrompt(t(sugKey))}
                       className="text-[11px] px-2.5 py-1 bg-slate-800/70 hover:bg-slate-700/80 text-slate-300 hover:text-white rounded-lg border border-slate-700/50 transition truncate max-w-full text-right cursor-pointer"
                     >
-                      {sug}
+                      {t(sugKey)}
                     </button>
                   ))}
                 </div>
@@ -496,10 +471,10 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
               <label className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center justify-between">
                 <span className="flex items-center gap-1.5">
                   <ImageIcon className="w-3.5 h-3.5 text-indigo-400" />
-                  {isAr ? 'صورة مرجعية اختيارية (Reference Image):' : 'Optional Reference Image:'}
+                  {'aiGeneratorModal.optionalReferenceImage'}
                 </span>
                 <span className="text-[10px] font-normal text-slate-400">
-                  {isAr ? '(سيعتمد الذكاء الاصطناعي على ألوانها وتكوينها)' : '(AI guides style & color composition)'}
+                  {'aiGeneratorModal.aiGuidesStyleColor'}
                 </span>
               </label>
 
@@ -513,10 +488,10 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                     />
                     <div className="truncate">
                       <p className="text-xs font-semibold text-white truncate max-w-xs">
-                        {referenceFileName || (isAr ? 'الصورة المرجعية' : 'Reference Image')}
+                        {referenceFileName || ('aiGeneratorModal.referenceImage')}
                       </p>
                       <span className="text-[10px] text-emerald-400 flex items-center gap-1">
-                        <Check className="w-3 h-3" /> {isAr ? 'تم التحميل وجاهزة للتوليد' : 'Ready for AI generation'}
+                        <Check className="w-3 h-3" /> {'aiGeneratorModal.readyAiGeneration'}
                       </span>
                     </div>
                   </div>
@@ -527,7 +502,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                       setReferenceFileName('');
                     }}
                     className="p-1.5 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition cursor-pointer"
-                    title={isAr ? 'حذف الصورة المرجعية' : 'Remove reference'}
+                    title={'aiGeneratorModal.removeReference'}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -539,7 +514,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                 >
                   <Upload className="w-4 h-4 text-slate-400" />
                   <div className="text-xs text-slate-300">
-                    <span className="font-semibold text-indigo-400">{isAr ? 'انقر لرفع صورة مرجعية' : 'Upload reference photo'}</span> {isAr ? 'أو اسحبها هنا (PNG, JPG, SVG)' : '(PNG, JPG, SVG)'}
+                    <span className="font-semibold text-indigo-400">{'aiGeneratorModal.uploadReferencePhoto'}</span> {'aiGeneratorModal.pngJpgSvg'}
                   </div>
                 </div>
               )}
@@ -555,7 +530,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
             {/* Style Presets Grid */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
-                {isAr ? 'النمط الفني والتصميمي (Artistic Style):' : 'Artistic Design Style:'}
+                {'aiGeneratorModal.artisticDesignStyle'}
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-44 overflow-y-auto pr-1">
                 {AI_STYLE_PRESETS.map((st) => (
@@ -576,8 +551,8 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                       )}
                     </div>
                     <div>
-                      <div className="text-xs font-bold text-white truncate">{isAr ? st.nameAr : st.nameEn}</div>
-                      <div className="text-[10px] text-slate-400 truncate">{st.badge}</div>
+                      <div className="text-xs font-bold text-white truncate">{t(st.nameKey)}</div>
+                      <div className="text-[10px] text-slate-400 truncate">{t(st.badgeKey)}</div>
                     </div>
                   </button>
                 ))}
@@ -602,12 +577,12 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
               {isGenerating ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>{isAr ? 'جاري الرسم والتوليد بالذكاء الاصطناعي (Gemini)...' : 'Generating with Gemini AI...'}</span>
+                  <span>{'aiGeneratorModal.generatingGeminiAi'}</span>
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  <span>{isAr ? 'توليد الشعار وفتحه مباشرة في الاستوديو' : 'Generate & Open in Studio'}</span>
+                  <span>{'aiGeneratorModal.generateOpenStudio'}</span>
                 </>
               )}
             </button>
@@ -621,12 +596,12 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
             <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
               <span className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                 <Palette className="w-4 h-4 text-pink-400" />
-                {isAr ? 'معاينة المخرج والنتيجة:' : 'Generated Output Preview:'}
+                {'aiGeneratorModal.generatedOutputPreview'}
               </span>
               {generatedImage && (
                 <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 flex items-center gap-1">
                   <Check className="w-3 h-3" />
-                  {isAr ? 'مطبق في الاستوديو' : 'Applied to Studio'}
+                  {'aiGeneratorModal.appliedStudio'}
                 </span>
               )}
             </div>
@@ -641,10 +616,10 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs sm:text-sm font-bold text-white">
-                      {isAr ? 'جاري التوليد ودمج الهوية...' : 'Generating high-res assets...'}
+                      {'aiGeneratorModal.generatingHighResAssets'}
                     </p>
                     <p className="text-[11px] text-slate-400">
-                      {isAr ? 'سيتم تطبيق الشعار فوراً في مساحة العمل وتجهيز حزم التصدير' : 'Logo will be applied directly to studio workspace'}
+                      {'aiGeneratorModal.logoWillBeApplied'}
                     </p>
                   </div>
                 </div>
@@ -660,7 +635,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                   <div className="absolute bottom-2 left-2 right-2 bg-slate-900/85 backdrop-blur-xs border border-slate-700 text-white px-3 py-1.5 rounded-lg text-[11px] font-semibold flex items-center justify-between opacity-95">
                     <span className="flex items-center gap-1 text-emerald-400">
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      {isAr ? 'جاهز في المحرر الرئيسي' : 'Ready in Main Editor'}
+                      {'aiGeneratorModal.readyMainEditor'}
                     </span>
                     <span className="text-[10px] text-slate-400">
                       {aspectRatio === '16:9' ? '2560x1440' : '1024x1024'}
@@ -673,10 +648,10 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                     <ImageIcon className="w-6 h-6" />
                   </div>
                   <p className="text-xs font-medium text-slate-300">
-                    {isAr ? 'اكتب وصف الشعار ثم انقر "توليد الشعار"' : 'Type prompt & click Generate'}
+                    {'aiGeneratorModal.typePromptClickGenerate'}
                   </p>
                   <p className="text-[11px] text-slate-500">
-                    {isAr ? 'سيظهر الشعار هنا ويتم فتحه مباشرة في الاستوديو للتصدير' : 'Logo will open directly in Studio for full export'}
+                    {'aiGeneratorModal.logoWillOpenDirectly'}
                   </p>
                 </div>
               )}
@@ -692,7 +667,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                   className="w-full py-2.5 px-4 rounded-xl font-bold text-xs sm:text-sm bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 transition cursor-pointer"
                 >
                   <Layers className="w-4 h-4 shrink-0" />
-                  <span>{isAr ? '🚀 فتح وتعديل في الاستوديو الرئيسي (Studio Canvas)' : '🚀 Open & Edit in Studio Canvas'}</span>
+                  <span>{'aiGeneratorModal.openEditStudioCanvas'}</span>
                 </button>
 
                 {/* 2. Secondary Export Grid */}
@@ -702,10 +677,10 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                     type="button"
                     onClick={handleExportFullPackage}
                     className="py-2 px-3 rounded-xl font-bold text-xs bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 flex items-center justify-center gap-1.5 transition cursor-pointer"
-                    title={isAr ? 'تصدير حزمة Favicon & ZIP كاملة' : 'Export Full Favicon & Multi-size ZIP'}
+                    title={'aiGeneratorModal.exportFullFaviconMulti'}
                   >
                     <PackageCheck className="w-4 h-4 text-indigo-400 shrink-0" />
-                    <span className="truncate">{isAr ? '📦 تصدير الحزمة الكاملة' : '📦 Export Full Package'}</span>
+                    <span className="truncate">{'aiGeneratorModal.exportFullPackage'}</span>
                   </button>
 
                   {/* YouTube Branding Kit */}
@@ -713,10 +688,10 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                     type="button"
                     onClick={handleOpenYouTubeStudio}
                     className="py-2 px-3 rounded-xl font-bold text-xs bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/30 flex items-center justify-center gap-1.5 transition cursor-pointer"
-                    title={isAr ? 'فتح استوديو يوتيوب (غلاف وأيقونة وعلامة مائية)' : 'Open YouTube Branding Studio'}
+                    title={'aiGeneratorModal.openYoutubeBrandingStudio'}
                   >
                     <Youtube className="w-4 h-4 text-red-400 shrink-0" />
-                    <span className="truncate">{isAr ? '📺 استوديو يوتيوب' : '📺 YouTube Kit'}</span>
+                    <span className="truncate">{'aiGeneratorModal.youtubeKit'}</span>
                   </button>
 
                   {/* Google Play Feature Graphic */}
@@ -724,10 +699,10 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                     type="button"
                     onClick={handleOpenFeatureGraphicStudio}
                     className="py-2 px-3 rounded-xl font-bold text-xs bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 flex items-center justify-center gap-1.5 transition cursor-pointer"
-                    title={isAr ? 'توليد الصورة المميزة لمتجر جوجل بلاي 1024x500' : 'Google Play Feature Graphic 1024x500'}
+                    title={'aiGeneratorModal.googlePlayFeatureGraphic'}
                   >
                     <Smartphone className="w-4 h-4 text-amber-400 shrink-0" />
-                    <span className="truncate">{isAr ? '📱 صورة Google Play' : '📱 Play Store Graphic'}</span>
+                    <span className="truncate">{'aiGeneratorModal.playStoreGraphic'}</span>
                   </button>
 
                   {/* Direct PNG Download */}
@@ -735,10 +710,10 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                     type="button"
                     onClick={handleDownloadDirect}
                     className="py-2 px-3 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center gap-1.5 transition cursor-pointer"
-                    title={isAr ? 'تنزيل ملف الصورة الفوري PNG' : 'Direct PNG Download'}
+                    title={'aiGeneratorModal.directPngDownload'}
                   >
                     <Download className="w-4 h-4 text-slate-300 shrink-0" />
-                    <span className="truncate">{isAr ? '📥 تنزيل صورة PNG' : '📥 Download PNG'}</span>
+                    <span className="truncate">{'aiGeneratorModal.downloadPng'}</span>
                   </button>
                 </div>
               </div>
@@ -748,16 +723,16 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
             {enhancedSuggestions && (
               <div className="p-2.5 bg-slate-900 border border-purple-500/20 rounded-xl space-y-1 text-xs">
                 <div className="text-[11px] font-bold text-purple-300 flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" /> {isAr ? 'اقتراحات الهوية الذكية المطبقة:' : 'Smart Branding Suggestions Applied:'}
+                  <Sparkles className="w-3 h-3" /> {'aiGeneratorModal.smartBrandingSuggestionsApplied'}
                 </div>
                 {enhancedSuggestions.suggestedTitle && (
                   <div className="text-slate-300 text-[11px]">
-                    <span className="text-slate-400 font-semibold">{isAr ? 'اسم العلامة:' : 'Title:'}</span> {enhancedSuggestions.suggestedTitle}
+                    <span className="text-slate-400 font-semibold">{'aiGeneratorModal.title2'}</span> {enhancedSuggestions.suggestedTitle}
                   </div>
                 )}
                 {enhancedSuggestions.suggestedColors && (
                   <div className="flex items-center gap-1.5 pt-0.5">
-                    <span className="text-slate-400 text-[10px]">{isAr ? 'الألوان:' : 'Colors:'}</span>
+                    <span className="text-slate-400 text-[10px]">{'aiGeneratorModal.colors'}</span>
                     <div className="flex gap-1">
                       {enhancedSuggestions.suggestedColors.map((c, i) => (
                         <div
@@ -780,9 +755,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-[11px] sm:text-xs">
-              {isAr
-                ? 'متصل بمحرّك الاستوديو: يتم حفظ وتطبيق التصميم في الذاكرة لتصدير جميع المقاسات'
-                : 'Synced with Studio engine: Assets are auto-applied for all format & size exports'}
+              {'aiGeneratorModal.syncedStudioEngineAssets'}
             </span>
           </div>
 
@@ -793,7 +766,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
                 onClick={handleOpenDirectInStudio}
                 className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition cursor-pointer"
               >
-                {isAr ? 'الذهاب للاستوديو' : 'Go to Studio'}
+                {'aiGeneratorModal.goStudio'}
               </button>
             )}
             <button
@@ -801,11 +774,10 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
               onClick={onClose}
               className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium transition cursor-pointer"
             >
-              {isAr ? 'إغلاق' : 'Close'}
+              {'aiGeneratorModal.close'}
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </Modal>
   );
 };

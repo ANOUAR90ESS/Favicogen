@@ -2,7 +2,8 @@ import { Template, LogoConfig } from '../types';
 
 export const DEFAULT_LOGO_CONFIG: LogoConfig = {
   id: 'default_project',
-  name: 'مشروعي الجديد',
+  // Empty so the UI falls back to the translated 'Untitled project'.
+  name: '',
   updatedAt: Date.now(),
   canvasSize: 512,
   padding: 32,
@@ -65,7 +66,8 @@ export const DEFAULT_LOGO_CONFIG: LogoConfig = {
   },
   
   showText: true,
-  text: 'سديم',
+  // Filled from the locale when a blank project is created (see App).
+  text: '',
   fontFamily: 'Cairo',
   fontSize: 44,
   fontWeight: 800,
@@ -92,7 +94,7 @@ export const DEFAULT_LOGO_CONFIG: LogoConfig = {
   textUppercase: false,
   
   showTagline: true,
-  tagline: 'حلول الذكاء والتقنية',
+  tagline: '',
   taglineFontFamily: 'Tajawal',
   taglineFontSize: 16,
   taglineFontWeight: 500,

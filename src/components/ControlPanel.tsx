@@ -26,6 +26,7 @@ import { ImageUploadEditor } from './ImageUploadEditor';
 import { SmartPaletteGenerator } from './SmartPaletteGenerator';
 import { ComplementaryPaletteBar } from './ComplementaryPaletteBar';
 import { WatermarkControls } from './WatermarkControls';
+import { sanitizeSvgMarkup } from '../utils/svgSanitizer';
 
 interface ControlPanelProps {
   config: LogoConfig;
@@ -44,15 +45,15 @@ const POPULAR_PALETTES = [
 ];
 
 const FONTS_LIST = [
-  { id: 'Cairo', name: 'Cairo (عربي/إنجليزي)', type: 'arabic' },
-  { id: 'Tajawal', name: 'Tajawal (عصري متناسق)', type: 'arabic' },
-  { id: 'Almarai', name: 'Almarai (أنيق وعريض)', type: 'arabic' },
-  { id: 'IBM Plex Sans Arabic', name: 'IBM Plex Sans (تقني وحديث)', type: 'arabic' },
-  { id: 'Outfit', name: 'Outfit (Modern Geometry)', type: 'latin' },
-  { id: 'Montserrat', name: 'Montserrat (Bold & Clean)', type: 'latin' },
-  { id: 'Playfair Display', name: 'Playfair Display (Luxury Serif)', type: 'latin' },
-  { id: 'Righteous', name: 'Righteous (Futuristic/Gaming)', type: 'latin' },
-  { id: 'Fira Code', name: 'Fira Code (Developer/Mono)', type: 'latin' },
+  { id: 'Cairo', nameKey: 'controlPanel.fontCairo', type: 'arabic' },
+  { id: 'Tajawal', nameKey: 'controlPanel.fontTajawal', type: 'arabic' },
+  { id: 'Almarai', nameKey: 'controlPanel.fontAlmarai', type: 'arabic' },
+  { id: 'IBM Plex Sans Arabic', nameKey: 'controlPanel.fontIbmPlex', type: 'arabic' },
+  { id: 'Outfit', nameKey: 'controlPanel.fontOutfit', type: 'latin' },
+  { id: 'Montserrat', nameKey: 'controlPanel.fontMontserrat', type: 'latin' },
+  { id: 'Playfair Display', nameKey: 'controlPanel.fontPlayfair', type: 'latin' },
+  { id: 'Righteous', nameKey: 'controlPanel.fontRighteous', type: 'latin' },
+  { id: 'Fira Code', nameKey: 'controlPanel.fontFiraCode', type: 'latin' },
 ];
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({
@@ -66,6 +67,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   const [activeTab, setActiveTab] = useState<'icon' | 'text' | 'bg' | 'layout' | 'watermark'>('icon');
   const [iconCategory, setIconCategory] = useState<string>('all');
   const [iconSearch, setIconSearch] = useState<string>('');
+  const [svgUploadError, setSvgUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const updateConfig = (patch: Partial<LogoConfig>) => {
@@ -91,14 +93,21 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target?.result as string;
-      if (content) {
-        const match = content.match(/<svg[^>]*>([\s\S]*?)<\/svg>/i);
-        const inner = match ? match[1] : content;
-        updateConfig({
-          iconType: 'custom-svg',
-          customSvgString: inner,
-        });
+      if (!content) return;
+
+      // This markup is injected into the live DOM, so it goes through the
+      // allow-list rather than a regex that only looks for <svg> tags.
+      const safeMarkup = sanitizeSvgMarkup(content);
+      if (!safeMarkup) {
+        setSvgUploadError(t('controlPanel.svgRejected'));
+        return;
       }
+
+      setSvgUploadError(null);
+      updateConfig({
+        iconType: 'custom-svg',
+        customSvgString: safeMarkup,
+      });
     };
     reader.readAsText(file);
   };
@@ -188,7 +197,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     config.iconType === 'library' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500'
                   }`}
                 >
-                  {isAr ? 'المكتبة' : 'Icons'}
+                  {t('controlPanel.icons')}
                 </button>
                 <button
                   onClick={() => updateConfig({ iconType: 'image' })}
@@ -196,7 +205,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     config.iconType === 'image' ? 'bg-white text-indigo-600 shadow-2xs font-bold' : 'text-slate-500'
                   }`}
                 >
-                  {isAr ? 'رفع صورة' : 'Image'}
+                  {t('controlPanel.image')}
                 </button>
                 <button
                   onClick={() => updateConfig({ iconType: 'custom-svg' })}
@@ -212,7 +221,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     config.iconType === 'emoji' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500'
                   }`}
                 >
-                  {isAr ? 'إيموجي' : 'Emoji'}
+                  {t('controlPanel.emoji')}
                 </button>
               </div>
             </div>
@@ -222,7 +231,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               <ImageUploadEditor
                 config={config}
                 onChange={(patch) => updateConfig(patch)}
-                language={language || (isAr ? 'ar' : 'en')}
                 onOpenCropTrimModal={onOpenCropTrimModal}
               />
             )}
@@ -246,6 +254,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   accept=".svg,image/svg+xml"
                   className="hidden"
                 />
+
+                {svgUploadError && (
+                  <p role="alert" className="text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-2.5 py-2 text-start">
+                    {svgUploadError}
+                  </p>
+                )}
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="rounded-lg bg-indigo-50 border border-indigo-200 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 transition-colors cursor-pointer"
@@ -259,7 +273,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             {config.iconType === 'emoji' && (
               <div className="space-y-2">
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                  {isAr ? 'رمز الإيموجي' : 'Emoji Character'}
+                  {t('controlPanel.emojiCharacter')}
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -389,7 +403,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     label={t('controlPanel.iconTab.iconColor')}
                     color={config.iconColor}
                     onChange={(c) => updateConfig({ iconColor: c })}
-                    language={language || (isAr ? 'ar' : 'en')}
                   />
 
                   {config.iconGradient && (
@@ -397,7 +410,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                       label={t('controlPanel.iconTab.secondaryColor')}
                       color={config.iconColor2 || '#818cf8'}
                       onChange={(c) => updateConfig({ iconColor2: c })}
-                      language={language || (isAr ? 'ar' : 'en')}
                     />
                   )}
                 </div>
@@ -426,7 +438,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   <div className="space-y-2">
                     <div className="space-y-1">
                       <div className="flex justify-between text-[11px] text-slate-500 font-medium">
-                        <span>{isAr ? 'ضبابية الظل (Blur)' : 'Shadow Blur'}</span>
+                        <span>{t('controlPanel.shadowBlur')}</span>
                         <span className="font-mono">{config.iconShadowBlur || 8}px</span>
                       </div>
                       <input
@@ -443,7 +455,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                       label={t('common.color')}
                       color={config.iconShadowColor || 'rgba(0,0,0,0.5)'}
                       onChange={(c) => updateConfig({ iconShadowColor: c })}
-                      language={language || (isAr ? 'ar' : 'en')}
                       showShades={false}
                     />
                   </div>
@@ -483,7 +494,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                       label={t('controlPanel.colorsTab.borderColor')}
                       color={config.iconOutlineColor || '#ffffff'}
                       onChange={(c) => updateConfig({ iconOutlineColor: c })}
-                      language={language || (isAr ? 'ar' : 'en')}
                       showShades={false}
                     />
                   </div>
@@ -632,7 +642,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   >
                     {FONTS_LIST.map((font) => (
                       <option key={font.id} value={font.id}>
-                        {font.name}
+                        {t(font.nameKey)}
                       </option>
                     ))}
                   </select>
@@ -712,7 +722,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   label={t('controlPanel.textTab.textColor')}
                   color={config.textColor}
                   onChange={(c) => updateConfig({ textColor: c })}
-                  language={language || (isAr ? 'ar' : 'en')}
                 />
 
                 {/* Text Curve Manipulation */}
@@ -722,10 +731,10 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   </span>
                   <div className="grid grid-cols-4 gap-1.5">
                     {[
-                      { id: 'straight', nameAr: 'مستقيم', nameEn: 'Straight' },
-                      { id: 'arch-up', nameAr: 'قوس علوي', nameEn: 'Arch Up' },
-                      { id: 'arch-down', nameAr: 'قوس سفلي', nameEn: 'Arch Down' },
-                      { id: 'wave', nameAr: 'موجة Wave', nameEn: 'Wave' },
+                      { id: 'straight', nameAr: t('controlPanel.curveStraight'), nameEn: 'Straight' },
+                      { id: 'arch-up', nameAr: t('controlPanel.curveArchUp'), nameEn: 'Arch Up' },
+                      { id: 'arch-down', nameAr: t('controlPanel.curveArchDown'), nameEn: 'Arch Down' },
+                      { id: 'wave', nameAr: t('controlPanel.curveWave'), nameEn: 'Wave' },
                     ].map((curve) => (
                       <button
                         key={curve.id}
@@ -793,7 +802,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                         label={t('controlPanel.colorsTab.borderColor')}
                         color={config.textStrokeColor || '#000000'}
                         onChange={(c) => updateConfig({ textStrokeColor: c })}
-                        language={language || (isAr ? 'ar' : 'en')}
                         showShades={false}
                       />
                     </div>
@@ -856,7 +864,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     label={t('controlPanel.textTab.taglineColor')}
                     color={config.taglineColor}
                     onChange={(c) => updateConfig({ taglineColor: c })}
-                    language={language || (isAr ? 'ar' : 'en')}
                     showShades={false}
                   />
                 </div>
@@ -888,15 +895,15 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               </label>
               <div className="grid grid-cols-3 gap-1.5">
                 {[
-                  { id: 'squircle', nameAr: 'سكويركل (iOS)', nameEn: 'Squircle' },
-                  { id: 'circle', nameAr: 'دائرة', nameEn: 'Circle' },
-                  { id: 'shield', nameAr: 'درع', nameEn: 'Shield' },
-                  { id: 'hexagon', nameAr: 'سداسي', nameEn: 'Hexagon' },
-                  { id: 'octagon', nameAr: 'ثماني', nameEn: 'Octagon' },
-                  { id: 'badge', nameAr: 'شارة ونجمة', nameEn: 'Badge Star' },
-                  { id: 'diamond', nameAr: 'ماسي', nameEn: 'Diamond' },
-                  { id: 'square', nameAr: 'مربع', nameEn: 'Square' },
-                  { id: 'pill', nameAr: 'كبسولة', nameEn: 'Pill' },
+                  { id: 'squircle', nameAr: t('controlPanel.shapeSquircleIos'), nameEn: 'Squircle' },
+                  { id: 'circle', nameAr: t('controlPanel.shapeCircle'), nameEn: 'Circle' },
+                  { id: 'shield', nameAr: t('controlPanel.shapeShield'), nameEn: 'Shield' },
+                  { id: 'hexagon', nameAr: t('controlPanel.shapeHexagon'), nameEn: 'Hexagon' },
+                  { id: 'octagon', nameAr: t('controlPanel.shapeOctagon'), nameEn: 'Octagon' },
+                  { id: 'badge', nameAr: t('controlPanel.shapeBadge'), nameEn: 'Badge Star' },
+                  { id: 'diamond', nameAr: t('controlPanel.shapeDiamond'), nameEn: 'Diamond' },
+                  { id: 'square', nameAr: t('controlPanel.shapeSquare'), nameEn: 'Square' },
+                  { id: 'pill', nameAr: t('controlPanel.shapePill'), nameEn: 'Pill' },
                 ].map((shape) => (
                   <button
                     key={shape.id}
@@ -915,13 +922,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
             {/* Smart Color Palette Generator (AI Harmonies) */}
             <div className="pt-2">
-              <SmartPaletteGenerator config={config} onChange={updateConfig} language={language} />
+              <SmartPaletteGenerator
+                config={config}
+                onChange={updateConfig}
+              />
             </div>
 
             {/* Quick Curated Color Palettes */}
             <div className="space-y-2 pt-3 border-t border-slate-100">
               <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                {isAr ? 'لوحات ألوان جاهزة ومميزة' : 'Curated Palettes'}
+                {t('controlPanel.curatedPalettes')}
               </span>
               <div className="grid grid-cols-2 gap-1.5">
                 {POPULAR_PALETTES.map((pal) => (
@@ -986,7 +996,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                       label={t('controlPanel.colorsTab.primaryBgColor')}
                       color={config.bgColor1}
                       onChange={(c) => updateConfig({ bgColor1: c })}
-                      language={language || (isAr ? 'ar' : 'en')}
                     />
 
                     {(config.bgType === 'linear' || config.bgType === 'radial') && (
@@ -994,7 +1003,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                         label={t('controlPanel.colorsTab.secondaryBgColor')}
                         color={config.bgColor2}
                         onChange={(c) => updateConfig({ bgColor2: c })}
-                        language={language || (isAr ? 'ar' : 'en')}
                       />
                     )}
                   </div>
@@ -1063,7 +1071,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   label={t('controlPanel.colorsTab.borderColor')}
                   color={config.borderColor}
                   onChange={(c) => updateConfig({ borderColor: c })}
-                  language={language || (isAr ? 'ar' : 'en')}
                   showShades={false}
                 />
               )}
@@ -1091,10 +1098,10 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: 'icon-top', nameAr: 'أيقونة بالأعلى ونصوص بالأسفل', nameEn: 'Icon Top + Text' },
-                  { id: 'icon-left', nameAr: 'أيقونة يسار ونصوص يمين', nameEn: 'Icon Left + Text' },
-                  { id: 'icon-only', nameAr: 'أيقونة فقط (للـ Favicon)', nameEn: 'Icon Only (Favicon)' },
-                  { id: 'text-only', nameAr: 'نصي وشعار تايبوغرافي', nameEn: 'Typography Only' },
+                  { id: 'icon-top', nameAr: t('controlPanel.layoutIconTop'), nameEn: 'Icon Top + Text' },
+                  { id: 'icon-left', nameAr: t('controlPanel.layoutIconLeft'), nameEn: 'Icon Left + Text' },
+                  { id: 'icon-only', nameAr: t('controlPanel.layoutIconOnly'), nameEn: 'Icon Only (Favicon)' },
+                  { id: 'text-only', nameAr: t('controlPanel.layoutTextOnly'), nameEn: 'Typography Only' },
                 ].map((item) => (
                   <button
                     key={item.id}
@@ -1115,7 +1122,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             <div className="space-y-3 pt-3 border-t border-slate-100">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  {isAr ? 'حلقة دائرية تزيينية' : 'Decorative Orbit Ring'}
+                  {t('controlPanel.decorativeOrbitRing')}
                 </span>
                 <input
                   type="checkbox"
@@ -1129,7 +1136,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 <div className="space-y-3">
                   <div className="space-y-1">
                     <div className="flex justify-between text-xs text-slate-500 font-medium">
-                      <span>{isAr ? 'نصف القطر' : 'Ring Radius'}</span>
+                      <span>{t('controlPanel.ringRadius')}</span>
                       <span className="font-mono font-semibold">{config.ringRadius}px</span>
                     </div>
                     <input
@@ -1143,7 +1150,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-slate-600">{isAr ? 'حلقة متقطعة' : 'Dashed Line'}</span>
+                    <span className="text-xs font-semibold text-slate-600">{t('controlPanel.dashedLine')}</span>
                     <input
                       type="checkbox"
                       checked={config.ringDash}

@@ -8,13 +8,13 @@ import {
   Search as SearchIcon,
   Layers,
   Lock,
-  Globe,
   Star,
   RefreshCw,
   Plus,
 } from 'lucide-react';
 import { LogoConfig, SupportedLanguage } from '../types';
 import { generateSvgString, generateFeatureGraphicSvg } from '../utils/canvasRenderer';
+import { Modal } from './Modal';
 
 interface LiveMockupsModalProps {
   isOpen: boolean;
@@ -38,8 +38,8 @@ export const LiveMockupsModal: React.FC<LiveMockupsModalProps> = ({
       generateFeatureGraphicSvg(config, {
         layout: 'center-hero',
         title: config.text || config.name || 'My App',
-        subtitle: config.tagline || (isAr ? 'التطبيق الرائد للإنتاجية والتصميم' : 'Next-Gen Mobile Solutions'),
-        badgeText: isAr ? '★ 4.9 • 100K+ مستخدم' : '★ 4.9 • 100K+ Downloads',
+        subtitle: config.tagline || (t('mockupsModal.nextGenMobileSolutions')),
+        badgeText: t('mockupsModal.text49100kDownloads'),
         bgTheme: 'brand',
         showPhoneMockup: true,
         showPlayBadge: true,
@@ -51,11 +51,14 @@ export const LiveMockupsModal: React.FC<LiveMockupsModalProps> = ({
   const brandName = config.text || config.name || 'Brand';
   const tagline = config.tagline || 'Next Generation Solutions';
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="flex flex-col w-full max-w-5xl max-h-[90vh] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      label={t('mockupsModal.title')}
+      className="flex flex-col w-full max-w-5xl max-h-[90vh] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden"
+      overlayClassName="z-50 p-3 sm:p-6 bg-slate-900/60"
+    >
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 bg-slate-50/80">
           <div className="flex items-center gap-3">
@@ -83,11 +86,11 @@ export const LiveMockupsModal: React.FC<LiveMockupsModalProps> = ({
         {/* Mockup Tabs Selector */}
         <div className="flex items-center gap-2 p-3 border-b border-slate-200 bg-slate-50/40 overflow-x-auto">
           {[
-            { id: 'browser', name: t('mockupsModal.tabBrowser'), icon: Laptop },
-            { id: 'mobile', name: t('mockupsModal.tabMobile'), icon: Smartphone },
-            { id: 'playstore', name: t('mockupsModal.tabPlayStore'), icon: Star },
-            { id: 'google', name: t('mockupsModal.tabGoogle'), icon: SearchIcon },
-            { id: 'modes', name: t('mockupsModal.tabThemes'), icon: Layers },
+            { id: 'browser', name: t('mockupsModal.items.browserTab'), icon: Laptop },
+            { id: 'mobile', name: t('mockupsModal.items.mobileApp'), icon: Smartphone },
+            { id: 'playstore', name: t('mockupsModal.items.appStore'), icon: Star },
+            { id: 'google', name: t('mockupsModal.items.websiteHero'), icon: SearchIcon },
+            { id: 'modes', name: t('mockupsModal.items.sticker'), icon: Layers },
           ].map((tab) => {
             const Icon = tab.icon;
             return (
@@ -165,10 +168,10 @@ export const LiveMockupsModal: React.FC<LiveMockupsModalProps> = ({
                 <p className="text-sm text-slate-500 max-w-md font-medium">{tagline}</p>
                 <div className="flex items-center gap-3 pt-2">
                   <button className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 cursor-pointer">
-                    {isAr ? 'ابدأ الآن مجاناً' : 'Get Started'}
+                    {t('mockupsModal.getStarted')}
                   </button>
                   <button className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 cursor-pointer">
-                    {isAr ? 'معرفة المزيد' : 'Learn More'}
+                    {t('mockupsModal.learnMore')}
                   </button>
                 </div>
               </div>
@@ -308,7 +311,6 @@ export const LiveMockupsModal: React.FC<LiveMockupsModalProps> = ({
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </Modal>
   );
 };

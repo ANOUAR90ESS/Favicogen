@@ -6,20 +6,12 @@ import {
   Sliders,
   CheckCircle2,
   Sparkles,
-  Layers,
   Monitor,
   Smartphone,
-  Tv,
-  Check,
-  Share2,
-  Copy,
-  Info,
   ShieldCheck,
-  Maximize2,
   Play,
   Bell,
   Search,
-  ThumbsUp,
   X
 } from 'lucide-react';
 import { LogoConfig, SocialBannerOptions } from '../types';
@@ -31,6 +23,8 @@ import {
   rasterizeSvg,
   renderSvgToBlob,
 } from '../utils/canvasRenderer';
+import { useTranslation } from 'react-i18next';
+import { Modal } from './Modal';
 
 interface YouTubeKitModalProps {
   isOpen: boolean;
@@ -45,18 +39,18 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
   config,
   onOpenAIGenerator,
 }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'banner' | 'avatar' | 'watermark' | 'thumbnail' | 'channel-mockup'>('banner');
-  const [previewDevice, setPreviewDevice] = useState<'all' | 'desktop' | 'mobile' | 'tv'>('all');
   const [showSafeZones, setShowSafeZones] = useState<boolean>(true);
   const [isExportingZip, setIsExportingZip] = useState<boolean>(false);
   const [copiedNotification, setCopiedNotification] = useState<string | null>(null);
 
   // Customization state
-  const [channelTitle, setChannelTitle] = useState<string>(config.text || config.name || 'قناتي على يوتيوب');
+  const [channelTitle, setChannelTitle] = useState<string>(config.text || config.name || t('youtubeKitModal.defaultChannelName'));
   const [channelHandle, setChannelHandle] = useState<string>(`@${(config.text || 'channel').toLowerCase().replace(/\s+/g, '')}`);
-  const [channelTagline, setChannelTagline] = useState<string>(config.tagline || 'شروحات، محتوى حصري، وبثوث مباشرة يومية');
-  const [uploadSchedule, setUploadSchedule] = useState<string>('فيديوهات جديدة كل أسبوع');
-  const [subscribersMock, setSubscribersMock] = useState<string>('128 ألف مشترك');
+  const [channelTagline, setChannelTagline] = useState<string>(config.tagline || t('youtubeKitModal.defaultTagline'));
+  const [uploadSchedule, setUploadSchedule] = useState<string>(t('youtubeKitModal.defaultSchedule'));
+  const [subscribersMock] = useState<string>(t('youtubeKitModal.sampleSubscribers'));
   const [selectedTheme, setSelectedTheme] = useState<'youtube-red' | 'dark' | 'brand' | 'cyberpunk' | 'royal-gold' | 'emerald'>('youtube-red');
   const [selectedLayout, setSelectedLayout] = useState<'youtube-channel' | 'center-hero' | 'split-hero' | 'minimal-clean'>('youtube-channel');
 
@@ -68,7 +62,7 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
     channelHandle,
     uploadSchedule,
     showBadge: true,
-    badgeText: 'قناة رسمية معتمدة • 2026',
+    badgeText: t('youtubeKitModal.verifiedBadge'),
     showGlowEffect: true,
     showSafeZone: showSafeZones,
   }), [selectedLayout, selectedTheme, channelTitle, channelTagline, channelHandle, uploadSchedule, showSafeZones]);
@@ -93,15 +87,13 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
     );
   }, [config, bannerOptions]);
 
-  if (!isOpen) return null;
-
   const handleDownloadAllZip = async () => {
     setIsExportingZip(true);
     try {
       const blob = await generateYouTubeKitZip(config, bannerOptions);
       const filename = `youtube_kit_${(channelTitle || 'channel').replace(/\s+/g, '_')}_2026.zip`;
       downloadBlob(blob, filename);
-      triggerToast('🎉 تم تحميل حزمة قنوات يوتيوب الكاملة بنجاح!');
+      triggerToast(t('youtubeKitModal.zipDownloaded'));
     } catch (err) {
       console.error('Failed to export YouTube kit zip:', err);
     } finally {
@@ -132,7 +124,7 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
       }
 
       downloadBlob(blob, filename);
-      triggerToast(`✅ تم تحميل ${filename}`);
+      triggerToast(t('youtubeKitModal.fileDownloaded', { filename }));
     } catch (e) {
       console.error(e);
     }
@@ -144,8 +136,13 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 sm:p-6 overflow-y-auto">
-      <div className="relative w-full max-w-6xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh]">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      label={t('youtubeKitModal.title')}
+      className="relative w-full max-w-6xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh]"
+      overlayClassName="z-50 p-4 sm:p-6"
+    >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/95">
           <div className="flex items-center gap-3">
@@ -155,14 +152,14 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-bold text-white tracking-wide">
-                  أستوديو قنوات YouTube المتكامل (YouTube Channel Branding Kit)
+                  {t('youtubeKitModal.title')}
                 </h2>
                 <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-red-500/20 text-red-300 border border-red-500/30">
                   2560 × 1440 HD
                 </span>
               </div>
               <p className="text-xs text-slate-400">
-                صمّم غلاف القناة، صورة البروفايل، العلامة المائية، والمصغرات وفق معايير يوتيوب الرسمية 2026
+                {t('youtubeKitModal.subtitle')}
               </p>
             </div>
           </div>
@@ -173,7 +170,7 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
               className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 transition shadow-xs"
             >
               <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-              <span>توليد أفكار بالذكاء الاصطناعي</span>
+              <span>{t('youtubeKitModal.generateWithAi')}</span>
             </button>
             <button
               onClick={onClose}
@@ -196,11 +193,11 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
         {/* Tab Navigation */}
         <div className="flex items-center gap-1 px-6 border-b border-slate-800 bg-slate-950/50 overflow-x-auto">
           {[
-            { id: 'banner', label: 'غلاف وبانر القناة (2560×1440)', icon: Monitor },
-            { id: 'channel-mockup', label: 'معاينة صفحة القناة الحية', icon: Eye },
-            { id: 'avatar', label: 'صورة البروفايل (800×800)', icon: Smartphone },
-            { id: 'watermark', label: 'العلامة المائية للفيديو (150×150)', icon: ShieldCheck },
-            { id: 'thumbnail', label: 'الصورة المصغرة (1280×720)', icon: Play },
+            { id: 'banner', label: t('youtubeKitModal.tabBanner'), icon: Monitor },
+            { id: 'channel-mockup', label: t('youtubeKitModal.tabChannelMockup'), icon: Eye },
+            { id: 'avatar', label: t('youtubeKitModal.tabAvatar'), icon: Smartphone },
+            { id: 'watermark', label: t('youtubeKitModal.tabWatermark'), icon: ShieldCheck },
+            { id: 'thumbnail', label: t('youtubeKitModal.tabThumbnail'), icon: Play },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -228,7 +225,7 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
             {/* Viewport Control Bar */}
             <div className="flex items-center justify-between bg-slate-950/60 border border-slate-800 rounded-xl px-4 py-2 text-xs">
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-slate-300">منطقة الأمان (Safe Area Guide):</span>
+                <span className="font-semibold text-slate-300">{t('youtubeKitModal.safeAreaGuide')}</span>
                 <button
                   type="button"
                   onClick={() => setShowSafeZones(!showSafeZones)}
@@ -239,18 +236,18 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
                   }`}
                 >
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  {showSafeZones ? 'مفعّلة (1546 × 423)' : 'مخفية'}
+                  {showSafeZones ? t('youtubeKitModal.safeAreaOn') : t('youtubeKitModal.safeAreaOff')}
                 </button>
               </div>
 
               <div className="text-[11px] text-slate-400 flex items-center gap-3">
                 <span className="flex items-center gap-1 text-rose-400">
                   <span className="w-2.5 h-2.5 rounded-sm bg-rose-500/40 border border-rose-500" />
-                  منطقة الهاتف المضمونة
+                  {t('youtubeKitModal.mobileSafeZone')}
                 </span>
                 <span className="flex items-center gap-1 text-indigo-400">
                   <span className="w-2.5 h-2.5 rounded-sm bg-indigo-500/40 border border-indigo-500" />
-                  سطح المكتب والتابلت
+                  {t('youtubeKitModal.desktopTabletZone')}
                 </span>
               </div>
             </div>
@@ -265,13 +262,13 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
                     dangerouslySetInnerHTML={{ __html: bannerSvg }}
                   />
                   <div className="flex items-center justify-between w-full max-w-4xl text-xs text-slate-400 px-1">
-                    <span className="font-mono">الأبعاد: 2560 × 1440 px (16:9 4K/FullHD)</span>
+                    <span className="font-mono">{t('youtubeKitModal.bannerDimensions')}</span>
                     <button
                       onClick={() => handleDownloadSingleAsset('banner')}
                       className="text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1"
                     >
                       <Download className="w-3.5 h-3.5" />
-                      تحميل بانر 2560x1440 كصورة PNG
+                      {t('youtubeKitModal.downloadBanner')}
                     </button>
                   </div>
                 </div>
@@ -292,7 +289,7 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
                     </div>
                     <div className="hidden sm:flex items-center bg-[#222] border border-slate-700 rounded-full px-3 py-1 w-64 text-slate-400">
                       <Search className="w-3 h-3 mr-2" />
-                      <span>بحث...</span>
+                      <span>{t('youtubeKitModal.searchPlaceholder')}</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <Bell className="w-4 h-4 text-slate-300" />
@@ -331,7 +328,7 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
                           </span>
                         </div>
                         <p className="text-xs text-slate-400 font-medium">
-                          {channelHandle} • {subscribersMock} • 140 فيديو
+                          {channelHandle} • {subscribersMock} • {t('youtubeKitModal.videoCount')}
                         </p>
                         <p className="text-xs text-slate-300 line-clamp-1">{channelTagline}</p>
                       </div>
@@ -339,10 +336,10 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
 
                     <div className="flex items-center gap-2">
                       <button className="px-5 py-2 rounded-full bg-white text-black font-bold text-xs hover:bg-slate-200 transition">
-                        اشتراك (Subscribe)
+                        {t('youtubeKitModal.subscribeBtn')}
                       </button>
                       <button className="px-3 py-2 rounded-full bg-slate-800 text-white font-medium text-xs hover:bg-slate-700 transition">
-                        انضمام
+                        {t('youtubeKitModal.joinBtn')}
                       </button>
                     </div>
                   </div>
@@ -356,9 +353,9 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
                           dangerouslySetInnerHTML={{ __html: thumbSvg }}
                         />
                         <div className="text-[11px] font-bold text-white truncate">
-                          {channelTitle} - فيديو حصري رقم #{v}
+                          {t('youtubeKitModal.sampleVideoTitle', { channel: channelTitle, n: v })}
                         </div>
-                        <div className="text-[10px] text-slate-400">45 ألف مشاهدة • قبل 3 أيام</div>
+                        <div className="text-[10px] text-slate-400">{t('youtubeKitModal.sampleVideoMeta')}</div>
                       </div>
                     ))}
                   </div>
@@ -375,7 +372,7 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
                         className="w-40 h-40 rounded-2xl overflow-hidden border-2 border-slate-700 bg-slate-900 shadow-2xl"
                         dangerouslySetInnerHTML={{ __html: avatarSvg }}
                       />
-                      <span className="text-xs text-slate-400 font-mono">800 × 800 px (مربع أصلي)</span>
+                      <span className="text-xs text-slate-400 font-mono">{t('youtubeKitModal.avatarDimensions')}</span>
                     </div>
 
                     {/* Circle YouTube preview */}
@@ -384,7 +381,7 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
                         className="w-40 h-40 rounded-full overflow-hidden border-4 border-red-500/50 bg-slate-900 shadow-2xl ring-4 ring-red-500/20"
                         dangerouslySetInnerHTML={{ __html: avatarSvg }}
                       />
-                      <span className="text-xs text-red-400 font-semibold">المعاينة الدائرية على يوتيوب</span>
+                      <span className="text-xs text-red-400 font-semibold">{t('youtubeKitModal.avatarCirclePreview')}</span>
                     </div>
                   </div>
 
@@ -393,7 +390,7 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
                     className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-2 border border-slate-700 mt-2"
                   >
                     <Download className="w-4 h-4" />
-                    تحميل صورة البروفايل (800×800 PNG)
+                    {t('youtubeKitModal.downloadAvatar')}
                   </button>
                 </div>
               )}
@@ -402,7 +399,7 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
               {activeTab === 'watermark' && (
                 <div className="flex flex-col items-center gap-4 text-center">
                   <div className="relative w-72 aspect-video bg-slate-900 rounded-xl border border-slate-700 overflow-hidden shadow-2xl flex items-center justify-center">
-                    <div className="text-slate-600 text-xs font-mono">منطقة تشغيل الفيديو (Video Player)</div>
+                    <div className="text-slate-600 text-xs font-mono">{t('youtubeKitModal.videoPlayerArea')}</div>
                     {/* Watermark in bottom right */}
                     <div
                       className="absolute bottom-2 right-2 w-10 h-10 rounded border border-white/40 shadow-lg bg-black/50"
@@ -410,15 +407,15 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
                     />
                   </div>
                   <div className="space-y-1">
-                    <p className="text-xs font-bold text-white">علامة مائية مخصصة تظهر في زاوية جميع فيديوهاتك</p>
-                    <p className="text-[11px] text-slate-400">المقاس القياسي: 150 × 150 px بخلفية شفافة أو مفرغة</p>
+                    <p className="text-xs font-bold text-white">{t('youtubeKitModal.watermarkExplain')}</p>
+                    <p className="text-[11px] text-slate-400">{t('youtubeKitModal.watermarkSpec')}</p>
                   </div>
                   <button
                     onClick={() => handleDownloadSingleAsset('watermark')}
                     className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-2 border border-slate-700"
                   >
                     <Download className="w-4 h-4" />
-                    تحميل العلامة المائية (150×150 PNG)
+                    {t('youtubeKitModal.downloadWatermark')}
                   </button>
                 </div>
               )}
@@ -431,15 +428,15 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
                     dangerouslySetInnerHTML={{ __html: thumbSvg }}
                   />
                   <div className="space-y-1">
-                    <p className="text-xs font-bold text-white">صورة مصغرة عالية الجودة (HD Thumbnail)</p>
-                    <p className="text-[11px] text-slate-400">الأبعاد: 1280 × 720 px (16:9 مصغرات يوتيوب الرسمية)</p>
+                    <p className="text-xs font-bold text-white">{t('youtubeKitModal.thumbnailTitle')}</p>
+                    <p className="text-[11px] text-slate-400">{t('youtubeKitModal.thumbnailDimensions')}</p>
                   </div>
                   <button
                     onClick={() => handleDownloadSingleAsset('thumbnail')}
                     className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition flex items-center gap-2 border border-slate-700"
                   >
                     <Download className="w-4 h-4" />
-                    تحميل الصورة المصغرة (1280×720 PNG)
+                    {t('youtubeKitModal.downloadThumbnail')}
                   </button>
                 </div>
               )}
@@ -451,13 +448,13 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
             <div className="border-b border-slate-800/80 pb-2 flex items-center justify-between">
               <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
                 <Sliders className="w-4 h-4 text-red-400" />
-                تخصيص بيانات القناة:
+                {t('youtubeKitModal.customiseChannel')}
               </span>
             </div>
 
             {/* Channel Title */}
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-400 block">اسم القناة (Channel Name):</label>
+              <label className="text-[11px] font-bold text-slate-400 block">{t('youtubeKitModal.channelNameLabel')}</label>
               <input
                 type="text"
                 value={channelTitle}
@@ -468,7 +465,7 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
 
             {/* Channel Handle */}
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-400 block">المعرّف الرسمي (Handle):</label>
+              <label className="text-[11px] font-bold text-slate-400 block">{t('youtubeKitModal.handleLabel')}</label>
               <input
                 type="text"
                 value={channelHandle}
@@ -479,7 +476,7 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
 
             {/* Tagline / Subtitle */}
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-400 block">وصف أو شعار القناة:</label>
+              <label className="text-[11px] font-bold text-slate-400 block">{t('youtubeKitModal.taglineLabel')}</label>
               <input
                 type="text"
                 value={channelTagline}
@@ -490,7 +487,7 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
 
             {/* Upload Schedule */}
             <div className="space-y-1">
-              <label className="text-[11px] font-bold text-slate-400 block">جدول النشر (Upload Schedule):</label>
+              <label className="text-[11px] font-bold text-slate-400 block">{t('youtubeKitModal.scheduleLabel')}</label>
               <input
                 type="text"
                 value={uploadSchedule}
@@ -501,15 +498,15 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
 
             {/* Theme Selector */}
             <div className="space-y-1.5 pt-1">
-              <label className="text-[11px] font-bold text-slate-400 block">ثيم وألوان الغلاف:</label>
+              <label className="text-[11px] font-bold text-slate-400 block">{t('youtubeKitModal.themeLabel')}</label>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: 'youtube-red', label: 'يوتيوب أحمر & أسود', color: 'from-red-950 to-black' },
-                  { id: 'dark', label: 'أوبسيديان داكن', color: 'from-slate-900 to-black' },
-                  { id: 'royal-gold', label: 'ذهبي ملكي فاخر', color: 'from-amber-950 to-black' },
-                  { id: 'cyberpunk', label: 'نيون سايبر بانك', color: 'from-purple-900 to-pink-900' },
-                  { id: 'emerald', label: 'زمردي عصري', color: 'from-emerald-950 to-teal-900' },
-                  { id: 'brand', label: 'ألوان الشعار الحالي', color: 'from-indigo-900 to-blue-900' },
+                  { id: 'youtube-red', label: t('youtubeKitModal.themeYoutubeRed'), color: 'from-red-950 to-black' },
+                  { id: 'dark', label: t('youtubeKitModal.themeDark'), color: 'from-slate-900 to-black' },
+                  { id: 'royal-gold', label: t('youtubeKitModal.themeRoyalGold'), color: 'from-amber-950 to-black' },
+                  { id: 'cyberpunk', label: t('youtubeKitModal.themeCyberpunk'), color: 'from-purple-900 to-pink-900' },
+                  { id: 'emerald', label: t('youtubeKitModal.themeEmerald'), color: 'from-emerald-950 to-teal-900' },
+                  { id: 'brand', label: t('youtubeKitModal.themeBrand'), color: 'from-indigo-900 to-blue-900' },
                 ].map((th) => (
                   <button
                     key={th.id}
@@ -529,13 +526,13 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
 
             {/* Layout Selector */}
             <div className="space-y-1.5 pt-1">
-              <label className="text-[11px] font-bold text-slate-400 block">توزيع العناصر في الغلاف:</label>
+              <label className="text-[11px] font-bold text-slate-400 block">{t('youtubeKitModal.layoutLabel')}</label>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: 'youtube-channel', label: 'توزيع قنوات يوتيوب الآمن' },
-                  { id: 'center-hero', label: 'توسيط هيدر رئيسي' },
-                  { id: 'split-hero', label: 'شعار يمين + نصوص يسار' },
-                  { id: 'minimal-clean', label: 'شعار نقي وبسيط' },
+                  { id: 'youtube-channel', label: t('youtubeKitModal.layoutYoutubeSafe') },
+                  { id: 'center-hero', label: t('youtubeKitModal.layoutCenterHero') },
+                  { id: 'split-hero', label: t('youtubeKitModal.layoutSplitHero') },
+                  { id: 'minimal-clean', label: t('youtubeKitModal.layoutMinimal') },
                 ].map((ly) => (
                   <button
                     key={ly.id}
@@ -563,17 +560,17 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
                 {isExportingZip ? (
                   <>
                     <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>جاري تجميع حزمة YouTube (.ZIP)...</span>
+                    <span>{t('youtubeKitModal.zipping')}</span>
                   </>
                 ) : (
                   <>
                     <Download className="w-4 h-4" />
-                    <span>تصدير حزمة YouTube الكاملة (ZIP)</span>
+                    <span>{t('youtubeKitModal.exportZip')}</span>
                   </>
                 )}
               </button>
               <p className="text-[10px] text-center text-slate-500 mt-1.5">
-                تشمل: البانر 2560x1440 + دليل الأمان + البروفايل + العلامة المائية + المصغرة + ملف SVG المصدري
+                {t('youtubeKitModal.zipContents')}
               </p>
             </div>
           </div>
@@ -583,7 +580,7 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
         <div className="px-6 py-3 border-t border-slate-800 bg-slate-900/90 flex items-center justify-between text-xs text-slate-400">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-red-500" />
-            <span>متوافق 100% مع معايير YouTube Studio الرسمية 2026</span>
+            <span>{t('youtubeKitModal.compliantNote')}</span>
           </div>
 
           <button
@@ -591,10 +588,9 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
             onClick={onClose}
             className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium transition"
           >
-            إغلاق
+            {t('youtubeKitModal.closeBtn')}
           </button>
         </div>
-      </div>
-    </div>
+      </Modal>
   );
 };

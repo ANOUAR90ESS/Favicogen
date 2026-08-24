@@ -52,4 +52,5 @@ This Application is distributed in compliance with Google Play Developer Program
 For questions, notices, or support regarding these Terms of Service, please contact:
 
 - **Developer:** Anwar Asbas
-- **Email:** anwarasbas2018@gmail.com
+- **Email:** [anwarasbas2018@gmail.com](mailto:anwarasbas2018@gmail.com)
+- **Application Support:** [Logo & Favicon Studio](mailto:anwarasbas2018@gmail.com)

@@ -1,32 +1,67 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle2, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import { Navbar } from './components/Navbar';
+import { LazyMount } from './components/LazyMount';
 import { ControlPanel } from './components/ControlPanel';
 import { CanvasStage } from './components/CanvasStage';
-import { FaviconExportModal } from './components/FaviconExportModal';
-import { TemplateGalleryModal } from './components/TemplateGalleryModal';
-import { LiveMockupsModal } from './components/LiveMockupsModal';
-import { SavedProjectsModal } from './components/SavedProjectsModal';
-import { FeatureGraphicModal } from './components/FeatureGraphicModal';
-import { UniversalImageResizerModal } from './components/UniversalImageResizerModal';
-import { SocialMediaKitModal } from './components/SocialMediaKitModal';
-import { ImageCropTrimModal } from './components/ImageCropTrimModal';
-import { AILogoGeneratorModal } from './components/AILogoGeneratorModal';
-import { YouTubeKitModal } from './components/YouTubeKitModal';
-import { GooglePlayPolicyModal } from './components/GooglePlayPolicyModal';
 import { LogoConfig, SupportedLanguage, Template } from './types';
 import { DEFAULT_LOGO_CONFIG } from './utils/templates';
 import {
   loadCurrentProject,
   saveCurrentProject,
   saveProjectToList,
+  StorageFailure,
 } from './utils/storage';
+import {
+  intakeImageFile,
+  isIntakeFailure,
+  MAX_UPLOAD_BYTES,
+  formatBytes,
+  ACCEPT_ATTRIBUTE,
+} from './utils/imageIntake';
 import { generateSvgString } from './utils/canvasRenderer';
-import { smartImportImage, readFileAsDataUrl } from './utils/smartImport';
+import { smartImportImage } from './utils/smartImport';
 import { runProductionComplianceCheck } from './utils/productionCheck';
 
+
+// Every modal is code-split: none of them is needed to paint the first frame,
+// and together with JSZip they were most of a 990 kB entry bundle.
+const FaviconExportModal = lazy(() => import('./components/FaviconExportModal').then((m) => ({ default: m.FaviconExportModal })));
+const TemplateGalleryModal = lazy(() => import('./components/TemplateGalleryModal').then((m) => ({ default: m.TemplateGalleryModal })));
+const LiveMockupsModal = lazy(() => import('./components/LiveMockupsModal').then((m) => ({ default: m.LiveMockupsModal })));
+const SavedProjectsModal = lazy(() => import('./components/SavedProjectsModal').then((m) => ({ default: m.SavedProjectsModal })));
+const FeatureGraphicModal = lazy(() => import('./components/FeatureGraphicModal').then((m) => ({ default: m.FeatureGraphicModal })));
+const UniversalImageResizerModal = lazy(() => import('./components/UniversalImageResizerModal').then((m) => ({ default: m.UniversalImageResizerModal })));
+const SocialMediaKitModal = lazy(() => import('./components/SocialMediaKitModal').then((m) => ({ default: m.SocialMediaKitModal })));
+const ImageCropTrimModal = lazy(() => import('./components/ImageCropTrimModal').then((m) => ({ default: m.ImageCropTrimModal })));
+const AILogoGeneratorModal = lazy(() => import('./components/AILogoGeneratorModal').then((m) => ({ default: m.AILogoGeneratorModal })));
+const YouTubeKitModal = lazy(() => import('./components/YouTubeKitModal').then((m) => ({ default: m.YouTubeKitModal })));
+const GooglePlayPolicyModal = lazy(() => import('./components/GooglePlayPolicyModal').then((m) => ({ default: m.GooglePlayPolicyModal })));
+
+/**
+ * The opening design is a sample, so it should read in the user's language.
+ *
+ * The risk is overwriting real work: once someone types their own brand name,
+ * switching language must never touch it. So the swap is gated on the text
+ * still matching one of the samples — in any language. Anything else is the
+ * user's, and is left alone. No extra flag on the saved project is needed.
+ */
+const SAMPLE_KEYS = { text: 'common.sampleBrandName', tagline: 'common.sampleTagline' } as const;
+
+function isUntouchedSample(
+  value: string,
+  key: string,
+  i18nInstance: { getFixedT: (lng: string) => (k: string) => string; options: { resources?: object } }
+): boolean {
+  if (!value.trim()) return true;
+  const languages = Object.keys(i18nInstance.options.resources ?? { en: 1, ar: 1 });
+  return languages.some((lng) => i18nInstance.getFixedT(lng)(key) === value);
+}
+
 const HISTORY_LIMIT = 30;
+/** Edits to one field closer together than this collapse into a single step. */
+const HISTORY_COALESCE_MS = 700;
 
 export function App() {
   const { t, i18n } = useTranslation();
@@ -38,19 +73,57 @@ export function App() {
     document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
   }, [language]);
 
-  // Production and Google Play compliance check on application mount
+  // Development-only. Shipping this to users logged a report nobody reads and
+  // put the developer's email in the production bundle.
   useEffect(() => {
-    runProductionComplianceCheck();
+    if (!import.meta.env.DEV) return;
+    void runProductionComplianceCheck();
   }, []);
 
-  const [config, setConfig] = useState<LogoConfig>(() => loadCurrentProject());
+  /** A fresh project, with the sample copy in the current language. */
+  const makeBlankProject = useCallback(
+    (): LogoConfig => ({
+      ...DEFAULT_LOGO_CONFIG,
+      id: `proj_${Date.now()}`,
+      text: t(SAMPLE_KEYS.text),
+      tagline: t(SAMPLE_KEYS.tagline),
+    }),
+    [t]
+  );
+
+  const [config, setConfig] = useState<LogoConfig>(DEFAULT_LOGO_CONFIG);
+  const [isRestoring, setIsRestoring] = useState<boolean>(true);
 
   // Undo stack and cursor live in one state value
   const [history, setHistory] = useState<{ entries: LogoConfig[]; index: number }>(() => ({
-    entries: [config],
+    entries: [DEFAULT_LOGO_CONFIG],
     index: 0,
   }));
   const [lastSavedAt, setLastSavedAt] = useState<number>(Date.now());
+  const [storageWarning, setStorageWarning] = useState<StorageFailure | null>(null);
+
+  // Restore the last session. Projects live in IndexedDB, so this is async;
+  // until it resolves the canvas shows the default design rather than a
+  // half-loaded one.
+  useEffect(() => {
+    let cancelled = false;
+
+    loadCurrentProject().then((stored) => {
+      if (cancelled) return;
+      // Nothing saved yet means this is a first run, so open on the sample
+      // rather than an empty canvas.
+      const restored = stored.text || stored.tagline ? stored : makeBlankProject();
+      setConfig(restored);
+      setHistory({ entries: [restored], index: 0 });
+      setIsRestoring(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+    // Runs once: makeBlankProject only supplies the sample copy for a first run.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Modal open states
   const [isTemplatesOpen, setIsTemplatesOpen] = useState<boolean>(false);
@@ -82,16 +155,54 @@ export function App() {
     localStorage.setItem('logo_studio_lang', nextLang);
   };
 
-  // Debounced auto-save of whatever is currently on the canvas.
+  // Re-language the sample copy when the interface language changes — but
+  // only while it is still the sample. The moment the user types their own
+  // brand name it is their work, and switching language leaves it untouched.
   useEffect(() => {
-    const timer = setTimeout(() => {
-      saveCurrentProject(config);
-      setLastSavedAt(Date.now());
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [config]);
+    if (isRestoring) return;
 
-  // State change with History support & Partial Patch Safety
+    setConfig((current) => {
+      const nextText = isUntouchedSample(current.text, SAMPLE_KEYS.text, i18n)
+        ? t(SAMPLE_KEYS.text)
+        : current.text;
+      const nextTagline = isUntouchedSample(current.tagline, SAMPLE_KEYS.tagline, i18n)
+        ? t(SAMPLE_KEYS.tagline)
+        : current.tagline;
+
+      if (nextText === current.text && nextTagline === current.tagline) return current;
+      return { ...current, text: nextText, tagline: nextTagline };
+    });
+    // Deliberately keyed on the language alone: this reacts to the switch,
+    // not to every edit the user makes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language, isRestoring]);
+
+  // Debounced auto-save of whatever is currently on the canvas. Held back
+  // until the restore finishes, so an empty default never overwrites saved work.
+  useEffect(() => {
+    if (isRestoring) return;
+
+    const timer = setTimeout(() => {
+      void saveCurrentProject(config).then((result) => {
+        if (result.ok) {
+          setLastSavedAt(Date.now());
+          setStorageWarning(null);
+        } else {
+          // Reporting "saved" over a failed write is how work goes missing.
+          setStorageWarning(result.failure ?? 'unknown');
+        }
+      });
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [config, isRestoring]);
+
+  // Typing in a text field fires one change per keystroke. Without coalescing,
+  // a 30-character brand name consumed the entire undo stack and Ctrl+Z became
+  // useless, so consecutive edits that touch the same single field within a
+  // short window replace the previous entry instead of appending to it.
+  const lastEditRef = useRef<{ key: string; at: number } | null>(null);
+
   const handleConfigChange = useCallback(
     (newConfigOrPatch: LogoConfig | Partial<LogoConfig>) => {
       const merged: LogoConfig = {
@@ -101,9 +212,29 @@ export function App() {
         updatedAt: Date.now(),
       };
 
+      // A patch touching exactly one field is a candidate for coalescing;
+      // anything wider (a template, an import) is always its own step.
+      const touched = Object.keys(newConfigOrPatch).filter((key) => key !== 'updatedAt');
+      const editKey = touched.length === 1 ? touched[0] : null;
+      const now = Date.now();
+      const previous = lastEditRef.current;
+      const coalesce =
+        editKey !== null &&
+        previous !== null &&
+        previous.key === editKey &&
+        now - previous.at < HISTORY_COALESCE_MS;
+
+      lastEditRef.current = editKey ? { key: editKey, at: now } : null;
+
       setConfig(merged);
       setHistory((prev) => {
         const entries = prev.entries.slice(0, prev.index + 1);
+
+        if (coalesce && entries.length > 1) {
+          entries[entries.length - 1] = merged;
+          return { entries, index: entries.length - 1 };
+        }
+
         entries.push(merged);
         if (entries.length > HISTORY_LIMIT) entries.shift();
         return { entries, index: entries.length - 1 };
@@ -114,6 +245,7 @@ export function App() {
 
   // Undo / Redo
   const handleUndo = useCallback(() => {
+    lastEditRef.current = null;
     if (history.index <= 0) return;
     const index = history.index - 1;
     setHistory({ entries: history.entries, index });
@@ -121,6 +253,7 @@ export function App() {
   }, [history]);
 
   const handleRedo = useCallback(() => {
+    lastEditRef.current = null;
     if (history.index >= history.entries.length - 1) return;
     const index = history.index + 1;
     setHistory({ entries: history.entries, index });
@@ -128,20 +261,27 @@ export function App() {
   }, [history]);
 
   // Quick Manual Save
-  const handleQuickSave = useCallback(() => {
+  const handleQuickSave = useCallback(async () => {
     const currentConf = configRef.current;
     const thumb = generateSvgString(currentConf, 200);
-    saveProjectToList(currentConf, thumb);
+    const result = await saveProjectToList(currentConf, thumb);
+
+    if (!result.ok) {
+      setStorageWarning(result.failure ?? 'unknown');
+      return;
+    }
+
     const now = Date.now();
     setLastSavedAt(now);
+    setStorageWarning(null);
 
     setSaveToast({
       id: now,
-      title: t('common.saveSuccess'),
+      title: t('common.savedSuccessfully'),
       projectName:
         currentConf.text ||
         currentConf.name ||
-        t('common.untitled'),
+        t('common.untitledProject'),
     });
   }, [t]);
 
@@ -167,11 +307,7 @@ export function App() {
 
   // New blank project
   const handleNewProject = () => {
-    const blank: LogoConfig = {
-      ...DEFAULT_LOGO_CONFIG,
-      id: 'proj_' + Date.now(),
-    };
-    handleConfigChange(blank);
+    handleConfigChange(makeBlankProject());
   };
 
   // ---------------------------------------------------------------------
@@ -186,10 +322,19 @@ export function App() {
     e.target.value = '';
     if (!file) return;
 
-    setImportStatus(t('navbar.smartImport'));
+    setImportStatus(t('nav.smartImport'));
     try {
-      const dataUrl = await readFileAsDataUrl(file);
-      const result = await smartImportImage(dataUrl, { autoTrim: true });
+      const intake = await intakeImageFile(file);
+      if (isIntakeFailure(intake)) {
+        setImportStatus(
+          intake.reason === 'too-large'
+            ? t('common.imageTooLarge', { limit: formatBytes(MAX_UPLOAD_BYTES) })
+            : t('common.imageUnreadable')
+        );
+        return;
+      }
+
+      const result = await smartImportImage(intake.dataUrl, { autoTrim: true });
 
       handleConfigChange({
         ...result.patch,
@@ -199,7 +344,7 @@ export function App() {
 
       setImportStatus(
         result.trimmedPercent > 0
-          ? `${t('imageEditor.cropTrim')} (${result.trimmedPercent}%)`
+          ? `${t('imageCropTrimModal.title')} (${result.trimmedPercent}%)`
           : t('common.ready')
       );
 
@@ -207,14 +352,27 @@ export function App() {
       setIsFaviconExportOpen(true);
     } catch (err) {
       console.error('Smart import failed:', err);
-      setImportStatus(isAr ? 'تعذر استيراد الصورة' : 'Could not import the image');
+      setImportStatus(t('common.imageUnreadable'));
     } finally {
       setTimeout(() => setImportStatus(null), 5000);
     }
   };
 
   // Open interactive Crop & Auto-Trim Modal
+  // Object URLs created for the crop modal are tracked so they can be released;
+  // previously each open leaked one for the lifetime of the page.
+  const cropObjectUrlRef = useRef<string | null>(null);
+
+  const releaseCropObjectUrl = useCallback(() => {
+    if (cropObjectUrlRef.current) {
+      URL.revokeObjectURL(cropObjectUrlRef.current);
+      cropObjectUrlRef.current = null;
+    }
+  }, []);
+
   const handleOpenCropTrim = (customSrc?: string) => {
+    releaseCropObjectUrl();
+
     if (customSrc) {
       setCropImageSource(customSrc);
     } else if (config.uploadedImageSrc) {
@@ -223,10 +381,15 @@ export function App() {
       const svg = generateSvgString(config, 512);
       const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(blob);
+      cropObjectUrlRef.current = url;
       setCropImageSource(url);
     }
+
     setIsCropTrimModalOpen(true);
   };
+
+  // Release the last one when the app unmounts.
+  useEffect(() => releaseCropObjectUrl, [releaseCropObjectUrl]);
 
   // Keyboard Shortcuts (Shift+S for Quick Save, Ctrl+S, Ctrl+Z, Ctrl+Y, Ctrl+E)
   useEffect(() => {
@@ -249,7 +412,7 @@ export function App() {
       ) {
         if (!isInput) {
           e.preventDefault();
-          handleQuickSave();
+          void handleQuickSave();
           return;
         }
       }
@@ -257,7 +420,7 @@ export function App() {
       // Standard Ctrl+S / Cmd+S for Quick Save
       if ((e.metaKey || e.ctrlKey) && (e.key === 's' || e.key === 'S') && !e.shiftKey) {
         e.preventDefault();
-        handleQuickSave();
+        void handleQuickSave();
         return;
       }
 
@@ -289,21 +452,45 @@ export function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleUndo, handleRedo, handleQuickSave]);
 
-  const displayProjectName = config.text || config.name || t('common.untitled');
+  const displayProjectName = config.text || config.name || t('common.untitledProject');
 
   return (
     <div
       dir={language === 'ar' ? 'rtl' : 'ltr'}
-      className="flex flex-col h-screen w-screen bg-slate-50 text-slate-900 font-sans antialiased overflow-hidden select-none"
+      className="flex flex-col h-screen w-screen bg-slate-50 text-slate-900 font-sans antialiased overflow-hidden"
     >
       {/* Hidden picker driving the one-shot image -> package pipeline */}
       <input
         type="file"
         ref={smartImportInputRef}
         onChange={handleSmartImportFile}
-        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+        accept={ACCEPT_ATTRIBUTE}
         className="hidden"
       />
+
+      {/* Storage problems are loud: a silent failure here loses the user's work. */}
+      {storageWarning && (
+        <div
+          role="alert"
+          className="shrink-0 flex items-start gap-3 px-4 py-2.5 bg-amber-50 border-b border-amber-300 text-amber-900"
+        >
+          <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-amber-600" />
+          <p className="text-xs font-semibold leading-relaxed flex-1">
+            {storageWarning === 'quota'
+              ? t('common.storageQuotaFull')
+              : storageWarning === 'unavailable'
+                ? t('common.storageUnavailable')
+                : t('common.storageFailed')}
+          </p>
+          <button
+            onClick={() => setStorageWarning(null)}
+            className="p-0.5 rounded hover:bg-amber-100 transition-colors cursor-pointer shrink-0"
+            aria-label={t('common.close')}
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Pipeline progress / result toast */}
       {importStatus && (
@@ -371,7 +558,7 @@ export function App() {
       <footer className="h-9 bg-white border-t border-slate-200 flex items-center justify-between px-3 sm:px-6 text-[11px] font-medium text-slate-500 shrink-0">
         <div className="flex items-center gap-3">
           <span className="truncate max-w-[140px] sm:max-w-none">
-            {t('navbar.projectsVault')}: <strong className="text-slate-700 font-semibold">{displayProjectName}</strong>
+            {t('nav.saved')}: <strong className="text-slate-700 font-semibold">{displayProjectName}</strong>
           </span>
           <span className="hidden sm:inline text-slate-300">|</span>
           <span className="hidden sm:inline font-mono">{t('common.resolution')}: 512 × 512 px</span>
@@ -382,127 +569,148 @@ export function App() {
             className="flex items-center gap-1 font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-md border border-emerald-200 transition-colors cursor-pointer"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            <span>{isAr ? '🔒 سياسة الخصوصية و Google Play' : '🔒 Privacy & Google Play'}</span>
+            <span>🔒 {t('nav.privacyAndPlay')}</span>
           </button>
           <span className="hidden md:inline text-slate-400 font-mono">v1.5.0</span>
         </div>
       </footer>
 
-      {/* MODALS */}
+      {/* MODALS — loaded on demand */}
+      <Suspense fallback={null}>
       {/* 0. AI Logo & YouTube Banner Generator with Gemini AI */}
-      <AILogoGeneratorModal
-        isOpen={isAIGeneratorOpen}
-        onClose={() => setIsAIGeneratorOpen(false)}
-        language={language}
-        config={config}
-        onApplyLogo={(updates) => {
-          handleConfigChange(updates);
-        }}
-        onOpenYouTubeKit={() => {
-          setIsAIGeneratorOpen(false);
-          setIsYouTubeKitOpen(true);
-        }}
-        onOpenFaviconExport={() => {
-          setIsAIGeneratorOpen(false);
-          setIsFaviconExportOpen(true);
-        }}
-        onOpenFeatureGraphic={() => {
-          setIsAIGeneratorOpen(false);
-          setIsFeatureGraphicOpen(true);
-        }}
-        onOpenUniversalResizer={() => {
-          setIsAIGeneratorOpen(false);
-          setIsUniversalResizerOpen(true);
-        }}
-        onOpenMockups={() => {
-          setIsAIGeneratorOpen(false);
-          setIsMockupsOpen(true);
-        }}
-      />
+      <LazyMount when={isAIGeneratorOpen}>
+        <AILogoGeneratorModal
+          isOpen={isAIGeneratorOpen}
+          onClose={() => setIsAIGeneratorOpen(false)}
+          language={language}
+          config={config}
+          onApplyLogo={(updates) => {
+            handleConfigChange(updates);
+          }}
+          onOpenYouTubeKit={() => {
+            setIsAIGeneratorOpen(false);
+            setIsYouTubeKitOpen(true);
+          }}
+          onOpenFaviconExport={() => {
+            setIsAIGeneratorOpen(false);
+            setIsFaviconExportOpen(true);
+          }}
+          onOpenFeatureGraphic={() => {
+            setIsAIGeneratorOpen(false);
+            setIsFeatureGraphicOpen(true);
+          }}
+          onOpenUniversalResizer={() => {
+            setIsAIGeneratorOpen(false);
+            setIsUniversalResizerOpen(true);
+          }}
+          onOpenMockups={() => {
+            setIsAIGeneratorOpen(false);
+            setIsMockupsOpen(true);
+          }}
+        />
+      </LazyMount>
 
       {/* 0. Dedicated YouTube Channel Branding Studio */}
-      <YouTubeKitModal
-        isOpen={isYouTubeKitOpen}
-        onClose={() => setIsYouTubeKitOpen(false)}
-        config={config}
-        lang={language}
-        onOpenAIGenerator={() => {
-          setIsYouTubeKitOpen(false);
-          setIsAIGeneratorOpen(true);
-        }}
-      />
+      <LazyMount when={isYouTubeKitOpen}>
+        <YouTubeKitModal
+          isOpen={isYouTubeKitOpen}
+          onClose={() => setIsYouTubeKitOpen(false)}
+          config={config}
+          onOpenAIGenerator={() => {
+            setIsYouTubeKitOpen(false);
+            setIsAIGeneratorOpen(true);
+          }}
+        />
+      </LazyMount>
 
       {/* 1. Universal Image Resizer & Multi-Size Converter */}
-      <UniversalImageResizerModal
-        isOpen={isUniversalResizerOpen}
-        onClose={() => setIsUniversalResizerOpen(false)}
-        language={language}
-        currentLogoConfig={config}
-      />
+      <LazyMount when={isUniversalResizerOpen}>
+        <UniversalImageResizerModal
+          isOpen={isUniversalResizerOpen}
+          onClose={() => setIsUniversalResizerOpen(false)}
+          language={language}
+          currentLogoConfig={config}
+        />
+      </LazyMount>
 
       {/* 2. Complete Favicon Package & Export Suite */}
-      <FaviconExportModal
-        isOpen={isFaviconExportOpen}
-        onClose={() => setIsFaviconExportOpen(false)}
-        config={config}
-        language={language}
-      />
+      <LazyMount when={isFaviconExportOpen}>
+        <FaviconExportModal
+          isOpen={isFaviconExportOpen}
+          onClose={() => setIsFaviconExportOpen(false)}
+          config={config}
+          language={language}
+        />
+      </LazyMount>
 
       {/* 3. Social Media Design Kit */}
-      <SocialMediaKitModal
-        isOpen={isSocialMediaKitOpen}
-        onClose={() => setIsSocialMediaKitOpen(false)}
-        config={config}
-        lang={language}
-        onOpenYouTubeKit={() => {
-          setIsSocialMediaKitOpen(false);
-          setIsYouTubeKitOpen(true);
-        }}
-        onOpenAIGenerator={() => {
-          setIsSocialMediaKitOpen(false);
-          setIsAIGeneratorOpen(true);
-        }}
-      />
+      <LazyMount when={isSocialMediaKitOpen}>
+        <SocialMediaKitModal
+          isOpen={isSocialMediaKitOpen}
+          onClose={() => setIsSocialMediaKitOpen(false)}
+          config={config}
+          lang={language}
+          onOpenYouTubeKit={() => {
+            setIsSocialMediaKitOpen(false);
+            setIsYouTubeKitOpen(true);
+          }}
+          onOpenAIGenerator={() => {
+            setIsSocialMediaKitOpen(false);
+            setIsAIGeneratorOpen(true);
+          }}
+        />
+      </LazyMount>
 
       {/* 4. Google Play Feature Graphic Modal */}
-      <FeatureGraphicModal
-        isOpen={isFeatureGraphicOpen}
-        onClose={() => setIsFeatureGraphicOpen(false)}
-        config={config}
-        language={language}
-      />
+      <LazyMount when={isFeatureGraphicOpen}>
+        <FeatureGraphicModal
+          isOpen={isFeatureGraphicOpen}
+          onClose={() => setIsFeatureGraphicOpen(false)}
+          config={config}
+          language={language}
+        />
+      </LazyMount>
 
       {/* 5. Templates Gallery */}
-      <TemplateGalleryModal
-        isOpen={isTemplatesOpen}
-        onClose={() => setIsTemplatesOpen(false)}
-        currentConfig={config}
-        onSelectTemplate={handleSelectTemplate}
-        language={language}
-      />
+      <LazyMount when={isTemplatesOpen}>
+        <TemplateGalleryModal
+          isOpen={isTemplatesOpen}
+          onClose={() => setIsTemplatesOpen(false)}
+          currentConfig={config}
+          onSelectTemplate={handleSelectTemplate}
+          language={language}
+        />
+      </LazyMount>
 
       {/* 6. Realistic Live Mockups */}
-      <LiveMockupsModal
-        isOpen={isMockupsOpen}
-        onClose={() => setIsMockupsOpen(false)}
-        config={config}
-        language={language}
-      />
+      <LazyMount when={isMockupsOpen}>
+        <LiveMockupsModal
+          isOpen={isMockupsOpen}
+          onClose={() => setIsMockupsOpen(false)}
+          config={config}
+          language={language}
+        />
+      </LazyMount>
 
       {/* 7. Saved Projects Vault */}
-      <SavedProjectsModal
-        isOpen={isSavedProjectsOpen}
-        onClose={() => setIsSavedProjectsOpen(false)}
-        onLoadProject={(loaded) => handleConfigChange(loaded)}
-        onNewProject={handleNewProject}
-        language={language}
-      />
+      <LazyMount when={isSavedProjectsOpen}>
+        <SavedProjectsModal
+          isOpen={isSavedProjectsOpen}
+          onClose={() => setIsSavedProjectsOpen(false)}
+          onLoadProject={(loaded) => handleConfigChange(loaded)}
+          onNewProject={handleNewProject}
+          language={language}
+        />
+      </LazyMount>
 
       {/* 8. Image Auto-Trim & Manual Crop Modal */}
       {isCropTrimModalOpen && (
         <ImageCropTrimModal
           isOpen={isCropTrimModalOpen}
-          onClose={() => setIsCropTrimModalOpen(false)}
+          onClose={() => {
+            setIsCropTrimModalOpen(false);
+            releaseCropObjectUrl();
+          }}
           initialImageSrc={cropImageSource || config.uploadedImageSrc || ''}
           language={language}
           onApplyCrop={(croppedDataUrl) => {
@@ -514,16 +722,21 @@ export function App() {
               uploadedImageOffsetY: 0,
             });
             setIsCropTrimModalOpen(false);
+            releaseCropObjectUrl();
           }}
         />
       )}
 
       {/* 9. Google Play Compliance & Privacy Policy Modal */}
-      <GooglePlayPolicyModal
-        isOpen={isGooglePlayPolicyOpen}
-        onClose={() => setIsGooglePlayPolicyOpen(false)}
-        language={language}
-      />
+      <LazyMount when={isGooglePlayPolicyOpen}>
+        <GooglePlayPolicyModal
+          isOpen={isGooglePlayPolicyOpen}
+          onClose={() => setIsGooglePlayPolicyOpen(false)}
+          language={language}
+        />
+      </LazyMount>
+
+      </Suspense>
 
       {/* Quick Save Toast Notification */}
       {saveToast && (

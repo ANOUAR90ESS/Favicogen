@@ -1,22 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import React, { useState } from 'react';
 import {
-  Palette,
-  Pipette,
   Plus,
   Trash2,
-  Bookmark,
-  Check,
-  Sparkles,
   Sliders,
-  Copy,
-} from 'lucide-react';
-import { SupportedLanguage, SavedColorPalette } from '../types';
+  } from 'lucide-react';
+import { SavedColorPalette } from '../types';
 
 interface AdvancedColorPickerProps {
   label: string;
   color: string;
   onChange: (color: string) => void;
-  language: SupportedLanguage;
   showShades?: boolean;
 }
 
@@ -110,16 +104,16 @@ function generateTintsAndShades(hex: string): string[] {
 }
 
 // Generate color harmonies
-function generateHarmonies(hex: string): { name: string; colors: string[] }[] {
+function generateHarmonies(hex: string): { nameKey: string; colors: string[] }[] {
   const rgb = hexToRgb(hex);
   const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
   return [
     {
-      name: 'Complementary (المكمل)',
+      nameKey: 'colorPicker.harmonyComplementary',
       colors: [hex, hslToHex((hsl.h + 180) % 360, hsl.s, hsl.l)],
     },
     {
-      name: 'Triadic (ثلاثي متناسق)',
+      nameKey: 'colorPicker.harmonyTriadic',
       colors: [
         hex,
         hslToHex((hsl.h + 120) % 360, hsl.s, hsl.l),
@@ -127,7 +121,7 @@ function generateHarmonies(hex: string): { name: string; colors: string[] }[] {
       ],
     },
     {
-      name: 'Analogous (متجاور)',
+      nameKey: 'colorPicker.harmonyAnalogous',
       colors: [
         hslToHex((hsl.h + 330) % 360, hsl.s, hsl.l),
         hex,
@@ -143,16 +137,17 @@ export const AdvancedColorPicker: React.FC<AdvancedColorPickerProps> = ({
   label,
   color,
   onChange,
-  language,
   showShades = true,
 }) => {
-  const isAr = language === 'ar';
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [savedPalettes, setSavedPalettes] = useState<SavedColorPalette[]>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_PALETTES_KEY);
       if (stored) return JSON.parse(stored);
-    } catch (e) {}
+    } catch {
+      // A corrupt saved palette is not worth surfacing; fall back to defaults.
+    }
     return [
       { id: '1', name: 'Cyber Indigo', colors: ['#4338ca', '#312e81', '#38bdf8', '#818cf8'] },
       { id: '2', name: 'Royal Gold', colors: ['#18140c', '#facc15', '#ca8a04', '#fef08a'] },
@@ -168,7 +163,7 @@ export const AdvancedColorPicker: React.FC<AdvancedColorPickerProps> = ({
   const handleSavePalette = () => {
     const newPal: SavedColorPalette = {
       id: 'pal_' + Date.now(),
-      name: `${isAr ? 'مجموعة' : 'Palette'} #${savedPalettes.length + 1}`,
+      name: `${t('colorPicker.palette')} #${savedPalettes.length + 1}`,
       colors: [color, ...shades.slice(0, 3)],
     };
     const updated = [newPal, ...savedPalettes];
@@ -195,7 +190,7 @@ export const AdvancedColorPicker: React.FC<AdvancedColorPickerProps> = ({
           className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
         >
           <Sliders className="h-3 w-3" />
-          <span>{isOpen ? (isAr ? 'إغلاق المحرر' : 'Close') : isAr ? 'محرر الألوان المتقدم' : 'Color Wheel'}</span>
+          <span>{isOpen ? (t('colorPicker.close')) : t('colorPicker.colorWheel')}</span>
         </button>
       </div>
 
@@ -242,7 +237,7 @@ export const AdvancedColorPicker: React.FC<AdvancedColorPickerProps> = ({
           <div className="space-y-2">
             <div className="space-y-1">
               <div className="flex justify-between text-[10px] font-semibold text-slate-600">
-                <span>{isAr ? 'درجة اللون (Hue)' : 'Hue'}</span>
+                <span>{t('colorPicker.hue')}</span>
                 <span className="font-mono">{hsl.h}°</span>
               </div>
               <input
@@ -261,7 +256,7 @@ export const AdvancedColorPicker: React.FC<AdvancedColorPickerProps> = ({
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <div className="flex justify-between text-[10px] font-semibold text-slate-600">
-                  <span>{isAr ? 'التشبع (Saturation)' : 'Saturation'}</span>
+                  <span>{t('colorPicker.saturation')}</span>
                   <span className="font-mono">{hsl.s}%</span>
                 </div>
                 <input
@@ -276,7 +271,7 @@ export const AdvancedColorPicker: React.FC<AdvancedColorPickerProps> = ({
 
               <div className="space-y-1">
                 <div className="flex justify-between text-[10px] font-semibold text-slate-600">
-                  <span>{isAr ? 'الإضاءة (Lightness)' : 'Lightness'}</span>
+                  <span>{t('colorPicker.lightness')}</span>
                   <span className="font-mono">{hsl.l}%</span>
                 </div>
                 <input
@@ -294,12 +289,12 @@ export const AdvancedColorPicker: React.FC<AdvancedColorPickerProps> = ({
           {/* Color Harmonies */}
           <div className="space-y-1.5 pt-2 border-t border-slate-200">
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-              {isAr ? 'تناسقات الألوان المتوافقة' : 'Harmonies'}
+              {t('colorPicker.harmonies')}
             </span>
             <div className="space-y-1.5">
               {harmonies.map((harm, idx) => (
                 <div key={idx} className="flex items-center justify-between text-xs">
-                  <span className="text-[10px] text-slate-600 font-medium">{harm.name}</span>
+                  <span className="text-[10px] text-slate-600 font-medium">{t(harm.nameKey)}</span>
                   <div className="flex gap-1">
                     {harm.colors.map((c, i) => (
                       <button
@@ -321,7 +316,7 @@ export const AdvancedColorPicker: React.FC<AdvancedColorPickerProps> = ({
           <div className="space-y-2 pt-2 border-t border-slate-200">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                {isAr ? 'مجموعاتي المحفوظة' : 'My Saved Palettes'}
+                {t('colorPicker.mySavedPalettes')}
               </span>
               <button
                 type="button"
@@ -329,7 +324,7 @@ export const AdvancedColorPicker: React.FC<AdvancedColorPickerProps> = ({
                 className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100"
               >
                 <Plus className="h-2.5 w-2.5" />
-                <span>{isAr ? 'حفظ اللون' : 'Save'}</span>
+                <span>{t('colorPicker.save')}</span>
               </button>
             </div>
 
