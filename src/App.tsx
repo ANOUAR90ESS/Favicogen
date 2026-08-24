@@ -39,6 +39,26 @@ const AILogoGeneratorModal = lazy(() => import('./components/AILogoGeneratorModa
 const YouTubeKitModal = lazy(() => import('./components/YouTubeKitModal').then((m) => ({ default: m.YouTubeKitModal })));
 const GooglePlayPolicyModal = lazy(() => import('./components/GooglePlayPolicyModal').then((m) => ({ default: m.GooglePlayPolicyModal })));
 
+/**
+ * The opening design is a sample, so it should read in the user's language.
+ *
+ * The risk is overwriting real work: once someone types their own brand name,
+ * switching language must never touch it. So the swap is gated on the text
+ * still matching one of the samples — in any language. Anything else is the
+ * user's, and is left alone. No extra flag on the saved project is needed.
+ */
+const SAMPLE_KEYS = { text: 'common.sampleBrandName', tagline: 'common.sampleTagline' } as const;
+
+function isUntouchedSample(
+  value: string,
+  key: string,
+  i18nInstance: { getFixedT: (lng: string) => (k: string) => string; options: { resources?: object } }
+): boolean {
+  if (!value.trim()) return true;
+  const languages = Object.keys(i18nInstance.options.resources ?? { en: 1, ar: 1 });
+  return languages.some((lng) => i18nInstance.getFixedT(lng)(key) === value);
+}
+
 const HISTORY_LIMIT = 30;
 /** Edits to one field closer together than this collapse into a single step. */
 const HISTORY_COALESCE_MS = 700;
@@ -60,6 +80,17 @@ export function App() {
     void runProductionComplianceCheck();
   }, []);
 
+  /** A fresh project, with the sample copy in the current language. */
+  const makeBlankProject = useCallback(
+    (): LogoConfig => ({
+      ...DEFAULT_LOGO_CONFIG,
+      id: `proj_${Date.now()}`,
+      text: t(SAMPLE_KEYS.text),
+      tagline: t(SAMPLE_KEYS.tagline),
+    }),
+    [t]
+  );
+
   const [config, setConfig] = useState<LogoConfig>(DEFAULT_LOGO_CONFIG);
   const [isRestoring, setIsRestoring] = useState<boolean>(true);
 
@@ -77,8 +108,11 @@ export function App() {
   useEffect(() => {
     let cancelled = false;
 
-    loadCurrentProject().then((restored) => {
+    loadCurrentProject().then((stored) => {
       if (cancelled) return;
+      // Nothing saved yet means this is a first run, so open on the sample
+      // rather than an empty canvas.
+      const restored = stored.text || stored.tagline ? stored : makeBlankProject();
       setConfig(restored);
       setHistory({ entries: [restored], index: 0 });
       setIsRestoring(false);
@@ -87,6 +121,8 @@ export function App() {
     return () => {
       cancelled = true;
     };
+    // Runs once: makeBlankProject only supplies the sample copy for a first run.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Modal open states
@@ -118,6 +154,28 @@ export function App() {
     i18n.changeLanguage(nextLang);
     localStorage.setItem('logo_studio_lang', nextLang);
   };
+
+  // Re-language the sample copy when the interface language changes — but
+  // only while it is still the sample. The moment the user types their own
+  // brand name it is their work, and switching language leaves it untouched.
+  useEffect(() => {
+    if (isRestoring) return;
+
+    setConfig((current) => {
+      const nextText = isUntouchedSample(current.text, SAMPLE_KEYS.text, i18n)
+        ? t(SAMPLE_KEYS.text)
+        : current.text;
+      const nextTagline = isUntouchedSample(current.tagline, SAMPLE_KEYS.tagline, i18n)
+        ? t(SAMPLE_KEYS.tagline)
+        : current.tagline;
+
+      if (nextText === current.text && nextTagline === current.tagline) return current;
+      return { ...current, text: nextText, tagline: nextTagline };
+    });
+    // Deliberately keyed on the language alone: this reacts to the switch,
+    // not to every edit the user makes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language, isRestoring]);
 
   // Debounced auto-save of whatever is currently on the canvas. Held back
   // until the restore finishes, so an empty default never overwrites saved work.
@@ -249,11 +307,7 @@ export function App() {
 
   // New blank project
   const handleNewProject = () => {
-    const blank: LogoConfig = {
-      ...DEFAULT_LOGO_CONFIG,
-      id: 'proj_' + Date.now(),
-    };
-    handleConfigChange(blank);
+    handleConfigChange(makeBlankProject());
   };
 
   // ---------------------------------------------------------------------

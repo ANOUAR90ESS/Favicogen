@@ -1,5 +1,7 @@
 export const en = {
   common: {
+    sampleBrandName: 'Nebula',
+    sampleTagline: 'Smart technology solutions',
     imageTooLarge: 'That image is larger than {{limit}}. Pick a smaller file.',
     imageUnreadable: 'That file could not be read as an image.',
     storageQuotaFull: 'Your browser storage is full, so this design was not saved. Delete a few saved projects and try again.',

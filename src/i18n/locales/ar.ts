@@ -1,5 +1,7 @@
 export const ar = {
   common: {
+    sampleBrandName: 'سديم',
+    sampleTagline: 'حلول الذكاء والتقنية',
     imageTooLarge: 'حجم الصورة يتجاوز {{limit}}. اختر ملفاً أصغر.',
     imageUnreadable: 'تعذّرت قراءة هذا الملف كصورة.',
     storageQuotaFull: 'مساحة التخزين في المتصفح ممتلئة، فلم يُحفظ هذا التصميم. احذف بعض المشاريع المحفوظة ثم أعد المحاولة.',

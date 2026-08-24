@@ -97,9 +97,14 @@ A few decisions worth knowing before changing things:
   "عربي" label, since a language's name belongs in that language.
   `src/utils/` data modules are exempt too — they hold both languages side
   by side as `nameAr`/`nameEn` pairs, which is the right shape for data.
-- **Design content is not interface text.** The sample logo's brand name and
-  the template previews are Arabic on purpose; they are artwork the user
-  edits, not chrome, so they do not follow the interface language.
+- **Design content is not interface text** — with one deliberate exception.
+  The template previews are Arabic on purpose: they are artwork, not chrome.
+  The *opening* sample design is the exception; its brand name and tagline
+  follow the interface language, because a first-run sample is closer to a
+  welcome screen than to the user's work. The swap only ever applies while
+  the text still matches a sample in some language — the moment someone types
+  their own name, switching language leaves it alone. `sampleCopy.test.ts`
+  guards that rule.
 - **The AI feature is opt-in at runtime, not compile time.** It ships in the
   bundle and activates when `GEMINI_API_KEY` is present. If you do decide to
   remove it, four things go together: `AILogoGeneratorModal`, both
