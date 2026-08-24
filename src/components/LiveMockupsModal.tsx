@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { LogoConfig, SupportedLanguage } from '../types';
 import { generateSvgString, generateFeatureGraphicSvg } from '../utils/canvasRenderer';
+import { Modal } from './Modal';
 
 interface LiveMockupsModalProps {
   isOpen: boolean;
@@ -51,11 +52,14 @@ export const LiveMockupsModal: React.FC<LiveMockupsModalProps> = ({
   const brandName = config.text || config.name || 'Brand';
   const tagline = config.tagline || 'Next Generation Solutions';
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="flex flex-col w-full max-w-5xl max-h-[90vh] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      label={t('mockupsModal.title')}
+      className="flex flex-col w-full max-w-5xl max-h-[90vh] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden"
+      overlayClassName="z-50 p-3 sm:p-6 bg-slate-900/60"
+    >
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 bg-slate-50/80">
           <div className="flex items-center gap-3">
@@ -308,7 +312,6 @@ export const LiveMockupsModal: React.FC<LiveMockupsModalProps> = ({
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </Modal>
   );
 };

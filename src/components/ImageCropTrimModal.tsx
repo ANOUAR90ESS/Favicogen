@@ -28,6 +28,7 @@ import {
 } from '../utils/imageCropper';
 import { downloadBlob } from '../utils/canvasRenderer';
 import { intakeImageFile, isIntakeFailure, ACCEPT_ATTRIBUTE } from '../utils/imageIntake';
+import { Modal } from './Modal';
 
 interface ImageCropTrimModalProps {
   isOpen: boolean;
@@ -400,8 +401,6 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
     };
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
-  if (!isOpen) return null;
-
   // Calculate dynamic border radius style for preview box
   const getVisualBorderRadius = () => {
     if (activeTab === 'corner-round') {
@@ -418,12 +417,13 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
   };
 
   return (
-    <div
-      id="image-crop-trim-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-3 sm:p-5 overflow-y-auto animate-in fade-in duration-200"
-      dir={isAr ? 'rtl' : 'ltr'}
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      label={isAr ? 'قصّ الصورة وتشذيبها' : 'Crop and trim image'}
+      className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]"
+      overlayClassName="z-50 p-3 sm:p-5 bg-slate-950/80 overflow-y-auto"
     >
-      <div className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 bg-slate-50/90 shrink-0">
           <div className="flex items-center gap-3">
@@ -957,7 +957,6 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
             </div>
           </div>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 };

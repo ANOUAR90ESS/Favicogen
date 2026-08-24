@@ -26,6 +26,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { LogoConfig, SupportedLanguage } from '../types';
+import { Modal } from './Modal';
 
 interface AILogoGeneratorModalProps {
   isOpen: boolean;
@@ -150,8 +151,6 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const resultRef = useRef<HTMLDivElement>(null);
-
-  if (!isOpen) return null;
 
   const showToast = (msg: string) => {
     setSuccessToast(msg);
@@ -336,12 +335,13 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
   };
 
   return (
-    <div
-      id="ai-logo-generator-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-3 sm:p-6 overflow-y-auto"
-      dir={isAr ? 'rtl' : 'ltr'}
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      label={isAr ? 'مولّد الشعارات بالذكاء الاصطناعي' : 'AI Logo Generator'}
+      className="relative w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
+      overlayClassName="z-50 p-3 sm:p-6"
     >
-      <div className="relative w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 bg-slate-900/90 shrink-0">
           <div className="flex items-center gap-3">
@@ -805,7 +805,6 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </Modal>
   );
 };

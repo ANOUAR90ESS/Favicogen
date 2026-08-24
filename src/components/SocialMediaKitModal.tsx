@@ -33,6 +33,7 @@ import {
   generateSocialMediaKitZip,
 } from '../utils/canvasRenderer';
 import { downloadBlob, downloadSvg } from '../utils/download';
+import { Modal } from './Modal';
 
 interface SocialMediaKitModalProps {
   isOpen: boolean;
@@ -160,26 +161,16 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
     }
   };
 
-  if (!isOpen) return null;
-
   const isAr = lang === 'ar';
 
   return (
-    <div
-      id="social-media-kit-modal-overlay"
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-950/80 backdrop-blur-md overflow-y-auto"
-      dir={isAr ? 'rtl' : 'ltr'}
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      label={isAr ? 'مجموعة السوشيال ميديا' : 'Social media kit'}
+      className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-20"
+      overlayClassName="z-50 p-2 sm:p-4 md:p-6"
     >
-      <motion.div
-        id="social-media-kit-modal-container"
-        initial={{ opacity: 0, scale: 0.96, y: 16 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: 16 }}
-        transition={{ duration: 0.2 }}
-        className="relative w-full max-w-7xl max-h-[92vh] flex flex-col bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden text-slate-100"
-      >
-        {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-20">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
               <Share2 className="w-5 h-5 text-white" />
@@ -223,9 +214,17 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
               <X className="w-5 h-5" />
             </button>
           </div>
-        </div>
-
-        {/* Modal Body: Two-Column Workspace */}
+        
+<motion.div
+        id="social-media-kit-modal-container"
+        initial={{ opacity: 0, scale: 0.96, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 16 }}
+        transition={{ duration: 0.2 }}
+        className="relative w-full max-w-7xl max-h-[92vh] flex flex-col bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden text-slate-100"
+      >
+        {/* Modal Header */}
+{/* Modal Body: Two-Column Workspace */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
           
           {/* LEFT COLUMN: Customizer Controls (4 cols on lg) */}
@@ -709,6 +708,6 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
           </button>
         </div>
       </motion.div>
-    </div>
+</Modal>
   );
 };

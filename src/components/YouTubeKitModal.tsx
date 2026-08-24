@@ -31,6 +31,8 @@ import {
   rasterizeSvg,
   renderSvgToBlob,
 } from '../utils/canvasRenderer';
+import { useTranslation } from 'react-i18next';
+import { Modal } from './Modal';
 
 interface YouTubeKitModalProps {
   isOpen: boolean;
@@ -45,6 +47,7 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
   config,
   onOpenAIGenerator,
 }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'banner' | 'avatar' | 'watermark' | 'thumbnail' | 'channel-mockup'>('banner');
   const [previewDevice, setPreviewDevice] = useState<'all' | 'desktop' | 'mobile' | 'tv'>('all');
   const [showSafeZones, setShowSafeZones] = useState<boolean>(true);
@@ -92,8 +95,6 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
       720
     );
   }, [config, bannerOptions]);
-
-  if (!isOpen) return null;
 
   const handleDownloadAllZip = async () => {
     setIsExportingZip(true);
@@ -144,8 +145,13 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 sm:p-6 overflow-y-auto">
-      <div className="relative w-full max-w-6xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh]">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      label={t('youtubeKitModal.title')}
+      className="relative w-full max-w-6xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[94vh]"
+      overlayClassName="z-50 p-4 sm:p-6"
+    >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/95">
           <div className="flex items-center gap-3">
@@ -594,7 +600,6 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
             إغلاق
           </button>
         </div>
-      </div>
-    </div>
+      </Modal>
   );
 };

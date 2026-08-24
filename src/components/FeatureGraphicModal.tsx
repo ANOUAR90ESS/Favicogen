@@ -23,6 +23,7 @@ import {
   rasterizeSvg,
   downloadBlob,
 } from '../utils/canvasRenderer';
+import { Modal } from './Modal';
 
 interface FeatureGraphicModalProps {
   isOpen: boolean;
@@ -72,8 +73,6 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
     return generateFeatureGraphicSvg(config, options);
   }, [config, options]);
 
-  if (!isOpen) return null;
-
   // Direct Download Handler (PNG or JPEG)
   const handleDownload = async (format: 'png' | 'jpeg') => {
     try {
@@ -107,8 +106,13 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="flex flex-col w-full max-w-6xl max-h-[94vh] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      label={isAr ? 'صورة Google Play المميزة' : 'Google Play feature graphic'}
+      className="flex flex-col w-full max-w-6xl max-h-[94vh] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden"
+      overlayClassName="z-50 p-2 sm:p-4 md:p-6 bg-slate-900/70"
+    >
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 bg-slate-50/90">
           <div className="flex items-center gap-3">
@@ -446,7 +450,6 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </Modal>
   );
 };

@@ -396,7 +396,7 @@ export function App() {
   return (
     <div
       dir={language === 'ar' ? 'rtl' : 'ltr'}
-      className="flex flex-col h-screen w-screen bg-slate-50 text-slate-900 font-sans antialiased overflow-hidden select-none"
+      className="flex flex-col h-screen w-screen bg-slate-50 text-slate-900 font-sans antialiased overflow-hidden"
     >
       {/* Hidden picker driving the one-shot image -> package pipeline */}
       <input

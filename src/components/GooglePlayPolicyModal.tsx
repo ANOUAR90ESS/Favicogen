@@ -19,6 +19,7 @@ import { SupportedLanguage } from '../types';
 import { PRIVACY_POLICY_MD, PRIVACY_POLICY_AR, PRIVACY_POLICY_URL } from '../Legal/privacyPolicy';
 import { TERMS_OF_SERVICE_MD, TERMS_OF_SERVICE_AR, TERMS_OF_SERVICE_URL } from '../Legal/termsOfService';
 import { downloadText } from '../utils/download';
+import { Modal } from './Modal';
 
 interface GooglePlayPolicyModalProps {
   isOpen: boolean;
@@ -36,8 +37,6 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
   const [activeTab, setActiveTab] = useState<'privacy' | 'terms' | 'google-play-checklist' | 'data-safety' | 'legal-docs'>('privacy');
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
 
-  if (!isOpen) return null;
-
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedSection(id);
@@ -48,12 +47,13 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
   const activeTermsText = isAr ? TERMS_OF_SERVICE_AR : TERMS_OF_SERVICE_MD;
 
   return (
-    <div
-      id="google-play-policy-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-3 sm:p-6 overflow-y-auto animate-in fade-in duration-200"
-      dir={isAr ? 'rtl' : 'ltr'}
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      label={isAr ? 'الخصوصية وسياسات Google Play' : 'Privacy & Google Play policies'}
+      className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]"
+      overlayClassName="z-50 p-3 sm:p-6"
     >
-      <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 bg-slate-50/90 shrink-0">
           <div className="flex items-center gap-3">
@@ -112,7 +112,7 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-7 space-y-6 text-slate-800 text-xs sm:text-sm leading-relaxed custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-5 sm:p-7 space-y-6 text-slate-800 text-xs sm:text-sm leading-relaxed custom-scrollbar select-text">
           {/* 1. PRIVACY POLICY TAB */}
           {activeTab === 'privacy' && (
             <div className="space-y-5 animate-in fade-in">
@@ -550,7 +550,6 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
             {isAr ? 'إغلاق النافذة' : 'Close'}
           </button>
         </div>
-      </div>
-    </div>
+      </Modal>
   );
 };

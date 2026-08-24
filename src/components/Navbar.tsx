@@ -21,6 +21,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { SupportedLanguage } from '../types';
+import { Modal } from './Modal';
 
 interface NavbarProps {
   projectName: string;
@@ -366,9 +367,13 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       {/* Reset confirmation modal */}
-      {showNewConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150">
+      <Modal
+        isOpen={showNewConfirm}
+        onClose={() => setShowNewConfirm(false)}
+        label={isAr ? 'بدء تصميم جديد؟' : 'Start a new project?'}
+        className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150"
+        overlayClassName="p-4"
+      >
             <div className="flex items-center gap-2.5 text-amber-600 mb-2.5">
               <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-50 border border-amber-200 shrink-0">
                 <AlertCircle className="h-4 w-4" />
@@ -396,9 +401,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {isAr ? 'نعم، ابدأ من جديد' : 'Yes, Start New'}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+      </Modal>
     </header>
   );
 };
