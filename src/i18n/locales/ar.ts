@@ -892,6 +892,11 @@ export const ar = {
     close2: 'إغلاق النافذة',
   },
   imageEditor: {
+    removeBackground: 'إزالة الخلفية',
+    removeBackgroundHint: 'اجعل الخلفية المسطّحة شفافة — لصورة خلفيتها مطبوعة فيها وتصل كل حافة، وهي ما لا يستطيع القصّ إزالته',
+    backgroundRemoved: 'أُزيلت الخلفية ({{percent}}٪ من الصورة صارت شفافة)',
+    backgroundAlreadyClear: 'خلفية هذه الصورة شفافة أصلاً',
+    backgroundNotFlat: 'لا توجد خلفية مسطّحة هنا — الحواف متنوّعة أكثر من أن تُزال بأمان',
     trimmedAndFilled: 'تم قص الحواف الفارغة ({{percent}}%) وملء الإطار بالكامل',
     trimmedWhite: 'تم قص الأطراف البيضاء بنجاح (حذف {{percent}}% هوامش فارغة)',
     cropSquircle: 'سكويركل',

@@ -89,6 +89,15 @@ A few decisions worth knowing before changing things:
   `configSchema` are the boundary.
 - **Projects live in IndexedDB, not localStorage.** Base64 images blow past
   the 5MB origin cap, and a failed write must be surfaced, never swallowed.
+- **An uploaded picture usually arrives with its background painted in.**
+  Auto-trim only crops empty margins, which does nothing when the flat field
+  reaches all four edges — and it then rides along into every export as a
+  white box behind the logo. `backgroundRemover.ts` takes the colour out
+  instead. Two rules keep it from destroying artwork: it only clears what is
+  connected to the border, so a light glyph *inside* a badge survives; and it
+  refuses outright when the border is not one colour, because guessing a
+  background on a photo would eat the subject. The pixel algorithm is
+  DOM-free precisely so it can be tested, and it is.
 - **A phone held sideways is its own layout.** Width does not tell you how
   much vertical room there is: a 740×360 landscape phone is wider than a
   390×844 portrait one and has half the height. So the workspace splits on

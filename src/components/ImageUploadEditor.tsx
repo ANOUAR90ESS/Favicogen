@@ -9,9 +9,11 @@ import {
   RefreshCw,
   Scissors,
   Loader2,
+  Eraser,
 } from 'lucide-react';
 import { LogoConfig } from '../types';
 import { autoTrimImage } from '../utils/imageCropper';
+import { removeFlatBackground } from '../utils/backgroundRemover';
 import { smartImportImage, buildFullBleedImagePatch } from '../utils/smartImport';
 import { intakeImageFile, isIntakeFailure, ACCEPT_ATTRIBUTE } from '../utils/imageIntake';
 
@@ -142,6 +144,37 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
     } finally {
       setIsAutoTrimming(false);
       setTimeout(() => setTrimFeedback(null), 4000);
+    }
+  };
+
+  // Trimming crops empty margins. It cannot help an image whose background is
+  // painted in behind the subject and runs to all four edges — that needs the
+  // flat colour taken out, not the border cut off.
+  const handleRemoveBackground = async () => {
+    if (!config.uploadedImageSrc) return;
+    setIsAutoTrimming(true);
+    setTrimFeedback(null);
+    try {
+      const { dataUrl, result } = await removeFlatBackground(config.uploadedImageSrc);
+
+      if (result.removed) {
+        onChange({ uploadedImageSrc: dataUrl });
+        setTrimFeedback(
+          t('imageEditor.backgroundRemoved', { percent: Math.round(result.share * 100) })
+        );
+      } else {
+        setTrimFeedback(
+          result.reason === 'already-transparent'
+            ? t('imageEditor.backgroundAlreadyClear')
+            : t('imageEditor.backgroundNotFlat')
+        );
+      }
+    } catch (err) {
+      console.error('Background removal failed:', err);
+      setTrimFeedback(t('imageEditor.couldNotReadImage'));
+    } finally {
+      setIsAutoTrimming(false);
+      setTimeout(() => setTrimFeedback(null), 5000);
     }
   };
 
@@ -321,6 +354,23 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
                 <span className="truncate">{t('imageEditor.manualRectangle')}</span>
               </button>
             </div>
+
+            {/* Take out a painted-in background the trimmer cannot reach */}
+            <button
+              id="btn-remove-background"
+              type="button"
+              onClick={handleRemoveBackground}
+              disabled={isAutoTrimming}
+              className="w-full flex items-center justify-center gap-1.5 py-2 px-2 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 text-xs font-bold rounded-lg shadow-2xs transition-all active:scale-95 disabled:opacity-50"
+              title={t('imageEditor.removeBackgroundHint')}
+            >
+              {isAutoTrimming ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Eraser className="h-3.5 w-3.5 text-rose-600" />
+              )}
+              <span className="truncate">{t('imageEditor.removeBackground')}</span>
+            </button>
 
             {trimFeedback && (
               <p className="text-[10px] text-teal-800 font-medium bg-white/80 p-1.5 rounded border border-teal-200/80 animate-in fade-in">

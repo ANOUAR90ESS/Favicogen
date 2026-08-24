@@ -892,6 +892,11 @@ export const en = {
     close2: 'Close',
   },
   imageEditor: {
+    removeBackground: 'Remove background',
+    removeBackgroundHint: 'Make a flat background transparent — for a picture whose background is painted in and reaches every edge, which trimming cannot remove',
+    backgroundRemoved: 'Background removed ({{percent}}% of the image is now transparent)',
+    backgroundAlreadyClear: 'This image already has a transparent background',
+    backgroundNotFlat: 'No flat background here — the edges are too varied to remove safely',
     trimmedAndFilled: 'Trimmed the empty border ({{percent}}%) and filled the frame',
     trimmedWhite: 'Trimmed the white edges ({{percent}}% of empty margin removed)',
     cropSquircle: 'Squircle',
