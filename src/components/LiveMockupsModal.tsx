@@ -83,11 +83,11 @@ export const LiveMockupsModal: React.FC<LiveMockupsModalProps> = ({
         {/* Mockup Tabs Selector */}
         <div className="flex items-center gap-2 p-3 border-b border-slate-200 bg-slate-50/40 overflow-x-auto">
           {[
-            { id: 'browser', name: t('mockupsModal.tabBrowser'), icon: Laptop },
-            { id: 'mobile', name: t('mockupsModal.tabMobile'), icon: Smartphone },
-            { id: 'playstore', name: t('mockupsModal.tabPlayStore'), icon: Star },
-            { id: 'google', name: t('mockupsModal.tabGoogle'), icon: SearchIcon },
-            { id: 'modes', name: t('mockupsModal.tabThemes'), icon: Layers },
+            { id: 'browser', name: t('mockupsModal.items.browserTab'), icon: Laptop },
+            { id: 'mobile', name: t('mockupsModal.items.mobileApp'), icon: Smartphone },
+            { id: 'playstore', name: t('mockupsModal.items.appStore'), icon: Star },
+            { id: 'google', name: t('mockupsModal.items.websiteHero'), icon: SearchIcon },
+            { id: 'modes', name: t('mockupsModal.items.sticker'), icon: Layers },
           ].map((tab) => {
             const Icon = tab.icon;
             return (

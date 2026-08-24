@@ -26,6 +26,7 @@ import { ImageUploadEditor } from './ImageUploadEditor';
 import { SmartPaletteGenerator } from './SmartPaletteGenerator';
 import { ComplementaryPaletteBar } from './ComplementaryPaletteBar';
 import { WatermarkControls } from './WatermarkControls';
+import { sanitizeSvgMarkup } from '../utils/svgSanitizer';
 
 interface ControlPanelProps {
   config: LogoConfig;
@@ -66,6 +67,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   const [activeTab, setActiveTab] = useState<'icon' | 'text' | 'bg' | 'layout' | 'watermark'>('icon');
   const [iconCategory, setIconCategory] = useState<string>('all');
   const [iconSearch, setIconSearch] = useState<string>('');
+  const [svgUploadError, setSvgUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const updateConfig = (patch: Partial<LogoConfig>) => {
@@ -91,14 +93,21 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     const reader = new FileReader();
     reader.onload = (event) => {
       const content = event.target?.result as string;
-      if (content) {
-        const match = content.match(/<svg[^>]*>([\s\S]*?)<\/svg>/i);
-        const inner = match ? match[1] : content;
-        updateConfig({
-          iconType: 'custom-svg',
-          customSvgString: inner,
-        });
+      if (!content) return;
+
+      // This markup is injected into the live DOM, so it goes through the
+      // allow-list rather than a regex that only looks for <svg> tags.
+      const safeMarkup = sanitizeSvgMarkup(content);
+      if (!safeMarkup) {
+        setSvgUploadError(t('controlPanel.svgRejected'));
+        return;
       }
+
+      setSvgUploadError(null);
+      updateConfig({
+        iconType: 'custom-svg',
+        customSvgString: safeMarkup,
+      });
     };
     reader.readAsText(file);
   };
@@ -246,6 +255,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   accept=".svg,image/svg+xml"
                   className="hidden"
                 />
+
+                {svgUploadError && (
+                  <p role="alert" className="text-[11px] font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-2.5 py-2 text-start">
+                    {svgUploadError}
+                  </p>
+                )}
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="rounded-lg bg-indigo-50 border border-indigo-200 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-100 transition-colors cursor-pointer"

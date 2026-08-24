@@ -137,11 +137,11 @@ export function App() {
 
     setSaveToast({
       id: now,
-      title: t('common.saveSuccess'),
+      title: t('common.savedSuccessfully'),
       projectName:
         currentConf.text ||
         currentConf.name ||
-        t('common.untitled'),
+        t('common.untitledProject'),
     });
   }, [t]);
 
@@ -186,7 +186,7 @@ export function App() {
     e.target.value = '';
     if (!file) return;
 
-    setImportStatus(t('navbar.smartImport'));
+    setImportStatus(t('nav.smartImport'));
     try {
       const dataUrl = await readFileAsDataUrl(file);
       const result = await smartImportImage(dataUrl, { autoTrim: true });
@@ -199,7 +199,7 @@ export function App() {
 
       setImportStatus(
         result.trimmedPercent > 0
-          ? `${t('imageEditor.cropTrim')} (${result.trimmedPercent}%)`
+          ? `${t('imageCropTrimModal.title')} (${result.trimmedPercent}%)`
           : t('common.ready')
       );
 
@@ -289,7 +289,7 @@ export function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleUndo, handleRedo, handleQuickSave]);
 
-  const displayProjectName = config.text || config.name || t('common.untitled');
+  const displayProjectName = config.text || config.name || t('common.untitledProject');
 
   return (
     <div
@@ -371,7 +371,7 @@ export function App() {
       <footer className="h-9 bg-white border-t border-slate-200 flex items-center justify-between px-3 sm:px-6 text-[11px] font-medium text-slate-500 shrink-0">
         <div className="flex items-center gap-3">
           <span className="truncate max-w-[140px] sm:max-w-none">
-            {t('navbar.projectsVault')}: <strong className="text-slate-700 font-semibold">{displayProjectName}</strong>
+            {t('nav.saved')}: <strong className="text-slate-700 font-semibold">{displayProjectName}</strong>
           </span>
           <span className="hidden sm:inline text-slate-300">|</span>
           <span className="hidden sm:inline font-mono">{t('common.resolution')}: 512 × 512 px</span>

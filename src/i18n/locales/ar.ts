@@ -1,5 +1,7 @@
 export const ar = {
   common: {
+    ready: 'جاهز',
+    resolution: 'الدقة',
     save: 'حفظ',
     cancel: 'إلغاء',
     close: 'إغلاق',
@@ -39,6 +41,7 @@ export const ar = {
     savedSuccessfully: 'تم الحفظ بنجاح',
   },
   nav: {
+    smartImport: 'استيراد ذكي',
     appTitle: 'استوديو الشعارات والأيقونات',
     appSubtitle: 'منصة احترافية لتصميم الهوية البصرية والأيقونات',
     newLogo: 'جديد',
@@ -57,6 +60,7 @@ export const ar = {
     exportPng: 'تصدير PNG',
   },
   controlPanel: {
+    svgRejected: 'تعذّر استخدام ملف SVG. قد يكون تالفاً، أو كان يحتوي على شيفرات أو مراجع خارجية أُزيلت لدواعي الأمان.',
     tabs: {
       icon: 'الأيقونة',
       text: 'النص والخط',
@@ -238,6 +242,10 @@ export const ar = {
     },
   },
   stage: {
+    downloadSvgBtn: 'تصدير SVG',
+    whiteBg: 'خلفية بيضاء',
+    slateBg: 'خلفية رمادية',
+    transparentBg: 'خلفية شفافة',
     zoomIn: 'تكبير',
     zoomOut: 'تصغير',
     resetZoom: 'إعادة ضبط العرض (100%)',
@@ -250,6 +258,8 @@ export const ar = {
     resolutionLabel: 'دقة اللوحة:',
   },
   faviconModal: {
+    htmlCodeTitle: 'مقتطف الدمج في وسم <head>',
+    compliantNote: 'كل الأصول المولَّدة مطابقة لمواصفات أيقونات Google Play وApple Touch وPWA.',
     title: 'حزمة Favicon وأيقونات التطبيقات المتكاملة',
     subtitle: 'توليد أيقونات المواقع، ملفات PWA، أيقونات Apple Touch، أيقونات Android، وصيغ المتجهات.',
     bundleTitle: 'الحزمة الشاملة للمواقع وتطبيقات PWA بملف مضغوط (.ZIP)',
@@ -375,6 +385,7 @@ export const ar = {
     applyConcept: 'تطبيق هذا النموذج على مساحة العمل',
   },
   savedProjectsModal: {
+    importFailed: 'هذا الملف ليس نسخة مشروع صالحة.',
     title: 'مشاريعي المحفوظة وسجل التصاميم',
     subtitle: 'استعراض، وتكرار، وتعديل وتصدير جميع الشعارات والتصاميم التي قمت بإنشائها.',
     newDesignBtn: 'إنشاء شعار جديد',

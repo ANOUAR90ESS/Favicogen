@@ -60,10 +60,10 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                {t('templateModal.title')}
+                {t('templatesModal.title')}
               </h2>
               <p className="text-xs text-slate-500">
-                {t('templateModal.subtitle')}
+                {t('templatesModal.subtitle')}
               </p>
             </div>
           </div>
@@ -84,7 +84,7 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('templateModal.searchPlaceholder')}
+              placeholder={t('templatesModal.searchPlaceholder')}
               className="w-full bg-white border border-slate-200 rounded-xl pr-9 pl-3 py-2 text-xs font-medium text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 outline-none shadow-2xs"
             />
           </div>
@@ -150,7 +150,7 @@ export const TemplateGalleryModal: React.FC<TemplateGalleryModalProps> = ({
                       className="flex items-center gap-1 rounded-xl bg-indigo-50 border border-indigo-200 px-3 py-1.5 text-xs font-bold text-indigo-700 hover:bg-indigo-600 hover:text-white transition-all shadow-2xs cursor-pointer"
                     >
                       <Sparkles className="h-3 w-3" />
-                      <span>{t('templateModal.apply')}</span>
+                      <span>{t('templatesModal.useTemplate')}</span>
                     </button>
                   </div>
                 </div>

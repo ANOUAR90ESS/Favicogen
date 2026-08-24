@@ -1,5 +1,7 @@
 export const en = {
   common: {
+    ready: 'Ready',
+    resolution: 'Resolution',
     save: 'Save',
     cancel: 'Cancel',
     close: 'Close',
@@ -39,6 +41,7 @@ export const en = {
     savedSuccessfully: 'Saved Successfully',
   },
   nav: {
+    smartImport: 'Smart Import',
     appTitle: 'Logo & Favicon Studio',
     appSubtitle: 'Professional Branding & Icon Suite',
     newLogo: 'New',
@@ -57,6 +60,7 @@ export const en = {
     exportPng: 'Export PNG',
   },
   controlPanel: {
+    svgRejected: 'That SVG could not be used. It may be malformed, or it contained scripts or external references that were removed for safety.',
     tabs: {
       icon: 'Icon',
       text: 'Text',
@@ -238,6 +242,10 @@ export const en = {
     },
   },
   stage: {
+    downloadSvgBtn: 'Export SVG',
+    whiteBg: 'White stage',
+    slateBg: 'Slate stage',
+    transparentBg: 'Transparent stage',
     zoomIn: 'Zoom In',
     zoomOut: 'Zoom Out',
     resetZoom: 'Reset Zoom (100%)',
@@ -250,6 +258,8 @@ export const en = {
     resolutionLabel: 'Canvas Resolution:',
   },
   faviconModal: {
+    htmlCodeTitle: 'HTML <head> Integration Snippet',
+    compliantNote: 'Every generated asset meets Google Play, Apple Touch, and PWA icon specifications.',
     title: 'Favicon & Multi-Platform App Package',
     subtitle: 'Generate standard web favicons, modern PWA manifests, Apple touch icons, Android launcher assets, and vector icons.',
     bundleTitle: 'Complete All-In-One Bundle (.ZIP)',
@@ -375,6 +385,7 @@ export const en = {
     applyConcept: 'Apply This Concept to Canvas',
   },
   savedProjectsModal: {
+    importFailed: 'That file is not a valid project backup.',
     title: 'My Saved Designs & History',
     subtitle: 'Access, duplicate, edit, export or delete your previously designed logos stored securely in your browser.',
     newDesignBtn: 'Create New Logo',
