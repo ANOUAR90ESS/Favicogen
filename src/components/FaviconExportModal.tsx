@@ -66,7 +66,7 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
   const handleDownloadZip = async () => {
     try {
       setIsZipping(true);
-      setZipProgress({ percent: 0, status: isAr ? 'بدء إعداد الحزمة...' : 'Initializing ZIP package...' });
+      setZipProgress({ percent: 0, status: t('faviconModal.initializingZipPackage') });
       const zipBlob = await generateFaviconZip(config, {
         includeWebp,
         includeJpeg,

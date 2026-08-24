@@ -1,16 +1,16 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState } from 'react';
 import {
   Plus,
   Trash2,
   Sliders,
   } from 'lucide-react';
-import { SupportedLanguage, SavedColorPalette } from '../types';
+import { SavedColorPalette } from '../types';
 
 interface AdvancedColorPickerProps {
   label: string;
   color: string;
   onChange: (color: string) => void;
-  language: SupportedLanguage;
   showShades?: boolean;
 }
 
@@ -137,10 +137,9 @@ export const AdvancedColorPicker: React.FC<AdvancedColorPickerProps> = ({
   label,
   color,
   onChange,
-  language,
   showShades = true,
 }) => {
-  const isAr = language === 'ar';
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [savedPalettes, setSavedPalettes] = useState<SavedColorPalette[]>(() => {
     try {
@@ -164,7 +163,7 @@ export const AdvancedColorPicker: React.FC<AdvancedColorPickerProps> = ({
   const handleSavePalette = () => {
     const newPal: SavedColorPalette = {
       id: 'pal_' + Date.now(),
-      name: `${isAr ? 'مجموعة' : 'Palette'} #${savedPalettes.length + 1}`,
+      name: `${t('colorPicker.palette')} #${savedPalettes.length + 1}`,
       colors: [color, ...shades.slice(0, 3)],
     };
     const updated = [newPal, ...savedPalettes];
@@ -191,7 +190,7 @@ export const AdvancedColorPicker: React.FC<AdvancedColorPickerProps> = ({
           className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
         >
           <Sliders className="h-3 w-3" />
-          <span>{isOpen ? (isAr ? 'إغلاق المحرر' : 'Close') : isAr ? 'محرر الألوان المتقدم' : 'Color Wheel'}</span>
+          <span>{isOpen ? (t('colorPicker.close')) : t('colorPicker.colorWheel')}</span>
         </button>
       </div>
 
@@ -238,7 +237,7 @@ export const AdvancedColorPicker: React.FC<AdvancedColorPickerProps> = ({
           <div className="space-y-2">
             <div className="space-y-1">
               <div className="flex justify-between text-[10px] font-semibold text-slate-600">
-                <span>{isAr ? 'درجة اللون (Hue)' : 'Hue'}</span>
+                <span>{t('colorPicker.hue')}</span>
                 <span className="font-mono">{hsl.h}°</span>
               </div>
               <input
@@ -257,7 +256,7 @@ export const AdvancedColorPicker: React.FC<AdvancedColorPickerProps> = ({
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
                 <div className="flex justify-between text-[10px] font-semibold text-slate-600">
-                  <span>{isAr ? 'التشبع (Saturation)' : 'Saturation'}</span>
+                  <span>{t('colorPicker.saturation')}</span>
                   <span className="font-mono">{hsl.s}%</span>
                 </div>
                 <input
@@ -272,7 +271,7 @@ export const AdvancedColorPicker: React.FC<AdvancedColorPickerProps> = ({
 
               <div className="space-y-1">
                 <div className="flex justify-between text-[10px] font-semibold text-slate-600">
-                  <span>{isAr ? 'الإضاءة (Lightness)' : 'Lightness'}</span>
+                  <span>{t('colorPicker.lightness')}</span>
                   <span className="font-mono">{hsl.l}%</span>
                 </div>
                 <input
@@ -290,7 +289,7 @@ export const AdvancedColorPicker: React.FC<AdvancedColorPickerProps> = ({
           {/* Color Harmonies */}
           <div className="space-y-1.5 pt-2 border-t border-slate-200">
             <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-              {isAr ? 'تناسقات الألوان المتوافقة' : 'Harmonies'}
+              {t('colorPicker.harmonies')}
             </span>
             <div className="space-y-1.5">
               {harmonies.map((harm, idx) => (
@@ -317,7 +316,7 @@ export const AdvancedColorPicker: React.FC<AdvancedColorPickerProps> = ({
           <div className="space-y-2 pt-2 border-t border-slate-200">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                {isAr ? 'مجموعاتي المحفوظة' : 'My Saved Palettes'}
+                {t('colorPicker.mySavedPalettes')}
               </span>
               <button
                 type="button"
@@ -325,7 +324,7 @@ export const AdvancedColorPicker: React.FC<AdvancedColorPickerProps> = ({
                 className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100"
               >
                 <Plus className="h-2.5 w-2.5" />
-                <span>{isAr ? 'حفظ اللون' : 'Save'}</span>
+                <span>{t('colorPicker.save')}</span>
               </button>
             </div>
 

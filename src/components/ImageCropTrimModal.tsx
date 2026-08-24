@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   X,
@@ -43,6 +44,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
   initialImageSrc,
   onApplyCrop,
 }) => {
+  const { t } = useTranslation();
   const isAr = language === 'ar';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -182,12 +184,8 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
     if (isIntakeFailure(intake)) {
       setUploadError(
         intake.reason === 'too-large'
-          ? isAr
-            ? 'حجم الصورة يتجاوز 25 ميجابايت. اختر ملفاً أصغر.'
-            : 'That image is larger than 25 MB. Pick a smaller file.'
-          : isAr
-            ? 'تعذّرت قراءة هذا الملف كصورة.'
-            : 'That file could not be read as an image.'
+          ? t('imageCropTrimModal.thatImageIsLarger')
+          : t('imageCropTrimModal.thatFileCouldNot')
       );
       return;
     }
@@ -416,7 +414,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      label={isAr ? 'قصّ الصورة وتشذيبها' : 'Crop and trim image'}
+      label={t('imageCropTrimModal.cropTrimImage')}
       className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]"
       overlayClassName="z-50 p-3 sm:p-5 bg-slate-950/80 overflow-y-auto"
     >
@@ -428,15 +426,13 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
             </div>
             <div>
               <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
-                {isAr ? 'أداة قص وتدوير الزوايا وإزالة الحواف' : 'Image Cropper & 90° Corner Rounder'}
+                {t('imageCropTrimModal.imageCropper90Corner')}
                 <span className="text-[10px] font-bold bg-teal-100 text-teal-800 px-2 py-0.5 rounded-full border border-teal-200">
-                  {isAr ? 'قص الزوايا الحادة 90°' : '90° Sharp Edge Trimmer'}
+                  {t('imageCropTrimModal.text90SharpEdgeTrimmer')}
                 </span>
               </h2>
               <p className="text-[11px] text-slate-500 hidden sm:block">
-                {isAr
-                  ? 'قص الحواف البيضاء والشفافة أو تدوير الأطراف الأربعة الحادة 90 درجة إلى شكل دائري/سكويركل'
-                  : 'Trim white margins or round the 4 sharp 90-degree corners into smooth circular or squircle curves'}
+                {t('imageCropTrimModal.trimWhiteMarginsRound')}
               </p>
             </div>
           </div>
@@ -445,7 +441,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
             <button
               onClick={onClose}
               className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer"
-              title={isAr ? 'إغلاق' : 'Close'}
+              title={t('imageCropTrimModal.close')}
             >
               <X className="h-5 w-5" />
             </button>
@@ -468,7 +464,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
               }`}
             >
               <Sparkles className="h-3.5 w-3.5 text-teal-600" />
-              <span>{isAr ? '⚡ إزالة الحواف البيضاء' : '⚡ Auto-Trim Margins'}</span>
+              <span>{t('imageCropTrimModal.autoTrimMargins')}</span>
             </button>
 
             {/* Tab 2: 90° Corner Rounding (User's specific request) */}
@@ -484,7 +480,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
               }`}
             >
               <Circle className="h-3.5 w-3.5 text-indigo-600" />
-              <span>{isAr ? '⭕ قص وتدوير الزوايا الأربع (90°)' : '⭕ 90° Corner Rounding'}</span>
+              <span>{t('imageCropTrimModal.text90CornerRounding')}</span>
             </button>
 
             {/* Tab 3: Interactive Crop */}
@@ -497,7 +493,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
               }`}
             >
               <Crop className="h-3.5 w-3.5 text-slate-600" />
-              <span>{isAr ? '✂️ قص مستطيل حر' : '✂️ Rectangle Box'}</span>
+              <span>{t('imageCropTrimModal.rectangleBox')}</span>
             </button>
           </div>
 
@@ -521,7 +517,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
               className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 shadow-2xs transition-colors cursor-pointer"
             >
               <Upload className="h-3 w-3 text-slate-500" />
-              <span>{isAr ? 'رفع صورة' : 'Upload Image'}</span>
+              <span>{t('imageCropTrimModal.uploadImage')}</span>
             </button>
           </div>
         </div>
@@ -533,17 +529,17 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
             <div className="flex items-center justify-between text-xs text-slate-600 font-medium">
               <span className="flex items-center gap-1.5 font-bold text-slate-800">
                 <Eye className="h-3.5 w-3.5 text-teal-600" />
-                {isAr ? 'معاينة التحديد والقص المباشر' : 'Live Interactive Crop Frame'}
+                {t('imageCropTrimModal.liveInteractiveCropFrame')}
               </span>
 
               {loadedImage && (
                 <div className="flex items-center gap-2 text-[11px] font-mono text-slate-500">
                   <span>
-                    {isAr ? 'الأصل:' : 'Orig:'} {loadedImage.naturalWidth}×{loadedImage.naturalHeight}px
+                    {t('imageCropTrimModal.orig')} {loadedImage.naturalWidth}×{loadedImage.naturalHeight}px
                   </span>
                   <span>•</span>
                   <span className="text-teal-700 font-bold">
-                    {isAr ? 'القص:' : 'Crop:'} {cropRect.width}×{cropRect.height}px
+                    {t('imageCropTrimModal.crop')} {cropRect.width}×{cropRect.height}px
                   </span>
                 </div>
               )}
@@ -558,7 +554,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
                 >
                   <Upload className="h-8 w-8 text-teal-400" />
                   <p className="text-xs font-bold text-white">
-                    {isAr ? 'اضغط لرفع صورة لقص أطرافها' : 'Click to upload an image'}
+                    {t('imageCropTrimModal.clickUploadImage')}
                   </p>
                 </div>
               ) : loadedImage ? (
@@ -664,7 +660,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
                   className="flex items-center gap-1 px-2 py-1 text-xs font-bold text-teal-700 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 transition-colors cursor-pointer"
                 >
                   <Sparkles className="h-3 w-3 text-teal-600" />
-                  <span>{isAr ? 'تحديد تلقائي' : 'Snap Subject'}</span>
+                  <span>{t('imageCropTrimModal.snapSubject')}</span>
                 </button>
 
                 <button
@@ -673,7 +669,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
                   className="flex items-center gap-1 px-2 py-1 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
                 >
                   <RotateCcw className="h-3 w-3 text-slate-500" />
-                  <span>{isAr ? 'كامل الصورة' : 'Full'}</span>
+                  <span>{t('imageCropTrimModal.full')}</span>
                 </button>
               </div>
 
@@ -690,7 +686,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
                         : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
-                    {r === 'free' ? (isAr ? 'حر' : 'Free') : r}
+                    {r === 'free' ? (t('imageCropTrimModal.free')) : r}
                   </button>
                 ))}
               </div>
@@ -705,17 +701,13 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-indigo-950 font-bold text-xs">
                     <Circle className="h-4 w-4 text-indigo-600" />
-                    <span>{isAr ? 'قص وتدوير الزوايا الحادة 90°' : '90° Corner Rounding & Mask'}</span>
+                    <span>{t('imageCropTrimModal.text90CornerRoundingMask')}</span>
                   </div>
                   <span className="text-[10px] font-bold bg-indigo-200 text-indigo-900 px-2 py-0.5 rounded-full">
                     {cornerShape === 'circle'
-                      ? isAr
-                        ? 'دائري كامل'
-                        : 'Full Circle'
+                      ? t('imageCropTrimModal.fullCircle')
                       : cornerShape === 'squircle'
-                      ? isAr
-                        ? 'أيقونة أندرويد'
-                        : 'Squircle'
+                      ? t('imageCropTrimModal.squircle')
                       : `${cornerRadius}px`}
                   </span>
                 </div>
@@ -750,7 +742,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
                 {cornerShape === 'rounded' && (
                   <div className="space-y-1.5 pt-1">
                     <div className="flex justify-between text-xs text-indigo-950 font-bold">
-                      <span>{isAr ? 'نصف قطر تدوير الزوايا (Radius)' : 'Corner Radius'}</span>
+                      <span>{t('imageCropTrimModal.cornerRadius')}</span>
                       <span className="font-mono">{cornerRadius} px</span>
                     </div>
                     <input
@@ -796,7 +788,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-teal-950 font-bold text-xs">
                     <Sparkles className="h-4 w-4 text-teal-600" />
-                    <span>{isAr ? 'إعدادات الكشف التلقائي للحواف' : 'Auto-Border Detection'}</span>
+                    <span>{t('imageCropTrimModal.autoBorderDetection')}</span>
                   </div>
                   {detectedTrim && (
                     <span className="text-[10px] font-bold bg-teal-200 text-teal-900 px-2 py-0.5 rounded-full">
@@ -832,7 +824,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
                 {/* Sensitivity Slider */}
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs text-teal-950 font-medium">
-                    <span>{isAr ? 'حساسية اللون' : 'Sensitivity'}</span>
+                    <span>{t('imageCropTrimModal.sensitivity')}</span>
                     <span className="font-mono font-bold">{trimTolerance}%</span>
                   </div>
                   <input
@@ -851,12 +843,12 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
             {activeTab === 'manual-crop' && (
               <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
                 <span className="text-xs font-bold text-slate-900 block">
-                  {isAr ? 'أبعاد المستطيل الدقيقة (px)' : 'Precise Rectangle (px)'}
+                  {t('imageCropTrimModal.preciseRectanglePx')}
                 </span>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-[10px] font-bold text-slate-500 block">
-                      {isAr ? 'العرض W' : 'Width'}
+                      {t('imageCropTrimModal.width')}
                     </label>
                     <input
                       type="number"
@@ -869,7 +861,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
                   </div>
                   <div>
                     <label className="text-[10px] font-bold text-slate-500 block">
-                      {isAr ? 'الارتفاع H' : 'Height'}
+                      {t('imageCropTrimModal.height')}
                     </label>
                     <input
                       type="number"
@@ -888,7 +880,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
             {croppedPreviewUrl && (
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
                 <div className="flex justify-between items-center text-[11px] font-bold text-slate-700">
-                  <span>{isAr ? 'نتيجة القص المعزولة' : 'Isolated Output'}</span>
+                  <span>{t('imageCropTrimModal.isolatedOutput')}</span>
                   <span className="text-teal-700 font-mono text-[10px]">
                     {cropRect.width} × {cropRect.height} px
                   </span>
@@ -923,7 +915,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
               >
                 <Check className="h-4 w-4" />
                 <span>
-                  {isAr ? 'تطبيق في الشعار الحالي' : 'Apply Cropped to Logo'}
+                  {t('imageCropTrimModal.applyCroppedLogo')}
                 </span>
               </button>
 
@@ -947,7 +939,7 @@ export const ImageCropTrimModal: React.FC<ImageCropTrimModalProps> = ({
                   className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 font-bold text-xs rounded-xl shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
                 >
                   <Download className="h-3.5 w-3.5 text-slate-600" />
-                  <span>{isAr ? 'تحميل الصورة' : 'Download File'}</span>
+                  <span>{t('imageCropTrimModal.downloadFile')}</span>
                 </button>
               </div>
             </div>

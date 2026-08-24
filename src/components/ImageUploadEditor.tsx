@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useRef, useState } from 'react';
 import {
   Upload,
@@ -9,7 +10,7 @@ import {
   Scissors,
   Loader2,
 } from 'lucide-react';
-import { LogoConfig, SupportedLanguage } from '../types';
+import { LogoConfig } from '../types';
 import { autoTrimImage } from '../utils/imageCropper';
 import { smartImportImage, buildFullBleedImagePatch } from '../utils/smartImport';
 import { intakeImageFile, isIntakeFailure, ACCEPT_ATTRIBUTE } from '../utils/imageIntake';
@@ -17,17 +18,16 @@ import { intakeImageFile, isIntakeFailure, ACCEPT_ATTRIBUTE } from '../utils/ima
 interface ImageUploadEditorProps {
   config: LogoConfig;
   onChange: (patch: Partial<LogoConfig>) => void;
-  language: SupportedLanguage;
   onOpenCropTrimModal?: (src?: string) => void;
 }
 
 export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
   config,
   onChange,
-  language,
   onOpenCropTrimModal,
 }) => {
-  const isAr = language === 'ar';
+  const { t, i18n } = useTranslation();
+  const isAr = i18n.language === 'ar';
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAutoTrimming, setIsAutoTrimming] = useState(false);
   const [trimFeedback, setTrimFeedback] = useState<string | null>(null);
@@ -59,12 +59,8 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
       if (isIntakeFailure(intake)) {
         setTrimFeedback(
           intake.reason === 'too-large'
-            ? isAr
-              ? 'حجم الصورة يتجاوز 25 ميجابايت. اختر ملفاً أصغر.'
-              : 'That image is larger than 25 MB. Pick a smaller file.'
-            : isAr
-              ? 'تعذّرت قراءة هذا الملف كصورة.'
-              : 'That file could not be read as an image.'
+            ? t('imageEditor.thatImageIsLarger')
+            : t('imageEditor.thatFileCouldNot')
         );
         return;
       }
@@ -81,12 +77,12 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
         );
       } else {
         setTrimFeedback(
-          isAr ? 'تم استيراد الصورة وملء الإطار بالكامل' : 'Image imported and fitted edge-to-edge'
+          t('imageEditor.imageImportedFittedEdge')
         );
       }
     } catch (err) {
       console.error('Image import failed:', err);
-      setTrimFeedback(isAr ? 'تعذر قراءة ملف الصورة' : 'Could not read the image file');
+      setTrimFeedback(t('imageEditor.couldNotReadImage'));
     } finally {
       setIsAutoTrimming(false);
       // Let the same file be picked again after a failed or repeated import.
@@ -99,7 +95,7 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
   const handleFitFullBleed = () => {
     if (!config.uploadedImageSrc) return;
     onChange(buildFullBleedImagePatch(config.uploadedImageSrc));
-    setTrimFeedback(isAr ? 'تم ملء الإطار بالكامل' : 'Fitted edge-to-edge');
+    setTrimFeedback(t('imageEditor.fittedEdgeEdge'));
     setTimeout(() => setTrimFeedback(null), 3000);
   };
 
@@ -138,9 +134,7 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
         );
       } else {
         setTrimFeedback(
-          isAr
-            ? 'الصورة نظيفة بالفعل ولا تحتوي على هوامش بيضاء إضافية'
-            : 'Image is already tight with no extra white borders'
+          t('imageEditor.imageIsAlreadyTight')
         );
       }
     } catch (err) {
@@ -200,10 +194,10 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
             </div>
             <div>
               <p className="text-xs font-bold text-slate-800">
-                {isAr ? 'اضغط لرفع صورة أو اسحبها هنا' : 'Click to upload image or drag & drop'}
+                {t('imageEditor.clickUploadImageDrag')}
               </p>
               <p className="text-[11px] text-slate-500 mt-0.5">
-                {isAr ? 'يدعم PNG, JPG, WebP, SVG بأعلى دقة' : 'Supports PNG, JPG, WebP, SVG'}
+                {t('imageEditor.supportsPngJpgWebp')}
               </p>
             </div>
 
@@ -218,9 +212,7 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
                 className="accent-teal-600 h-3.5 w-3.5"
               />
               <span className="text-[11px] font-semibold text-slate-700">
-                {isAr
-                  ? 'قص الحواف الفارغة وملء الإطار تلقائياً'
-                  : 'Auto-trim empty borders & fit edge-to-edge'}
+                {t('imageEditor.autoTrimEmptyBorders')}
               </span>
             </label>
           </div>
@@ -239,10 +231,10 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
               </div>
               <div>
                 <span className="text-xs font-bold text-slate-800 block">
-                  {isAr ? 'صورة الشعار النشطة' : 'Active Logo Image'}
+                  {t('imageEditor.activeLogoImage')}
                 </span>
                 <span className="text-[10px] text-emerald-600 font-semibold">
-                  {isAr ? 'جاهزة للتحرير والتأثيرات' : 'Ready for editing & filters'}
+                  {t('imageEditor.readyEditingFilters')}
                 </span>
               </div>
             </div>
@@ -260,13 +252,13 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
                 onClick={() => fileInputRef.current?.click()}
                 className="px-2.5 py-1 text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 shadow-2xs"
               >
-                {isAr ? 'تغيير' : 'Replace'}
+                {t('imageEditor.replace')}
               </button>
               <button
                 type="button"
                 onClick={handleRemoveImage}
                 className="p-1.5 text-rose-600 bg-white border border-rose-200 rounded-lg hover:bg-rose-50 shadow-2xs"
-                title={isAr ? 'حذف الصورة' : 'Remove Image'}
+                title={t('imageEditor.removeImage')}
               >
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -278,10 +270,10 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-black text-teal-900 flex items-center gap-1.5">
                 <Scissors className="h-3.5 w-3.5 text-teal-600" />
-                {isAr ? 'قص وضبط حواف الصورة (Trim & Crop)' : 'Smart Border Trimmer & Crop'}
+                {t('imageEditor.smartBorderTrimmerCrop')}
               </span>
               <span className="text-[9px] bg-teal-200 text-teal-900 font-bold px-1.5 py-0.5 rounded">
-                {isAr ? 'إزالة الأطراف' : 'Auto-Trim'}
+                {t('imageEditor.autoTrim')}
               </span>
             </div>
 
@@ -292,13 +284,11 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
               onClick={handleFitFullBleed}
               className="w-full flex items-center justify-center gap-1.5 py-2 px-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg shadow-xs transition-all active:scale-95"
               title={
-                isAr
-                  ? 'جعل الصورة تملأ الإطار بالكامل بدون هوامش على الجوانب'
-                  : 'Make the image fill the whole frame with no side margins'
+                t('imageEditor.makeImageFillWhole')
               }
             >
               <Maximize className="h-3.5 w-3.5" />
-              <span className="truncate">{isAr ? 'ملء الإطار بالكامل' : 'Fit Edge-to-Edge'}</span>
+              <span className="truncate">{t('imageEditor.fitEdgeEdge')}</span>
             </button>
 
             <div className="grid grid-cols-2 gap-2">
@@ -309,14 +299,14 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
                 onClick={handleQuickAutoTrim}
                 disabled={isAutoTrimming}
                 className="flex items-center justify-center gap-1.5 py-2 px-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold rounded-lg shadow-xs transition-all active:scale-95 disabled:opacity-50"
-                title={isAr ? 'حذف الأطراف البيضاء والشفافة المحيطة بالشعار تلقائياً' : 'Automatically trim white and empty surrounding borders'}
+                title={t('imageEditor.automaticallyTrimWhiteEmpty')}
               >
                 {isAutoTrimming ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
                   <Sparkles className="h-3.5 w-3.5" />
                 )}
-                <span className="truncate">{isAr ? 'قص الحواف البيضاء' : 'Auto-Trim White'}</span>
+                <span className="truncate">{t('imageEditor.autoTrimWhite')}</span>
               </button>
 
               {/* Interactive Rectangle Crop Modal Trigger */}
@@ -325,10 +315,10 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
                 type="button"
                 onClick={() => onOpenCropTrimModal && onOpenCropTrimModal(config.uploadedImageSrc)}
                 className="flex items-center justify-center gap-1.5 py-2 px-2 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 text-xs font-bold rounded-lg shadow-2xs transition-all active:scale-95"
-                title={isAr ? 'فتح أداة القص اليدوي بمستطيل تفاعلي' : 'Open interactive rectangle cropping tool'}
+                title={t('imageEditor.openInteractiveRectangleCropping')}
               >
                 <Crop className="h-3.5 w-3.5 text-indigo-600" />
-                <span className="truncate">{isAr ? 'قص يدوي بمستطيل' : 'Manual Rectangle'}</span>
+                <span className="truncate">{t('imageEditor.manualRectangle')}</span>
               </button>
             </div>
 
@@ -342,7 +332,7 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
           {/* Crop Shape Mask */}
           <div className="space-y-2">
             <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-              {isAr ? 'قناع قص الصورة (Shape Mask)' : 'Image Crop Shape'}
+              {t('imageEditor.imageCropShape')}
             </label>
             <div className="grid grid-cols-4 gap-1.5">
               {[
@@ -371,7 +361,7 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <div className="flex justify-between text-xs text-slate-500 font-medium">
-                <span>{isAr ? 'مقياس الحجم' : 'Scale'}</span>
+                <span>{t('imageEditor.scale')}</span>
                 <span className="font-mono font-bold">{config.uploadedImageScale || 100}%</span>
               </div>
               <input
@@ -386,7 +376,7 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
 
             <div className="space-y-1">
               <div className="flex justify-between text-xs text-slate-500 font-medium">
-                <span>{isAr ? 'الشفافية' : 'Opacity'}</span>
+                <span>{t('imageEditor.opacity')}</span>
                 <span className="font-mono font-bold">
                   {Math.round((config.uploadedImageOpacity ?? 1) * 100)}%
                 </span>
@@ -406,7 +396,7 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
           <div className="space-y-3 pt-3 border-t border-slate-200">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                {isAr ? 'تأثيرات وفلاتر الصورة (Filters)' : 'Image Adjustments & Filters'}
+                {t('imageEditor.imageAdjustmentsFilters')}
               </span>
               <button
                 type="button"
@@ -414,14 +404,14 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
                 className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-1"
               >
                 <RefreshCw className="h-2.5 w-2.5" />
-                <span>{isAr ? 'إعادة ضبط' : 'Reset'}</span>
+                <span>{t('imageEditor.reset')}</span>
               </button>
             </div>
 
             {/* Brightness */}
             <div className="space-y-1">
               <div className="flex justify-between text-xs text-slate-500 font-medium">
-                <span>{isAr ? 'السطوع (Brightness)' : 'Brightness'}</span>
+                <span>{t('imageEditor.brightness')}</span>
                 <span className="font-mono font-bold">{filters.brightness}%</span>
               </div>
               <input
@@ -437,7 +427,7 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
             {/* Contrast */}
             <div className="space-y-1">
               <div className="flex justify-between text-xs text-slate-500 font-medium">
-                <span>{isAr ? 'التباين (Contrast)' : 'Contrast'}</span>
+                <span>{t('imageEditor.contrast')}</span>
                 <span className="font-mono font-bold">{filters.contrast}%</span>
               </div>
               <input
@@ -453,7 +443,7 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
             {/* Saturation */}
             <div className="space-y-1">
               <div className="flex justify-between text-xs text-slate-500 font-medium">
-                <span>{isAr ? 'تشبع الألوان (Saturation)' : 'Saturation'}</span>
+                <span>{t('imageEditor.saturation')}</span>
                 <span className="font-mono font-bold">{filters.saturation}%</span>
               </div>
               <input
@@ -469,7 +459,7 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
             {/* Hue Rotate */}
             <div className="space-y-1">
               <div className="flex justify-between text-xs text-slate-500 font-medium">
-                <span>{isAr ? 'تدوير تدرج اللون (Hue)' : 'Hue Rotate'}</span>
+                <span>{t('imageEditor.hueRotate')}</span>
                 <span className="font-mono font-bold">{filters.hueRotate}°</span>
               </div>
               <input
@@ -485,7 +475,7 @@ export const ImageUploadEditor: React.FC<ImageUploadEditorProps> = ({
             {/* Blur Softness */}
             <div className="space-y-1">
               <div className="flex justify-between text-xs text-slate-500 font-medium">
-                <span>{isAr ? 'ضبابية ناعمة (Blur)' : 'Blur'}</span>
+                <span>{t('imageEditor.blur')}</span>
                 <span className="font-mono font-bold">{filters.blur}px</span>
               </div>
               <input

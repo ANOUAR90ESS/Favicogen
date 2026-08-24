@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import {
@@ -42,6 +43,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
   onOpenYouTubeKit,
   onOpenAIGenerator,
 }) => {
+  const { t } = useTranslation();
   // Tab filter: 'all' | '1:1' | '16:9' | 'platform'
   const [activeTab, setActiveTab] = useState<'all' | '1:1' | '16:9'>('all');
   const [platformFilter, setPlatformFilter] = useState<string>('all');
@@ -156,7 +158,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      label={isAr ? 'مجموعة السوشيال ميديا' : 'Social media kit'}
+      label={t('socialKitModal.socialMediaKit')}
       className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-20"
       overlayClassName="z-50 p-2 sm:p-4 md:p-6"
     >
@@ -166,15 +168,13 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
             </div>
             <div>
               <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-                {isAr ? 'حزمة تصاميم شبكات التواصل الاجتماعي' : 'Social Media Design Kit'}
+                {t('socialKitModal.socialMediaDesignKit')}
                 <span className="px-2 py-0.5 text-xs font-semibold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-full">
                   PRO
                 </span>
               </h2>
               <p className="text-xs text-slate-400">
-                {isAr
-                  ? 'توليد ومعاينة الشعار بدقة متوافقة مع البروفايل (1:1) وبانرات وأغلفة القنوات (16:9)'
-                  : 'Generate and preview your logo across profile avatars (1:1) and channel banners (16:9)'}
+                {t('socialKitModal.generatePreviewLogoAcross')}
               </p>
             </div>
           </div>
@@ -192,7 +192,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
               ) : (
                 <FileArchive className="w-4 h-4" />
               )}
-              <span>{isAr ? 'تحميل الحزمة كاملة (ZIP)' : 'Export Full Kit (ZIP)'}</span>
+              <span>{t('socialKitModal.exportFullKitZip')}</span>
             </button>
 
             <button
@@ -228,7 +228,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                {isAr ? 'جميع المقاسات' : 'All Sizes'}
+                {t('socialKitModal.allSizes')}
               </button>
               <button
                 onClick={() => setActiveTab('1:1')}
@@ -238,7 +238,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                {isAr ? 'بروفايل (1:1)' : 'Profile (1:1)'}
+                {t('socialKitModal.profile11')}
               </button>
               <button
                 onClick={() => setActiveTab('16:9')}
@@ -248,7 +248,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                {isAr ? 'بانر وغلاف (16:9)' : 'Banners (16:9)'}
+                {t('socialKitModal.banners169')}
               </button>
             </div>
 
@@ -283,7 +283,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
               <div className="flex items-center justify-between border-b border-slate-800/80 pb-2.5">
                 <h3 className="text-sm font-semibold text-slate-200 flex items-center gap-2">
                   <Sliders className="w-4 h-4 text-indigo-400" />
-                  {isAr ? 'تخصيص تصاميم البانر (16:9)' : 'Banner & Cover Studio'}
+                  {t('socialKitModal.bannerCoverStudio')}
                 </h3>
                 <span className="text-[11px] text-slate-500 uppercase tracking-wider font-mono">
                   16:9 / 3:1 / 4:1
@@ -293,7 +293,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
               {/* Layout Styles */}
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-400">
-                  {isAr ? 'نمط التوزيع والتصميم' : 'Banner Composition'}
+                  {t('socialKitModal.bannerComposition')}
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   {[
@@ -325,7 +325,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
               {/* Color Themes */}
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-400">
-                  {isAr ? 'ثيم وخلفية البانر' : 'Background Theme'}
+                  {t('socialKitModal.backgroundTheme')}
                 </label>
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   {[
@@ -361,7 +361,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
               <div className="space-y-2 pt-1">
                 <div>
                   <label className="text-xs font-medium text-slate-400 block mb-1">
-                    {isAr ? 'عنوان القناة / الحساب' : 'Channel / Page Title'}
+                    {t('socialKitModal.channelPageTitle')}
                   </label>
                   <input
                     type="text"
@@ -376,7 +376,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
 
                 <div>
                   <label className="text-xs font-medium text-slate-400 block mb-1">
-                    {isAr ? 'الوصف الفرعي / السلوجان' : 'Subtitle / Tagline'}
+                    {t('socialKitModal.subtitleTagline')}
                   </label>
                   <input
                     type="text"
@@ -394,7 +394,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
               <div className="space-y-2 pt-1 border-t border-slate-800/80">
                 <label className="flex items-center justify-between cursor-pointer py-1">
                   <span className="text-xs text-slate-300">
-                    {isAr ? 'تأثير التوهج الضوئي (Glow)' : 'Ambient Glow Effect'}
+                    {t('socialKitModal.ambientGlowEffect')}
                   </span>
                   <input
                     type="checkbox"
@@ -411,7 +411,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
 
                 <label className="flex items-center justify-between cursor-pointer py-1">
                   <span className="text-xs text-slate-300">
-                    {isAr ? 'شارة التحقق والتأكيد (Badge)' : 'Official Channel Badge'}
+                    {t('socialKitModal.officialChannelBadge')}
                   </span>
                   <input
                     type="checkbox"
@@ -429,7 +429,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
                 <label className="flex items-center justify-between cursor-pointer py-1">
                   <span className="text-xs text-amber-300 flex items-center gap-1.5">
                     <Shield className="w-3.5 h-3.5" />
-                    {isAr ? 'دليل المنطقة الآمنة للهاتف (Safe Zone)' : 'Safe Zone Overlay'}
+                    {t('socialKitModal.safeZoneOverlay')}
                   </span>
                   <input
                     type="checkbox"
@@ -458,7 +458,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
                 ) : (
                   <FileArchive className="w-4 h-4" />
                 )}
-                <span>{isAr ? 'تحميل الحزمة كاملة (ZIP)' : 'Export Full Kit (ZIP)'}</span>
+                <span>{t('socialKitModal.exportFullKitZip2')}</span>
               </button>
             </div>
           </div>
@@ -474,15 +474,13 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                      {isAr ? 'أستوديو قنوات YouTube المخصص (2560×1440 HD)' : 'Dedicated YouTube Channel Studio (2560x1440 HD)'}
+                      {t('socialKitModal.dedicatedYoutubeChannelStudio')}
                       <span className="px-2 py-0.5 text-[10px] font-bold bg-red-500/20 text-red-300 rounded-full border border-red-500/30">
                         NEW
                       </span>
                     </h3>
                     <p className="text-xs text-slate-300">
-                      {isAr
-                        ? 'تخصيص غلاف القناة مع مناطق الأمان للهاتف، صورة البروفايل، والعلامة المائية مع المعاينة الحية'
-                        : 'Customize channel banner with mobile safe zones, profile avatar, watermark, and live channel mockup'}
+                      {t('socialKitModal.customizeChannelBannerMobile')}
                     </p>
                   </div>
                 </div>
@@ -495,7 +493,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 transition flex items-center gap-1.5"
                     >
                       <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-                      <span>{isAr ? 'توليد بالذكاء الاصطناعي' : 'AI Generate'}</span>
+                      <span>{t('socialKitModal.aiGenerate')}</span>
                     </button>
                   )}
                   <button
@@ -504,7 +502,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
                     className="px-4 py-2 rounded-lg text-xs font-bold bg-red-600 hover:bg-red-500 text-white shadow-md shadow-red-600/30 transition flex items-center gap-1.5"
                   >
                     <Youtube className="w-4 h-4" />
-                    <span>{isAr ? 'فتح أستوديو يوتيوب' : 'Open YouTube Studio'}</span>
+                    <span>{t('socialKitModal.openYoutubeStudio')}</span>
                   </button>
                 </div>
               </div>
@@ -517,7 +515,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
                   : `Export Assets Ready (${filteredPresets.length})`}
               </span>
               <span className="text-xs text-slate-500">
-                {isAr ? 'بكسل عالي الدقة (PNG / SVG)' : 'Lossless Vector & Ultra-HD PNG'}
+                {t('socialKitModal.losslessVectorUltraHd')}
               </span>
             </div>
 
@@ -635,12 +633,12 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
                         {copiedId === preset.id ? (
                           <>
                             <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="text-emerald-400">{isAr ? 'تم النسخ' : 'Copied!'}</span>
+                            <span className="text-emerald-400">{t('socialKitModal.copied')}</span>
                           </>
                         ) : (
                           <>
                             <Copy className="w-3.5 h-3.5 text-slate-400" />
-                            <span>{isAr ? 'نسخ SVG' : 'Copy SVG'}</span>
+                            <span>{t('socialKitModal.copySvg')}</span>
                           </>
                         )}
                       </button>
@@ -683,9 +681,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
           <div className="flex items-center gap-2">
             <Info className="w-4 h-4 text-indigo-400" />
             <span>
-              {isAr
-                ? 'جميع التصاميم يتم تصديرها بدقة عالية خالية من التشويش ومتوافقة تماماً مع معايير منصات التواصل لعام 2026'
-                : 'All assets rendered in pixel-perfect native scale matching official 2026 social media requirements.'}
+              {t('socialKitModal.allAssetsRenderedPixel')}
             </span>
           </div>
 
@@ -693,7 +689,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
             onClick={onClose}
             className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-colors"
           >
-            {isAr ? 'إغلاق' : 'Close'}
+            {t('socialKitModal.close')}
           </button>
         </div>
       </motion.div>

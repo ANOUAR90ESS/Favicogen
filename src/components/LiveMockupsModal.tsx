@@ -38,8 +38,8 @@ export const LiveMockupsModal: React.FC<LiveMockupsModalProps> = ({
       generateFeatureGraphicSvg(config, {
         layout: 'center-hero',
         title: config.text || config.name || 'My App',
-        subtitle: config.tagline || (isAr ? 'التطبيق الرائد للإنتاجية والتصميم' : 'Next-Gen Mobile Solutions'),
-        badgeText: isAr ? '★ 4.9 • 100K+ مستخدم' : '★ 4.9 • 100K+ Downloads',
+        subtitle: config.tagline || (t('mockupsModal.nextGenMobileSolutions')),
+        badgeText: t('mockupsModal.text49100kDownloads'),
         bgTheme: 'brand',
         showPhoneMockup: true,
         showPlayBadge: true,
@@ -168,10 +168,10 @@ export const LiveMockupsModal: React.FC<LiveMockupsModalProps> = ({
                 <p className="text-sm text-slate-500 max-w-md font-medium">{tagline}</p>
                 <div className="flex items-center gap-3 pt-2">
                   <button className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 cursor-pointer">
-                    {isAr ? 'ابدأ الآن مجاناً' : 'Get Started'}
+                    {t('mockupsModal.getStarted')}
                   </button>
                   <button className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 cursor-pointer">
-                    {isAr ? 'معرفة المزيد' : 'Learn More'}
+                    {t('mockupsModal.learnMore')}
                   </button>
                 </div>
               </div>

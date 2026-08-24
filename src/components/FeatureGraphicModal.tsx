@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useMemo } from 'react';
 import {
   X,
@@ -34,14 +35,15 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
   config,
   language,
 }) => {
+  const { t } = useTranslation();
   const isAr = language === 'ar';
 
   // Feature Graphic Customizer Options State
   const [options, setOptions] = useState<FeatureGraphicOptions>({
     layout: 'center-hero',
     title: config.text || config.name || 'My App',
-    subtitle: config.tagline || (isAr ? 'التطبيق الرائد للإنتاجية والتصميم' : 'Next-Generation Mobile Experience'),
-    badgeText: isAr ? '★ 4.9 • أكثر من 100K مستخدم' : '★ 4.9 • 100K+ Downloads',
+    subtitle: config.tagline || (t('featureGraphicModal.nextGenerationMobileExperience')),
+    badgeText: t('featureGraphicModal.text49100kDownloads'),
     bgTheme: 'brand',
     showPhoneMockup: true,
     showPlayBadge: true,
@@ -105,7 +107,7 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      label={isAr ? 'صورة Google Play المميزة' : 'Google Play feature graphic'}
+      label={t('featureGraphicModal.googlePlayFeatureGraphic')}
       className="flex flex-col w-full max-w-6xl max-h-[94vh] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden"
       overlayClassName="z-50 p-2 sm:p-4 md:p-6 bg-slate-900/70"
     >
@@ -118,7 +120,7 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-black text-slate-900">
-                  {isAr ? 'الرسم المميز لمتجر Google Play (1024 × 500)' : 'Google Play Feature Graphic (1024 × 500)'}
+                  {t('featureGraphicModal.googlePlayFeatureGraphic2')}
                 </h2>
                 <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-emerald-100/80 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800 border border-emerald-200">
                   <ShieldCheck className="h-3 w-3" />
@@ -126,9 +128,7 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-500 line-clamp-1">
-                {isAr
-                  ? 'يجب أن يكون الرسم المميز بتنسيق PNG أو JPEG وبحجم لا يزيد عن 15MB وبدقة 1024 × 500 بكسل لإبراز تطبيقك على المتجر.'
-                  : 'Must be PNG or JPEG, under 15 MB, and 1,024 x 500 px. Used by Google Play when featuring your app.'}
+                {t('featureGraphicModal.mustBePngJpeg')}
               </p>
             </div>
           </div>
@@ -158,10 +158,10 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
                     ? 'bg-amber-500/20 border-amber-400/50 text-amber-300'
                     : 'bg-slate-800/80 border-slate-700 text-slate-400 hover:text-white'
                 }`}
-                title={isAr ? 'إظهار المنطقة الآمنة لمتجر جوجل بلاي' : 'Toggle Google Play Mobile Safe Zones'}
+                title={t('featureGraphicModal.toggleGooglePlayMobile')}
               >
                 <Eye className="h-3.5 w-3.5" />
-                <span>{isAr ? 'المنطقة الآمنة للمتجر' : 'Safe Zones'}</span>
+                <span>{t('featureGraphicModal.safeZones')}</span>
               </button>
             </div>
 
@@ -177,10 +177,10 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
                 <div className="absolute inset-0 pointer-events-none border-2 border-dashed border-amber-400/60 flex flex-col justify-between p-4 bg-amber-500/5 animate-in fade-in duration-150">
                   <div className="flex justify-between items-start">
                     <span className="bg-amber-500/90 text-slate-950 font-black text-[9px] px-2 py-0.5 rounded shadow">
-                      {isAr ? 'أعلى الشاشة (منطقة الرؤية الكاملة)' : 'Top Safe Area'}
+                      {t('featureGraphicModal.topSafeArea')}
                     </span>
                     <span className="bg-amber-500/90 text-slate-950 font-black text-[9px] px-2 py-0.5 rounded shadow">
-                      {isAr ? 'منطقة الشعار والعنوان' : 'Title & Logo Safe Area'}
+                      {t('featureGraphicModal.titleLogoSafeArea')}
                     </span>
                   </div>
 
@@ -191,12 +191,12 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
                       <div className="h-2 w-16 bg-slate-400 rounded mb-1" />
                       <div className="h-1.5 w-12 bg-slate-500 rounded" />
                       <span className="text-[8px] text-amber-300 font-bold block mt-1">
-                        {isAr ? 'منطقة غطاء الأيقونة في المتجر' : 'Store Icon & Title Overlay'}
+                        {t('featureGraphicModal.storeIconTitleOverlay')}
                       </span>
                     </div>
 
                     <span className="bg-amber-500/90 text-slate-950 font-black text-[9px] px-2 py-0.5 rounded shadow">
-                      {isAr ? 'أسفل الشاشة (المنطقة الآمنة)' : 'Bottom Safe Zone'}
+                      {t('featureGraphicModal.bottomSafeZone')}
                     </span>
                   </div>
                 </div>
@@ -213,12 +213,12 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
                   {copiedSvg ? (
                     <>
                       <Check className="h-4 w-4 text-emerald-400" />
-                      <span className="text-emerald-400 font-bold">{isAr ? 'تم النسخ' : 'Copied!'}</span>
+                      <span className="text-emerald-400 font-bold">{t('featureGraphicModal.copied')}</span>
                     </>
                   ) : (
                     <>
                       <Copy className="h-4 w-4 text-slate-400" />
-                      <span>{isAr ? 'نسخ SVG' : 'Copy SVG'}</span>
+                      <span>{t('featureGraphicModal.copySvg')}</span>
                     </>
                   )}
                 </button>
@@ -235,8 +235,8 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
                   <Download className="h-4 w-4" />
                   <span>
                     {isDownloading === 'png'
-                      ? isAr ? 'جارِ التحميل...' : 'Downloading...'
-                      : isAr ? 'تحميل PNG (1024×500)' : 'Download PNG (1024×500)'}
+                      ? t('featureGraphicModal.downloading')
+                      : t('featureGraphicModal.downloadPng1024500')}
                   </span>
                 </button>
 
@@ -250,8 +250,8 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
                   <Download className="h-4 w-4" />
                   <span>
                     {isDownloading === 'jpeg'
-                      ? isAr ? 'جارِ التحميل...' : 'Downloading...'
-                      : isAr ? 'تحميل JPEG (1024×500)' : 'Download JPEG (1024×500)'}
+                      ? t('featureGraphicModal.downloading2')
+                      : t('featureGraphicModal.downloadJpeg1024500')}
                   </span>
                 </button>
               </div>
@@ -264,7 +264,7 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
             <div>
               <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5 mb-2.5">
                 <Layers className="h-4 w-4 text-indigo-600" />
-                {isAr ? 'نمط وتخطيط الرسم المميز' : 'Feature Graphic Layout'}
+                {t('featureGraphicModal.featureGraphicLayout')}
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {[
@@ -292,7 +292,7 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
             <div>
               <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5 mb-2.5">
                 <Palette className="h-4 w-4 text-indigo-600" />
-                {isAr ? 'تدرج الخلفية والألوان' : 'Background Theme'}
+                {t('featureGraphicModal.backgroundTheme')}
               </label>
               <div className="grid grid-cols-4 gap-1.5">
                 {[
@@ -324,13 +324,13 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
             <div className="space-y-3">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
                 <Sliders className="h-4 w-4 text-indigo-600" />
-                {isAr ? 'النصوص والعناوين' : 'Titles & Copy'}
+                {t('featureGraphicModal.titlesCopy')}
               </label>
 
               {/* Title Input */}
               <div>
                 <span className="text-[11px] font-semibold text-slate-500 block mb-1">
-                  {isAr ? 'اسم التطبيق / العنوان الرئيسي' : 'App Title'}
+                  {t('featureGraphicModal.appTitle')}
                 </span>
                 <input
                   type="text"
@@ -344,7 +344,7 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
               {/* Subtitle Input */}
               <div>
                 <span className="text-[11px] font-semibold text-slate-500 block mb-1">
-                  {isAr ? 'الوصف الفرعي / الشعار الترويجي' : 'Subtitle / Tagline'}
+                  {t('featureGraphicModal.subtitleTagline')}
                 </span>
                 <input
                   type="text"
@@ -358,7 +358,7 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
               {/* Badge Text */}
               <div>
                 <span className="text-[11px] font-semibold text-slate-500 block mb-1">
-                  {isAr ? 'شارة التميز أو التقييم' : 'Badge / Award Text'}
+                  {t('featureGraphicModal.badgeAwardText')}
                 </span>
                 <input
                   type="text"
@@ -373,7 +373,7 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
             {/* 4. Overlay & Toggle Elements */}
             <div className="space-y-2 pt-2 border-t border-slate-200">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-700 block mb-1">
-                {isAr ? 'العناصر الإضافية' : 'Graphic Elements'}
+                {t('featureGraphicModal.graphicElements')}
               </label>
 
               <div className="grid grid-cols-2 gap-2">
@@ -399,7 +399,7 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
                       : 'bg-white border-slate-200 text-slate-500'
                   }`}
                 >
-                  <span>{isAr ? 'نجوم التقييم' : 'Rating Stars'}</span>
+                  <span>{t('featureGraphicModal.ratingStars')}</span>
                   <div className={`w-2 h-2 rounded-full ${options.showRatingStars ? 'bg-indigo-600' : 'bg-slate-300'}`} />
                 </button>
 
@@ -412,7 +412,7 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
                       : 'bg-white border-slate-200 text-slate-500'
                   }`}
                 >
-                  <span>{isAr ? 'الهالة الضوئية' : 'Glow Effect'}</span>
+                  <span>{t('featureGraphicModal.glowEffect')}</span>
                   <div className={`w-2 h-2 rounded-full ${options.showGlowEffect ? 'bg-indigo-600' : 'bg-slate-300'}`} />
                 </button>
 
@@ -425,7 +425,7 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
                       : 'bg-white border-slate-200 text-slate-500'
                   }`}
                 >
-                  <span>{isAr ? 'إرشادات المتجر' : 'Safe Guides'}</span>
+                  <span>{t('featureGraphicModal.safeGuides')}</span>
                   <div className={`w-2 h-2 rounded-full ${showSafeZones ? 'bg-amber-500' : 'bg-slate-300'}`} />
                 </button>
               </div>
@@ -435,13 +435,13 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
             <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3.5 text-xs text-emerald-900 space-y-1">
               <div className="flex items-center gap-1.5 font-bold">
                 <Info className="h-4 w-4 text-emerald-600" />
-                <span>{isAr ? 'شروط Google Play الرسمية للرسم المميز:' : 'Official Google Play Requirements:'}</span>
+                <span>{t('featureGraphicModal.officialGooglePlayRequirements')}</span>
               </div>
               <ul className="list-disc list-inside text-[11px] text-emerald-800/90 space-y-0.5">
-                <li>{isAr ? 'الدقة: 1024 بكسل عرض × 500 بكسل ارتفاع بالضبط.' : 'Resolution: 1,024 px by 500 px exactly.'}</li>
-                <li>{isAr ? 'الصيغة: PNG أو JPEG بجودة فائقة.' : 'Format: PNG or JPEG high quality.'}</li>
-                <li>{isAr ? 'الحجم الأقصى: أقل من 15 ميجابايت (الملف الناتج ~150KB).' : 'Max File Size: Under 15 MB (Result is ~150 KB).'}</li>
-                <li>{isAr ? 'الاستخدام: يظهر في أعلى صفحة التطبيق والمجموعات المختارة.' : 'Usage: Featured promo graphic on Google Play Store.'}</li>
+                <li>{t('featureGraphicModal.resolution1024Px')}</li>
+                <li>{t('featureGraphicModal.formatPngJpegHigh')}</li>
+                <li>{t('featureGraphicModal.maxFileSizeUnder')}</li>
+                <li>{t('featureGraphicModal.usageFeaturedPromoGraphic')}</li>
               </ul>
             </div>
           </div>

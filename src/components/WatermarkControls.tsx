@@ -33,10 +33,8 @@ const WATERMARK_PRESET_TEXTS = [
 export const WatermarkControls: React.FC<WatermarkControlsProps> = ({
   config,
   onChange,
-  language,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isAr = i18n.language === 'ar';
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const watermark: WatermarkConfig = config.watermark || {
@@ -298,7 +296,6 @@ export const WatermarkControls: React.FC<WatermarkControlsProps> = ({
                 label={t('controlPanel.watermarkTab.color')}
                 color={watermark.color || '#ffffff'}
                 onChange={(c) => updateWatermark({ color: c })}
-                language={language || (isAr ? 'ar' : 'en')}
                 showShades={false}
               />
             </div>

@@ -197,7 +197,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     config.iconType === 'library' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500'
                   }`}
                 >
-                  {isAr ? 'المكتبة' : 'Icons'}
+                  {t('controlPanel.icons')}
                 </button>
                 <button
                   onClick={() => updateConfig({ iconType: 'image' })}
@@ -205,7 +205,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     config.iconType === 'image' ? 'bg-white text-indigo-600 shadow-2xs font-bold' : 'text-slate-500'
                   }`}
                 >
-                  {isAr ? 'رفع صورة' : 'Image'}
+                  {t('controlPanel.image')}
                 </button>
                 <button
                   onClick={() => updateConfig({ iconType: 'custom-svg' })}
@@ -221,7 +221,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     config.iconType === 'emoji' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500'
                   }`}
                 >
-                  {isAr ? 'إيموجي' : 'Emoji'}
+                  {t('controlPanel.emoji')}
                 </button>
               </div>
             </div>
@@ -231,7 +231,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               <ImageUploadEditor
                 config={config}
                 onChange={(patch) => updateConfig(patch)}
-                language={language || (isAr ? 'ar' : 'en')}
                 onOpenCropTrimModal={onOpenCropTrimModal}
               />
             )}
@@ -274,7 +273,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             {config.iconType === 'emoji' && (
               <div className="space-y-2">
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                  {isAr ? 'رمز الإيموجي' : 'Emoji Character'}
+                  {t('controlPanel.emojiCharacter')}
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -404,7 +403,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     label={t('controlPanel.iconTab.iconColor')}
                     color={config.iconColor}
                     onChange={(c) => updateConfig({ iconColor: c })}
-                    language={language || (isAr ? 'ar' : 'en')}
                   />
 
                   {config.iconGradient && (
@@ -412,7 +410,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                       label={t('controlPanel.iconTab.secondaryColor')}
                       color={config.iconColor2 || '#818cf8'}
                       onChange={(c) => updateConfig({ iconColor2: c })}
-                      language={language || (isAr ? 'ar' : 'en')}
                     />
                   )}
                 </div>
@@ -441,7 +438,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   <div className="space-y-2">
                     <div className="space-y-1">
                       <div className="flex justify-between text-[11px] text-slate-500 font-medium">
-                        <span>{isAr ? 'ضبابية الظل (Blur)' : 'Shadow Blur'}</span>
+                        <span>{t('controlPanel.shadowBlur')}</span>
                         <span className="font-mono">{config.iconShadowBlur || 8}px</span>
                       </div>
                       <input
@@ -458,7 +455,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                       label={t('common.color')}
                       color={config.iconShadowColor || 'rgba(0,0,0,0.5)'}
                       onChange={(c) => updateConfig({ iconShadowColor: c })}
-                      language={language || (isAr ? 'ar' : 'en')}
                       showShades={false}
                     />
                   </div>
@@ -498,7 +494,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                       label={t('controlPanel.colorsTab.borderColor')}
                       color={config.iconOutlineColor || '#ffffff'}
                       onChange={(c) => updateConfig({ iconOutlineColor: c })}
-                      language={language || (isAr ? 'ar' : 'en')}
                       showShades={false}
                     />
                   </div>
@@ -727,7 +722,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   label={t('controlPanel.textTab.textColor')}
                   color={config.textColor}
                   onChange={(c) => updateConfig({ textColor: c })}
-                  language={language || (isAr ? 'ar' : 'en')}
                 />
 
                 {/* Text Curve Manipulation */}
@@ -808,7 +802,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                         label={t('controlPanel.colorsTab.borderColor')}
                         color={config.textStrokeColor || '#000000'}
                         onChange={(c) => updateConfig({ textStrokeColor: c })}
-                        language={language || (isAr ? 'ar' : 'en')}
                         showShades={false}
                       />
                     </div>
@@ -871,7 +864,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     label={t('controlPanel.textTab.taglineColor')}
                     color={config.taglineColor}
                     onChange={(c) => updateConfig({ taglineColor: c })}
-                    language={language || (isAr ? 'ar' : 'en')}
                     showShades={false}
                   />
                 </div>
@@ -933,14 +925,13 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               <SmartPaletteGenerator
                 config={config}
                 onChange={updateConfig}
-                language={language || (isAr ? 'ar' : 'en')}
               />
             </div>
 
             {/* Quick Curated Color Palettes */}
             <div className="space-y-2 pt-3 border-t border-slate-100">
               <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                {isAr ? 'لوحات ألوان جاهزة ومميزة' : 'Curated Palettes'}
+                {t('controlPanel.curatedPalettes')}
               </span>
               <div className="grid grid-cols-2 gap-1.5">
                 {POPULAR_PALETTES.map((pal) => (
@@ -1005,7 +996,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                       label={t('controlPanel.colorsTab.primaryBgColor')}
                       color={config.bgColor1}
                       onChange={(c) => updateConfig({ bgColor1: c })}
-                      language={language || (isAr ? 'ar' : 'en')}
                     />
 
                     {(config.bgType === 'linear' || config.bgType === 'radial') && (
@@ -1013,7 +1003,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                         label={t('controlPanel.colorsTab.secondaryBgColor')}
                         color={config.bgColor2}
                         onChange={(c) => updateConfig({ bgColor2: c })}
-                        language={language || (isAr ? 'ar' : 'en')}
                       />
                     )}
                   </div>
@@ -1082,7 +1071,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   label={t('controlPanel.colorsTab.borderColor')}
                   color={config.borderColor}
                   onChange={(c) => updateConfig({ borderColor: c })}
-                  language={language || (isAr ? 'ar' : 'en')}
                   showShades={false}
                 />
               )}
@@ -1134,7 +1122,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             <div className="space-y-3 pt-3 border-t border-slate-100">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  {isAr ? 'حلقة دائرية تزيينية' : 'Decorative Orbit Ring'}
+                  {t('controlPanel.decorativeOrbitRing')}
                 </span>
                 <input
                   type="checkbox"
@@ -1148,7 +1136,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 <div className="space-y-3">
                   <div className="space-y-1">
                     <div className="flex justify-between text-xs text-slate-500 font-medium">
-                      <span>{isAr ? 'نصف القطر' : 'Ring Radius'}</span>
+                      <span>{t('controlPanel.ringRadius')}</span>
                       <span className="font-mono font-semibold">{config.ringRadius}px</span>
                     </div>
                     <input
@@ -1162,7 +1150,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-slate-600">{isAr ? 'حلقة متقطعة' : 'Dashed Line'}</span>
+                    <span className="text-xs font-semibold text-slate-600">{t('controlPanel.dashedLine')}</span>
                     <input
                       type="checkbox"
                       checked={config.ringDash}

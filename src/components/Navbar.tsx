@@ -211,10 +211,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               id="btn-nav-crop-trim"
               onClick={onOpenCropTrim}
               className="flex items-center gap-1 rounded-lg border border-teal-300 bg-teal-50 hover:bg-teal-100 px-2.5 py-1 text-xs font-bold text-teal-800 transition-colors cursor-pointer"
-              title={isAr ? 'قص وتدوير الزوايا الأربع 90°' : '90° Corner Rounder & Cropper'}
+              title={t('nav.text90CornerRounderCropper')}
             >
               <Scissors className="h-3.5 w-3.5 text-teal-600" />
-              <span className="hidden sm:inline">{isAr ? 'قص الزوايا' : 'Corners'}</span>
+              <span className="hidden sm:inline">{t('nav.corners')}</span>
             </button>
           )}
 
@@ -255,7 +255,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={() => setShowMoreMenu(!showMoreMenu)}
               className="flex items-center gap-1 p-1.5 text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
-              title={isAr ? 'المزيد من الأدوات والسياسات' : 'More Tools & Compliance'}
+              title={t('nav.moreToolsCompliance')}
             >
               <MoreHorizontal className="h-3.5 w-3.5" />
             </button>
@@ -310,7 +310,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                       className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-emerald-800 bg-emerald-50/60 hover:bg-emerald-100/70 text-start font-bold cursor-pointer"
                     >
                       <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                      <span>{isAr ? 'سياسة الخصوصية و Google Play' : 'Google Play & Privacy'}</span>
+                      <span>{t('nav.googlePlayPrivacy')}</span>
                     </button>
                   </>
                 )}
@@ -368,7 +368,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       <Modal
         isOpen={showNewConfirm}
         onClose={() => setShowNewConfirm(false)}
-        label={isAr ? 'بدء تصميم جديد؟' : 'Start a new project?'}
+        label={t('nav.startNewProject')}
         className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-150"
         overlayClassName="p-4"
       >
@@ -377,13 +377,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <AlertCircle className="h-4 w-4" />
               </div>
               <h3 className="text-sm font-bold text-slate-900">
-                {isAr ? 'بدء تصميم جديد؟' : 'Start New Project?'}
+                {t('nav.startNewProject2')}
               </h3>
             </div>
             <p className="text-xs text-slate-600 leading-relaxed mb-4">
-              {isAr
-                ? 'هل أنت متأكد من العودة إلى التصميم الافتراضي للبداية؟ تأكد من حفظ مشروعك الحالي إذا كنت بحاجة إليه.'
-                : 'Are you sure you want to reset to start default design? Make sure your current project is saved if you need it.'}
+              {t('nav.areYouSureYou')}
             </p>
             <div className="flex items-center justify-end gap-2">
               <button
@@ -396,7 +394,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={handleConfirmNew}
                 className="px-3.5 py-1 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-2xs transition-colors cursor-pointer"
               >
-                {isAr ? 'نعم، ابدأ من جديد' : 'Yes, Start New'}
+                {t('nav.yesStartNew')}
               </button>
             </div>
       </Modal>

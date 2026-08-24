@@ -30,7 +30,7 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
   onClose,
   language,
 }) => {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isAr = language === 'ar' || i18n.language === 'ar';
   const [activeTab, setActiveTab] = useState<'privacy' | 'terms' | 'google-play-checklist' | 'data-safety' | 'legal-docs'>('privacy');
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
@@ -48,7 +48,7 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      label={isAr ? 'الخصوصية وسياسات Google Play' : 'Privacy & Google Play policies'}
+      label={t('policyModal.privacyGooglePlayPolicies')}
       className="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]"
       overlayClassName="z-50 p-3 sm:p-6"
     >
@@ -60,15 +60,13 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
-                {isAr ? 'سياسة الخصوصية وتوافق متجر Google Play' : 'Privacy Policy & Google Play Compliance'}
+                {t('policyModal.privacyPolicyGooglePlay')}
                 <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200">
-                  {isAr ? 'معتمد للنشر' : 'Production Ready'}
+                  {t('policyModal.productionReady')}
                 </span>
               </h2>
               <p className="text-xs text-slate-500">
-                {isAr
-                  ? 'سياسة الخصوصية الرسمية وشروط الاستخدام وتجهيز متطلبات إطلاق التطبيق'
-                  : 'Official Privacy Policy, Commercial Terms, and Google Play Store submission checklist'}
+                {t('policyModal.officialPrivacyPolicyCommercial')}
               </p>
             </div>
           </div>
@@ -76,7 +74,7 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors"
-            title={isAr ? 'إغلاق' : 'Close'}
+            title={t('policyModal.close')}
           >
             <X className="h-5 w-5" />
           </button>
@@ -118,9 +116,7 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
                   <span className="font-bold text-xs">
-                    {isAr
-                      ? 'وثيقة سياسة خصوصية معتمدة للنسخ ووضع رابطها في Google Play Console'
-                      : 'Production-ready Privacy Policy text for your Google Play Console store listing'}
+                    {t('policyModal.productionReadyPrivacyPolicy')}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -129,7 +125,7 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 shadow-2xs transition-all cursor-pointer"
                   >
                     <Download className="h-3.5 w-3.5 text-slate-500" />
-                    <span>{isAr ? 'تنزيل .MD' : 'Download .MD'}</span>
+                    <span>{t('policyModal.downloadMd')}</span>
                   </button>
                   <button
                     onClick={() => copyToClipboard(activePrivacyText, 'privacy-text')}
@@ -138,12 +134,12 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                     {copiedSection === 'privacy-text' ? (
                       <>
                         <Check className="h-3.5 w-3.5" />
-                        <span>{isAr ? 'تم النسخ!' : 'Copied!'}</span>
+                        <span>{t('policyModal.copied')}</span>
                       </>
                     ) : (
                       <>
                         <Copy className="h-3.5 w-3.5" />
-                        <span>{isAr ? 'نسخ السياسة' : 'Copy Policy'}</span>
+                        <span>{t('policyModal.copyPolicy')}</span>
                       </>
                     )}
                   </button>
@@ -154,62 +150,50 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
               <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-4 font-sans text-slate-700">
                 <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                   <h3 className="text-base font-bold text-slate-900">
-                    {isAr
-                      ? 'سياسة الخصوصية الرسمية لتطبيق Logo & Favicon Studio'
-                      : 'Official Privacy Policy for Logo & Favicon Studio'}
+                    {t('policyModal.officialPrivacyPolicyLogo')}
                   </h3>
                   <span className="text-[11px] font-mono font-semibold text-slate-500">{PRIVACY_POLICY_URL[isAr ? 'ar' : 'en']}</span>
                 </div>
 
                 <div className="space-y-3 leading-relaxed">
                   <p>
-                    <strong>{isAr ? 'آخر تحديث:' : 'Last Updated:'}</strong> 24 August 2026
+                    <strong>{t('policyModal.lastUpdated')}</strong> 24 August 2026
                   </p>
                   <p>
-                    {isAr
-                      ? 'نحن نلتزم بحماية خصوصية المستخدمين. هذا التطبيق يعمل بنظام المعالجة المحلية (Client-Side First)، بحيث تظل كافة الصور والتصميمات والأيقونات مخزنة حصرياً على جهازك الشخصي ولا يتم رفعها أو تخزينها على خوادمنا.'
-                      : 'We are committed to protecting your privacy. This application operates on a Client-Side First architecture, ensuring that all your images, graphics, and logo designs remain exclusively on your device.'}
+                    {t('policyModal.weAreCommittedProtecting')}
                   </p>
 
                   <h4 className="font-bold text-slate-900 pt-2">
-                    {isAr ? '1. البيانات التي نجمعها:' : '1. Data Collection & Processing:'}
+                    {t('policyModal.text1DataCollectionProcessing')}
                   </h4>
                   <ul className="list-disc list-inside space-y-1 text-slate-600">
                     <li>
-                      {isAr
-                        ? 'لا نجمع أي معلومات شخصية، أو أرقام هواتف، أو بيانات مالية.'
-                        : 'No personal identification, phone numbers, or financial information is harvested.'}
+                      {t('policyModal.noPersonalIdentificationPhone')}
                     </li>
                     <li>
-                      {isAr
-                        ? 'الملفات والصور المصدرة تحفظ مباشرة في جهاز المستخدم.'
-                        : 'Exported graphic assets are saved directly to your local file system.'}
+                      {t('policyModal.exportedGraphicAssetsAre')}
                     </li>
                   </ul>
 
                   <h4 className="font-bold text-slate-900 pt-2">
-                    {isAr ? '2. الأذونات المطلوبة في التطبيق:' : '2. Device Permissions:'}
+                    {t('policyModal.text2DevicePermissions')}
                   </h4>
                   <ul className="list-disc list-inside space-y-1 text-slate-600">
                     <li>
-                      <strong>{isAr ? 'التخزين والملفات:' : 'Storage / File Access:'}</strong>{' '}
-                      {isAr
-                        ? 'لقراءة الصور المراد تعديلها وحفظ الشعار المصدر (PNG, SVG, ICO, JPG, WebP).'
-                        : 'Used strictly to allow you to pick custom logos and download generated design packages.'}
+                      <strong>{t('policyModal.storageFileAccess')}</strong>{' '}
+                      {t('policyModal.usedStrictlyAllowYou')}
                     </li>
                     <li>
-                      <strong>{isAr ? 'الإنترنت (Network):' : 'Internet / Network:'}</strong>{' '}
-                      {isAr
-                        ? 'لتحميل الخطوط وميزة التوليد بالذكاء الاصطناعي الاختيارية فقط.'
-                        : 'Used solely for Google web fonts and optional Gemini AI logo generation requests.'}
+                      <strong>{t('policyModal.internetNetwork')}</strong>{' '}
+                      {t('policyModal.usedSolelyGoogleWeb')}
                     </li>
                   </ul>
 
                   <h4 className="font-bold text-slate-900 pt-2">
-                    {isAr ? '3. التواصل والدعم الفني:' : '3. Developer Contact:'}
+                    {t('policyModal.text3DeveloperContact')}
                   </h4>
                   <p className="text-slate-600">
-                    {isAr ? 'البريد الإلكتروني المعتمد للدعم:' : 'Official Developer Contact Email:'}{' '}
+                    {t('policyModal.officialDeveloperContactEmail')}{' '}
                     <code className="bg-slate-200 text-indigo-700 px-2 py-0.5 rounded-md font-mono font-bold">
                       anwarasbas2018@gmail.com
                     </code>
@@ -226,9 +210,7 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                 <div className="flex items-center gap-2">
                   <Award className="h-4 w-4 text-amber-600 shrink-0" />
                   <span className="font-bold text-xs">
-                    {isAr
-                      ? 'حقوق الاستخدام التجاري والتسجيل كعلامة تجارية بنسبة 100%'
-                      : '100% Full Commercial Ownership & Trademark Rights for all your created designs'}
+                    {t('policyModal.text100FullCommercialOwnership')}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -237,7 +219,7 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 shadow-2xs transition-all cursor-pointer"
                   >
                     <Download className="h-3.5 w-3.5 text-slate-500" />
-                    <span>{isAr ? 'تنزيل .MD' : 'Download .MD'}</span>
+                    <span>{t('policyModal.downloadMd2')}</span>
                   </button>
                   <button
                     onClick={() => copyToClipboard(activeTermsText, 'terms-text')}
@@ -246,12 +228,12 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                     {copiedSection === 'terms-text' ? (
                       <>
                         <Check className="h-3.5 w-3.5" />
-                        <span>{isAr ? 'تم النسخ!' : 'Copied!'}</span>
+                        <span>{t('policyModal.copied2')}</span>
                       </>
                     ) : (
                       <>
                         <Copy className="h-3.5 w-3.5" />
-                        <span>{isAr ? 'نسخ الشروط' : 'Copy Terms'}</span>
+                        <span>{t('policyModal.copyTerms')}</span>
                       </>
                     )}
                   </button>
@@ -261,26 +243,20 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
               <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-4 font-sans text-slate-700">
                 <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                   <h3 className="text-base font-bold text-slate-900">
-                    {isAr ? 'شروط الاستخدام والملكية التجارية' : 'Commercial Ownership & Terms of Service'}
+                    {t('policyModal.commercialOwnershipTermsService')}
                   </h3>
                   <span className="text-[11px] font-mono font-semibold text-slate-500">{TERMS_OF_SERVICE_URL[isAr ? 'ar' : 'en']}</span>
                 </div>
 
                 <div className="space-y-3 leading-relaxed text-slate-700">
                   <p>
-                    {isAr
-                      ? '1. **الملكية التجارية الحرة 100%:** كافة الشعارات، الأيقونات، البنرات، وملفات Favicon التي تصممها باستخدام التطبيق هي ملكيتك الحصرية بدون أي قيود، أو عمولات، أو حقوق ملكية لاحقة.'
-                      : '1. **100% Commercial Ownership:** All vector logos, favicons, banners, and app icons created with this tool are strictly your property for unlimited personal and commercial use without royalty fees.'}
+                    {t('policyModal.text1100CommercialOwnership')}
                   </p>
                   <p>
-                    {isAr
-                      ? '2. **تسجيل العلامة التجارية:** يحق للمستخدم تسجيل الشعارات والأيقونات المصممة كعلامات تجارية مسجلة رسمياً للشركات والتطبيقات والمتاجر.'
-                      : '2. **Trademark Registration:** Users are fully authorized to register their exported designs as official corporate or app trademarks worldwide.'}
+                    {t('policyModal.text2TrademarkRegistrationUsers')}
                   </p>
                   <p>
-                    {isAr
-                      ? '3. **التوافق مع Google Play:** التطبيق مصمم ومبني بالكامل وفق إرشادات مطوري Google Play وسياسات توزيع التطبيقات الرسمية.'
-                      : '3. **Google Play Alignment:** This software is fully designed and maintained in adherence with the Google Play Developer Distribution Agreement.'}
+                    {t('policyModal.text3GooglePlayAlignment')}
                   </p>
                 </div>
               </div>
@@ -293,12 +269,10 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
               <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-2xl space-y-2 text-indigo-950">
                 <h3 className="font-bold text-sm flex items-center gap-2">
                   <FolderArchive className="h-4 w-4 text-indigo-600" />
-                  <span>{isAr ? 'مجلد المستندات القانونية (Legal Folder Documents)' : 'Legal Folder Markdown Documents'}</span>
+                  <span>{t('policyModal.legalFolderMarkdownDocuments')}</span>
                 </h3>
                 <p className="text-xs text-indigo-800">
-                  {isAr
-                    ? 'تم إنشاء مجلد Legal متكامل يحتوي على ملفات Markdown النموذجية الجاهزة للاستضافة المباشرة أو تضمينها في موقعك:'
-                    : 'The project includes a dedicated Legal folder with markdown files ready for deployment and hosting:'}
+                  {t('policyModal.theProjectIncludesDedicated')}
                 </p>
               </div>
 
@@ -315,9 +289,7 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                     </span>
                   </div>
                   <p className="text-xs text-slate-600">
-                    {isAr
-                      ? 'ملف سياسة الخصوصية الشامل المتوافق مع متطلبات متجر Google Play وقوانين حماية البيانات.'
-                      : 'Full privacy declarations detailing client-side storage, device permissions, and zero tracking.'}
+                    {t('policyModal.fullPrivacyDeclarationsDetailing')}
                   </p>
                   <div className="flex items-center gap-2 pt-1">
                     <button
@@ -325,7 +297,7 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                       className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl shadow-2xs transition-all cursor-pointer"
                     >
                       <Download className="h-3.5 w-3.5 text-slate-500" />
-                      <span>{isAr ? 'تنزيل الملف' : 'Download .md'}</span>
+                      <span>{t('policyModal.downloadMd3')}</span>
                     </button>
                     <button
                       onClick={() => copyToClipboard(PRIVACY_POLICY_MD, 'legal-privacy-md')}
@@ -334,12 +306,12 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                       {copiedSection === 'legal-privacy-md' ? (
                         <>
                           <Check className="h-3.5 w-3.5 text-emerald-600" />
-                          <span>{isAr ? 'تم النسخ' : 'Copied'}</span>
+                          <span>{t('policyModal.copied3')}</span>
                         </>
                       ) : (
                         <>
                           <Copy className="h-3.5 w-3.5" />
-                          <span>{isAr ? 'نسخ Markdown' : 'Copy MD'}</span>
+                          <span>{t('policyModal.copyMd')}</span>
                         </>
                       )}
                     </button>
@@ -358,9 +330,7 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                     </span>
                   </div>
                   <p className="text-xs text-slate-600">
-                    {isAr
-                      ? 'ملف شروط الخدمة واتفاقية الاستخدام والترخيص التجاري الدائم والمجاني للمستخدم.'
-                      : 'Commercial rights agreement, perpetual licensing terms, and liability limits.'}
+                    {t('policyModal.commercialRightsAgreementPerpetual')}
                   </p>
                   <div className="flex items-center gap-2 pt-1">
                     <button
@@ -368,7 +338,7 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                       className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold rounded-xl shadow-2xs transition-all cursor-pointer"
                     >
                       <Download className="h-3.5 w-3.5 text-slate-500" />
-                      <span>{isAr ? 'تنزيل الملف' : 'Download .md'}</span>
+                      <span>{t('policyModal.downloadMd4')}</span>
                     </button>
                     <button
                       onClick={() => copyToClipboard(TERMS_OF_SERVICE_MD, 'legal-terms-md')}
@@ -377,12 +347,12 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                       {copiedSection === 'legal-terms-md' ? (
                         <>
                           <Check className="h-3.5 w-3.5 text-emerald-600" />
-                          <span>{isAr ? 'تم النسخ' : 'Copied'}</span>
+                          <span>{t('policyModal.copied4')}</span>
                         </>
                       ) : (
                         <>
                           <Copy className="h-3.5 w-3.5" />
-                          <span>{isAr ? 'نسخ Markdown' : 'Copy MD'}</span>
+                          <span>{t('policyModal.copyMd2')}</span>
                         </>
                       )}
                     </button>
@@ -398,12 +368,10 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
               <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-2xl space-y-2 text-indigo-950">
                 <h3 className="font-bold text-sm flex items-center gap-2">
                   <Smartphone className="h-4 w-4 text-indigo-600" />
-                  <span>{isAr ? 'قائمة التحقق الرسمية لمتجر Google Play Store' : 'Official Google Play Store Launch Checklist'}</span>
+                  <span>{t('policyModal.officialGooglePlayStore')}</span>
                 </h3>
                 <p className="text-xs text-indigo-800">
-                  {isAr
-                    ? 'تأكد من استيفاء جميع المتطلبات البصرية والتقنية التالية قبل رفع حزمة التطبيق (AAB/APK):'
-                    : 'Ensure all graphic assets and policy requirements below are prepared for your Play Console store listing:'}
+                  {t('policyModal.ensureAllGraphicAssets')}
                 </p>
               </div>
 
@@ -412,16 +380,14 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-xs text-slate-900">
-                      {isAr ? '1. أيقونة التطبيق (App Icon)' : '1. High-Res App Icon'}
+                      {t('policyModal.text1HighResApp')}
                     </span>
                     <span className="text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md">
                       512 × 512 px
                     </span>
                   </div>
                   <p className="text-xs text-slate-600">
-                    {isAr
-                      ? 'صيغة PNG مع قناة ألفا (32-bit)، أقصى حجم 1024KB، بدون حواف دائرية مقصوصة مسبقاً لأن جوجل تطبق قناع السكويركل تلقائياً.'
-                      : '32-bit PNG with alpha, max 1024KB. Keep it square with sharp edges; Google Play automatically applies the rounded corner mask.'}
+                    {t('policyModal.text32BitPngAlpha')}
                   </p>
                 </div>
 
@@ -429,16 +395,14 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-xs text-slate-900">
-                      {isAr ? '2. الصورة المميزة (Feature Graphic)' : '2. Feature Graphic'}
+                      {t('policyModal.text2FeatureGraphic')}
                     </span>
                     <span className="text-[10px] font-mono font-bold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md">
                       1024 × 500 px
                     </span>
                   </div>
                   <p className="text-xs text-slate-600">
-                    {isAr
-                      ? 'صيغة JPG أو PNG بدون شفافية، مع مراعاة منطقة الأمان (Safe Zone 15%) من الحواف وعدم وضع تقييمات مضللة.'
-                      : 'JPG or 24-bit PNG without transparency. Maintain 15% safe margin from edges for title and prominent badges.'}
+                    {t('policyModal.jpg24BitPng')}
                   </p>
                 </div>
 
@@ -446,16 +410,14 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-xs text-slate-900">
-                      {isAr ? '3. الإصدار والهدف (Target SDK)' : '3. Target SDK & Platform'}
+                      {t('policyModal.text3TargetSdkPlatform')}
                     </span>
                     <span className="text-[10px] font-mono font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md">
                       Android 14+ (API 34)
                     </span>
                   </div>
                   <p className="text-xs text-slate-600">
-                    {isAr
-                      ? 'تنسيق حزمة التطبيقات Android App Bundle (.aab) متوافق مع سياسات الأمان الحديثة.'
-                      : 'Signed Android App Bundle (.aab) adhering to the latest Google Play 64-bit and Target SDK policies.'}
+                    {t('policyModal.signedAndroidAppBundle')}
                   </p>
                 </div>
 
@@ -463,16 +425,14 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                 <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-xs text-slate-900">
-                      {isAr ? '4. تصنيف المحتوى (IARC Rating)' : '4. Content Rating'}
+                      {t('policyModal.text4ContentRating')}
                     </span>
                     <span className="text-[10px] font-mono font-bold bg-teal-100 text-teal-800 px-2 py-0.5 rounded-md">
                       Everyone / للجميع
                     </span>
                   </div>
                   <p className="text-xs text-slate-600">
-                    {isAr
-                      ? 'تطبيق إنتاجية وأدوات تصميم، مناسب لجميع الأعمار ولا يحتوي على أي محتوى حساس.'
-                      : 'Design & Productivity utility tool suitable for general audiences with zero mature content.'}
+                    {t('policyModal.designProductivityUtilityTool')}
                   </p>
                 </div>
               </div>
@@ -485,12 +445,10 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
               <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-2 text-emerald-950">
                 <h3 className="font-bold text-sm flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                  <span>{isAr ? 'إجابات قسم أمان البيانات في Google Play Console (Data Safety)' : 'Play Console Data Safety Form Guidance'}</span>
+                  <span>{t('policyModal.playConsoleDataSafety')}</span>
                 </h3>
                 <p className="text-xs text-emerald-800">
-                  {isAr
-                    ? 'عند تعبئة استبيان أمان البيانات (Data Safety) في Google Play Console، يمكنك استخدام هذه الإجابات المطابقة:'
-                    : 'Use these exact declarations when filling the mandatory Data Safety questionnaire in Google Play Console:'}
+                  {t('policyModal.useTheseExactDeclarations')}
                 </p>
               </div>
 
@@ -499,10 +457,10 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                   <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
                   <div>
                     <strong className="text-slate-900 block text-xs">
-                      {isAr ? 'هل يجمع التطبيق أو يشارك أي بيانات مستخدم؟' : 'Does your app collect or share any user data?'}
+                      {t('policyModal.doesAppCollectShare')}
                     </strong>
                     <span className="text-xs text-slate-600">
-                      {isAr ? 'الإجابة: لا (No)، جميع التصميمات تتم محلياً على جهاز المستخدم.' : 'Answer: No. All graphic transformations occur on-device.'}
+                      {t('policyModal.answerNoAllGraphic')}
                     </span>
                   </div>
                 </div>
@@ -511,10 +469,10 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                   <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
                   <div>
                     <strong className="text-slate-900 block text-xs">
-                      {isAr ? 'هل يتم تشفير البيانات أثناء النقل؟' : 'Is data encrypted in transit?'}
+                      {t('policyModal.isDataEncryptedTransit')}
                     </strong>
                     <span className="text-xs text-slate-600">
-                      {isAr ? 'الإجابة: نعم (Yes)، أي اتصالات مع واجهة الذكاء الاصطناعي تتم عبر بروتوكول HTTPS المشفر.' : 'Answer: Yes. Any network communication uses HTTPS TLS encryption.'}
+                      {t('policyModal.answerYesAnyNetwork')}
                     </span>
                   </div>
                 </div>
@@ -523,10 +481,10 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                   <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
                   <div>
                     <strong className="text-slate-900 block text-xs">
-                      {isAr ? 'هل يمكن للمستخدم طلب حذف بياناته؟' : 'Can users request data deletion?'}
+                      {t('policyModal.canUsersRequestData')}
                     </strong>
                     <span className="text-xs text-slate-600">
-                      {isAr ? 'الإجابة: نعم (Yes)، يمكن للمستخدم مسح مشاريعه المحفوظة بضغطة زر أو بمسح بيانات التطبيق.' : 'Answer: Yes. Users can delete all saved projects directly within the app.'}
+                      {t('policyModal.answerYesUsersCan')}
                     </span>
                   </div>
                 </div>
@@ -538,14 +496,14 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
         {/* Footer actions */}
         <div className="flex items-center justify-between px-5 py-3.5 border-t border-slate-200 bg-slate-50 shrink-0">
           <span className="text-xs text-slate-500 font-mono">
-            {isAr ? 'البريد المعتمد: anwarasbas2018@gmail.com' : 'Support: anwarasbas2018@gmail.com'}
+            {t('policyModal.supportAnwarasbas2018GmailCom')}
           </span>
 
           <button
             onClick={onClose}
             className="px-4 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-xl shadow-2xs transition-colors cursor-pointer"
           >
-            {isAr ? 'إغلاق النافذة' : 'Close'}
+            {t('policyModal.close2')}
           </button>
         </div>
       </Modal>
