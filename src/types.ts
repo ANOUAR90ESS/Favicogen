@@ -203,8 +203,6 @@ export interface FeatureGraphicOptions {
   badgeText: string;
   bgTheme: 'brand' | 'sunset' | 'cyber' | 'emerald' | 'gold' | 'dark' | 'light';
   showPhoneMockup: boolean;
-  showPlayBadge: boolean;
-  showRatingStars: boolean;
   showGlowEffect: boolean;
   customBgColor1?: string;
   customBgColor2?: string;

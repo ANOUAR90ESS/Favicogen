@@ -47,10 +47,9 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
 
   // Customization state
   const [channelTitle, setChannelTitle] = useState<string>(config.text || config.name || t('youtubeKitModal.defaultChannelName'));
-  const [channelHandle, setChannelHandle] = useState<string>(`@${(config.text || 'channel').toLowerCase().replace(/\s+/g, '')}`);
+  const [channelHandle, setChannelHandle] = useState<string>('');
   const [channelTagline, setChannelTagline] = useState<string>(config.tagline || t('youtubeKitModal.defaultTagline'));
-  const [uploadSchedule, setUploadSchedule] = useState<string>(t('youtubeKitModal.defaultSchedule'));
-  const [subscribersMock] = useState<string>(t('youtubeKitModal.sampleSubscribers'));
+  const [uploadSchedule, setUploadSchedule] = useState<string>('');
   const [selectedTheme, setSelectedTheme] = useState<'youtube-red' | 'dark' | 'brand' | 'cyberpunk' | 'royal-gold' | 'emerald'>('youtube-red');
   const [selectedLayout, setSelectedLayout] = useState<'youtube-channel' | 'center-hero' | 'split-hero' | 'minimal-clean'>('youtube-channel');
 
@@ -61,8 +60,8 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
     subtitle: channelTagline,
     channelHandle,
     uploadSchedule,
-    showBadge: true,
-    badgeText: t('youtubeKitModal.verifiedBadge'),
+    showBadge: false,
+    badgeText: '',
     showGlowEffect: true,
     showSafeZone: showSafeZones,
   }), [selectedLayout, selectedTheme, channelTitle, channelTagline, channelHandle, uploadSchedule, showSafeZones]);
@@ -328,7 +327,7 @@ export const YouTubeKitModal: React.FC<YouTubeKitModalProps> = ({
                           </span>
                         </div>
                         <p className="text-xs text-slate-400 font-medium">
-                          {channelHandle} • {subscribersMock} • {t('youtubeKitModal.videoCount')}
+                          {channelHandle || t('youtubeKitModal.sampleChannelLine')}
                         </p>
                         <p className="text-xs text-slate-300 line-clamp-1">{channelTagline}</p>
                       </div>

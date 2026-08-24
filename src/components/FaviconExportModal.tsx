@@ -295,12 +295,10 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
                   const svg = generateFeatureGraphicSvg(config, {
                     layout: 'center-hero',
                     title: config.text || config.name || 'App',
-                    subtitle: config.tagline || 'Next Gen Mobile App',
-                    badgeText: '★ 4.9 • 100K+ Downloads',
+                    subtitle: config.tagline || '',
+                    badgeText: '',
                     bgTheme: 'brand',
                     showPhoneMockup: true,
-                    showPlayBadge: true,
-                    showRatingStars: true,
                     showGlowEffect: true,
                   });
                   const blob = await rasterizeSvg(svg, 1024, 500, 'png');
@@ -315,12 +313,10 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
                   const svg = generateFeatureGraphicSvg(config, {
                     layout: 'center-hero',
                     title: config.text || config.name || 'App',
-                    subtitle: config.tagline || 'Next Gen Mobile App',
-                    badgeText: '★ 4.9 • 100K+ Downloads',
+                    subtitle: config.tagline || '',
+                    badgeText: '',
                     bgTheme: 'brand',
                     showPhoneMockup: true,
-                    showPlayBadge: true,
-                    showRatingStars: true,
                     showGlowEffect: true,
                   });
                   const blob = await rasterizeSvg(svg, 1024, 500, 'jpeg');

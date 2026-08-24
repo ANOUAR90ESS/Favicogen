@@ -39,11 +39,9 @@ export const LiveMockupsModal: React.FC<LiveMockupsModalProps> = ({
         layout: 'center-hero',
         title: config.text || config.name || 'My App',
         subtitle: config.tagline || (t('mockupsModal.nextGenMobileSolutions')),
-        badgeText: t('mockupsModal.text49100kDownloads'),
+        badgeText: '',
         bgTheme: 'brand',
         showPhoneMockup: true,
-        showPlayBadge: true,
-        showRatingStars: true,
         showGlowEffect: true,
       }),
     [config, isAr]

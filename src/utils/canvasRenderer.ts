@@ -1028,12 +1028,10 @@ ${includePlayStoreFeature ? '- google-play-feature-graphic-1024x500.png / .jpg :
     const playSvg = generateFeatureGraphicSvg(config, {
       layout: 'center-hero',
       title: config.text || config.name || 'App',
-      subtitle: config.tagline || 'Mobile & Web App',
-      badgeText: '★ 4.9 • 100K+ Downloads',
+      subtitle: config.tagline || '',
+      badgeText: '',
       bgTheme: 'brand',
       showPhoneMockup: true,
-      showPlayBadge: true,
-      showRatingStars: true,
       showGlowEffect: true,
     });
     const playPng = await rasterizeSvg(playSvg, 1024, 500, 'png');
@@ -1162,7 +1160,12 @@ export function generateFeatureGraphicSvg(
 
   const title = options.title || config.text || config.name || 'My App';
   const subtitle = options.subtitle || config.tagline || 'Experience the next generation application';
-  const badgeText = options.badgeText || '★ 4.9 • 100K+ Downloads';
+  // Never invented. A rating or a download count this tool cannot know is a
+  // claim on a store listing, so the only honest default is nothing at all.
+  // For the same reason there is no rating bar and no "GET IT ON Google Play"
+  // badge anywhere below: the first is a fabricated number, the second is
+  // Google's trademark and belongs only to apps that are actually listed.
+  const badgeText = (options.badgeText || '').trim();
 
   // Extract inner SVG content (strip outer <svg> tags) to embed directly
   const innerSvgContent = logoSvg.replace(/^<svg[^>]*>|<\/svg>$/gi, '');
@@ -1186,12 +1189,14 @@ export function generateFeatureGraphicSvg(
       </g>
 
       <!-- Badge Pill -->
-      <g transform="translate(512, 290)">
-        <rect x="-130" y="0" width="260" height="32" rx="16" fill="${cardBg}" stroke="${cardBorder}" stroke-width="1.5" />
-        <text x="0" y="21" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="${textColor}" letter-spacing="0.5">
-          ${escapeXml(badgeText)}
-        </text>
-      </g>
+      ${badgeText ? `
+        <g transform="translate(512, 290)">
+          <rect x="-130" y="0" width="260" height="32" rx="16" fill="${cardBg}" stroke="${cardBorder}" stroke-width="1.5" />
+          <text x="0" y="21" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="${textColor}" letter-spacing="0.5">
+            ${escapeXml(badgeText)}
+          </text>
+        </g>
+      ` : ''}
 
       <!-- Title & Subtitle -->
       <text x="512" y="375" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="44" font-weight="900" fill="${textColor}" letter-spacing="-0.5" filter="url(#fg_subtle_shadow)">
@@ -1202,16 +1207,7 @@ export function generateFeatureGraphicSvg(
         ${escapeXml(subtitle)}
       </text>
 
-      <!-- Play Store Official Pill (Optional) -->
-      ${options.showPlayBadge ? `
-        <g transform="translate(512, 458)">
-          <rect x="-80" y="-14" width="160" height="28" rx="8" fill="#000000" opacity="0.8" />
-          <path d="M -60 -5 L -52 0 L -60 5 Z" fill="#00e676" />
-          <text x="-44" y="4" font-family="system-ui, sans-serif" font-size="10" font-weight="800" fill="#ffffff" letter-spacing="1">
-            GOOGLE PLAY
-          </text>
-        </g>
-      ` : ''}
+
     `;
   } 
   // 2. Split Showcase Layout (Phone on Side + Hero Typography)
@@ -1235,29 +1231,7 @@ export function generateFeatureGraphicSvg(
           ${escapeXml(subtitle)}
         </text>
 
-        <!-- Rating Stars Bar -->
-        ${options.showRatingStars ? `
-          <g transform="translate(0, 175)">
-            <text x="0" y="18" font-size="20" fill="#facc15">★★★★★</text>
-            <text x="120" y="18" font-family="system-ui, sans-serif" font-size="14" font-weight="700" fill="${textColor}">
-              4.9 Rating
-            </text>
-          </g>
-        ` : ''}
 
-        <!-- Google Play Store Badge -->
-        ${options.showPlayBadge ? `
-          <g transform="translate(0, 240)">
-            <rect width="180" height="48" rx="10" fill="#000000" stroke="rgba(255,255,255,0.2)" stroke-width="1" />
-            <path d="M 20 16 L 36 24 L 20 32 Z" fill="#00e676" />
-            <text x="48" y="22" font-family="system-ui, sans-serif" font-size="9" font-weight="600" fill="#94a3b8" letter-spacing="0.5">
-              GET IT ON
-            </text>
-            <text x="48" y="37" font-family="system-ui, sans-serif" font-size="14" font-weight="800" fill="#ffffff" letter-spacing="0.5">
-              Google Play
-            </text>
-          </g>
-        ` : ''}
       </g>
 
       <!-- Right Side 3D Smartphone Device Mockup Frame -->
@@ -1363,12 +1337,6 @@ export function generateFeatureGraphicSvg(
           ${escapeXml(subtitle)}
         </text>
 
-        <!-- Rating Stars -->
-        ${options.showRatingStars ? `
-          <text x="350" y="360" text-anchor="middle" font-size="18" fill="#facc15">
-            ★★★★★
-          </text>
-        ` : ''}
       </g>
     `;
   }
@@ -1690,10 +1658,12 @@ export function generateSocialBannerSvg(
   }
 
   const title = options.title || config.text || config.name || 'Brand Name';
-  const subtitle = options.subtitle || config.tagline || 'Official Social Media Channel';
-  const badgeText = options.badgeText || 'OFFICIAL CHANNEL • 2026';
-  const channelHandle = options.channelHandle || `@${(config.text || 'channel').toLowerCase().replace(/\s+/g, '')}`;
-  const uploadSchedule = options.uploadSchedule || 'NEW VIDEOS EVERY WEEK';
+  const subtitle = options.subtitle || config.tagline || '';
+  // Empty unless the user typed it. A badge, a handle or an upload schedule
+  // invented here would be printed onto an asset as if it were true.
+  const badgeText = (options.badgeText || '').trim();
+  const channelHandle = (options.channelHandle || '').trim();
+  const uploadSchedule = (options.uploadSchedule || '').trim();
 
   // Extract inner SVG content (strip outer <svg> tags)
   const innerSvgContent = logoSvg.replace(/^<svg[^>]*>|<\/svg>$/gi, '');
@@ -1726,7 +1696,7 @@ export function generateSocialBannerSvg(
       </g>
 
       <!-- Badge Pill -->
-      ${options.showBadge ? `
+      ${options.showBadge && badgeText ? `
         <g transform="translate(${cx}, ${Math.max(60, logoY + logoTargetSize + 30)})">
           <rect x="-140" y="-16" width="280" height="32" rx="16" fill="${cardBg}" stroke="${cardBorder}" stroke-width="1.5" />
           <text x="0" y="5" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(12, Math.min(16, w * 0.015))}" font-weight="700" fill="${textColor}" letter-spacing="1">
@@ -1736,11 +1706,11 @@ export function generateSocialBannerSvg(
       ` : ''}
 
       <!-- Title & Subtitle -->
-      <text x="${cx}" y="${Math.min(h - 80, logoY + logoTargetSize + (options.showBadge ? 95 : 65))}" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(24, Math.min(68, w * 0.042))}" font-weight="900" fill="${textColor}" letter-spacing="-0.5" filter="url(#sb_subtle_shadow)">
+      <text x="${cx}" y="${Math.min(h - 80, logoY + logoTargetSize + (options.showBadge && badgeText ? 95 : 65))}" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(24, Math.min(68, w * 0.042))}" font-weight="900" fill="${textColor}" letter-spacing="-0.5" filter="url(#sb_subtle_shadow)">
         ${escapeXml(title)}
       </text>
 
-      <text x="${cx}" y="${Math.min(h - 40, logoY + logoTargetSize + (options.showBadge ? 145 : 115))}" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(14, Math.min(26, w * 0.018))}" font-weight="500" fill="${subtextColor}">
+      <text x="${cx}" y="${Math.min(h - 40, logoY + logoTargetSize + (options.showBadge && badgeText ? 145 : 115))}" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(14, Math.min(26, w * 0.018))}" font-weight="500" fill="${subtextColor}">
         ${escapeXml(subtitle)}
       </text>
     `;
@@ -1771,19 +1741,16 @@ export function generateSocialBannerSvg(
 
         <!-- Channel Info Block -->
         <g transform="translate(${avatarSize + 40}, ${avatarHalf - 30})">
-          <!-- Title & Verified Badge -->
+          <!-- Title -->
           <g transform="translate(0, 0)">
             <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(28, Math.min(54, w * 0.03))}" font-weight="900" fill="${textColor}" letter-spacing="-0.5">
               ${escapeXml(title)}
             </text>
-            <!-- Checkmark badge -->
-            <circle cx="${title.length * 24 + 20}" cy="-12" r="10" fill="#38bdf8" />
-            <path d="M ${title.length * 24 + 16} -12 L ${title.length * 24 + 19} -9 L ${title.length * 24 + 25} -15" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
           </g>
 
           <!-- Handle & Upload Schedule -->
           <text x="0" y="32" font-family="system-ui, sans-serif" font-size="${Math.max(13, Math.min(20, w * 0.012))}" font-weight="600" fill="${subtextColor}">
-            ${escapeXml(channelHandle)} • ${escapeXml(uploadSchedule)}
+            ${escapeXml([channelHandle, uploadSchedule].filter(Boolean).join(' • '))}
           </text>
 
           <!-- Tagline -->
@@ -1792,13 +1759,6 @@ export function generateSocialBannerSvg(
           </text>
         </g>
 
-        <!-- Right Subscribe CTA Badge -->
-        <g transform="translate(740, ${avatarHalf - 20})">
-          <rect width="180" height="46" rx="23" fill="#ff0000" filter="url(#sb_subtle_shadow)" />
-          <text x="90" y="29" text-anchor="middle" font-family="system-ui, sans-serif" font-size="15" font-weight="900" fill="#ffffff" letter-spacing="0.5">
-            SUBSCRIBE
-          </text>
-        </g>
       </g>
     `;
   }
@@ -1823,7 +1783,7 @@ export function generateSocialBannerSvg(
 
       <!-- Right Typography Group -->
       <g transform="translate(${textX}, ${cy})">
-        ${options.showBadge ? `
+        ${options.showBadge && badgeText ? `
           <rect x="0" y="-85" width="220" height="28" rx="14" fill="${cardBg}" stroke="${cardBorder}" stroke-width="1.5" />
           <text x="110" y="-66" text-anchor="middle" font-family="system-ui, sans-serif" font-size="${Math.max(11, Math.min(14, w * 0.012))}" font-weight="700" fill="${textColor}">
             ${escapeXml(badgeText)}
@@ -1838,13 +1798,6 @@ export function generateSocialBannerSvg(
           ${escapeXml(subtitle)}
         </text>
 
-        <!-- Social Action Buttons Callout -->
-        <g transform="translate(0, 65)">
-          <rect width="160" height="38" rx="19" fill="${accentGlow}" />
-          <text x="80" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="800" fill="#ffffff">
-            SUBSCRIBE
-          </text>
-        </g>
       </g>
     `;
   }
@@ -1892,7 +1845,7 @@ export function generateSocialBannerSvg(
         <rect x="${szMobileX}" y="${szY}" width="${szMobileW}" height="${szDesktopH}" fill="rgba(225, 29, 72, 0.08)" stroke="#e11d48" stroke-width="4" stroke-dasharray="14 6" />
         <rect x="${szMobileX}" y="${szY - 38}" width="380" height="34" rx="8" fill="#e11d48" />
         <text x="${szMobileX + 16}" y="${szY - 15}" font-family="monospace" font-size="15" font-weight="900" fill="#ffffff">
-          ★ Mobile Safe Zone (1546 × 423)
+          ▪ Mobile Safe Zone (1546 × 423)
         </text>
       `;
     } else {
