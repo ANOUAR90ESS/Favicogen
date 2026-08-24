@@ -47,6 +47,8 @@ The Application may utilize the following trusted third-party providers:
 - **Google Fonts:** For typography rendering.
 - **Google Gemini API:** For optional AI-generated logo concepts.
 
+These providers operate under their respective enterprise privacy policies and security standards.
+
 ---
 
 ## 6. Commercial Ownership & Copyright
@@ -60,9 +62,14 @@ Our Application is safe for general audiences. We do not knowingly collect, harv
 
 ---
 
-## 8. Contact Us & Developer Information
+## 8. Changes to This Policy
+We may update our Privacy Policy from time to time to reflect platform changes or Google Play policy updates. Any updates will be reflected with a revised "Last Updated" date.
+
+---
+
+## 9. Contact Us & Developer Information
 If you have any questions, feedback, or inquiries regarding this Privacy Policy or compliance with Google Play Store standards, please contact us at:
 
 - **Developer:** Anwar Asbas
-- **Contact Email:** anwarasbas2018@gmail.com
+- **Contact Email:** [anwarasbas2018@gmail.com](mailto:anwarasbas2018@gmail.com)
 - **App Store Package:** `com.logo.faviconstudio`

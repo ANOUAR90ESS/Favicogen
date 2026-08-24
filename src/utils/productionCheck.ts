@@ -153,7 +153,7 @@ export function runProductionComplianceCheck(): ProductionCheckReport {
     name: 'Privacy Policy Markdown & Link',
     category: 'privacy',
     status: 'pass',
-    details: 'Privacy Policy available at /Legal/PRIVACY_POLICY.md and integrated into in-app modal.',
+    details: 'Privacy Policy available at /legal/PRIVACY_POLICY.md and integrated into in-app modal.',
   });
 
   checks.push({
@@ -161,7 +161,7 @@ export function runProductionComplianceCheck(): ProductionCheckReport {
     name: 'Terms of Service & Commercial Rights',
     category: 'privacy',
     status: 'pass',
-    details: 'Terms of Service available at /Legal/TERMS_OF_SERVICE.md granting 100% commercial ownership.',
+    details: 'Terms of Service available at /legal/TERMS_OF_SERVICE.md granting 100% commercial ownership.',
   });
 
   checks.push({
@@ -251,7 +251,7 @@ export function runProductionComplianceCheck(): ProductionCheckReport {
   }
 
   console.info(`📧 Registered Developer Contact: ${developerEmail}`);
-  console.info(`📜 Legal Documentation: /Legal/PRIVACY_POLICY.md & /Legal/TERMS_OF_SERVICE.md`);
+  console.info(`📜 Legal Documentation: /legal/PRIVACY_POLICY.md & /legal/TERMS_OF_SERVICE.md`);
   console.groupEnd();
 
   return report;

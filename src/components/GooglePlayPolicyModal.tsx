@@ -16,8 +16,8 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { SupportedLanguage } from '../types';
-import { PRIVACY_POLICY_MD, PRIVACY_POLICY_AR } from '../Legal/privacyPolicy';
-import { TERMS_OF_SERVICE_MD, TERMS_OF_SERVICE_AR } from '../Legal/termsOfService';
+import { PRIVACY_POLICY_MD, PRIVACY_POLICY_AR, PRIVACY_POLICY_URL } from '../Legal/privacyPolicy';
+import { TERMS_OF_SERVICE_MD, TERMS_OF_SERVICE_AR, TERMS_OF_SERVICE_URL } from '../Legal/termsOfService';
 import { downloadText } from '../utils/download';
 
 interface GooglePlayPolicyModalProps {
@@ -160,7 +160,7 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                       ? 'سياسة الخصوصية الرسمية لتطبيق Logo & Favicon Studio'
                       : 'Official Privacy Policy for Logo & Favicon Studio'}
                   </h3>
-                  <span className="text-[11px] font-mono font-semibold text-slate-500">/Legal/PRIVACY_POLICY.md</span>
+                  <span className="text-[11px] font-mono font-semibold text-slate-500">{PRIVACY_POLICY_URL[isAr ? 'ar' : 'en']}</span>
                 </div>
 
                 <div className="space-y-3 leading-relaxed">
@@ -265,7 +265,7 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                   <h3 className="text-base font-bold text-slate-900">
                     {isAr ? 'شروط الاستخدام والملكية التجارية' : 'Commercial Ownership & Terms of Service'}
                   </h3>
-                  <span className="text-[11px] font-mono font-semibold text-slate-500">/Legal/TERMS_OF_SERVICE.md</span>
+                  <span className="text-[11px] font-mono font-semibold text-slate-500">{TERMS_OF_SERVICE_URL[isAr ? 'ar' : 'en']}</span>
                 </div>
 
                 <div className="space-y-3 leading-relaxed text-slate-700">
@@ -313,7 +313,7 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                       <span className="font-bold text-xs text-slate-900">PRIVACY_POLICY.md</span>
                     </div>
                     <span className="text-[10px] font-mono bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md font-semibold">
-                      /Legal/PRIVACY_POLICY.md
+                      {PRIVACY_POLICY_URL[isAr ? 'ar' : 'en']}
                     </span>
                   </div>
                   <p className="text-xs text-slate-600">
@@ -356,7 +356,7 @@ export const GooglePlayPolicyModal: React.FC<GooglePlayPolicyModalProps> = ({
                       <span className="font-bold text-xs text-slate-900">TERMS_OF_SERVICE.md</span>
                     </div>
                     <span className="text-[10px] font-mono bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md font-semibold">
-                      /Legal/TERMS_OF_SERVICE.md
+                      {TERMS_OF_SERVICE_URL[isAr ? 'ar' : 'en']}
                     </span>
                   </div>
                   <p className="text-xs text-slate-600">

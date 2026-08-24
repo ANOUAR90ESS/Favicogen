@@ -30,7 +30,10 @@ function getGenAI(): GoogleGenAI {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  // Cloud hosts assign the port; a hard-coded 3000 makes the app unreachable
+  // on Heroku, Render, Cloud Run and anything else that sets PORT.
+  const PORT = Number(process.env.PORT) || 3000;
+  const HOST = process.env.HOST || "0.0.0.0";
 
   // Allow larger payloads for base64 reference images
   app.use(express.json({ limit: "25mb" }));
@@ -285,12 +288,15 @@ Your task is to take a user's short or basic prompt for a ${type === "banner" ? 
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Logo & Favicon Studio server running at http://0.0.0.0:${PORT}`);
+  app.listen(PORT, HOST, () => {
+    console.log(`Logo & Favicon Studio server running at http://${HOST}:${PORT}`);
   });
 }
 
 startServer().catch((err) => {
   console.error("Failed to start server:", err);
+  // Without this the process lingers with no listener, so orchestrators see a
+  // healthy container in front of a dead server.
+  process.exit(1);
 });
 
