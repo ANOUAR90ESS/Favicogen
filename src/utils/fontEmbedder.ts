@@ -54,8 +54,18 @@ let stylesheetRequest: Promise<Map<string, FontFaceBlock[]>> | null = null;
 /** Downloaded font binaries as data URIs, keyed by their resolved URL. */
 const fontDataUriCache = new Map<string, string>();
 
-/** Families that failed to resolve — never retried within a session. */
-const failedFamilies = new Set<string>();
+/**
+ * Families the bundled stylesheet does not carry — never retried.
+ *
+ * Only a permanent condition belongs here. A failed *download* is transient by
+ * nature (a dropped connection, a subset not cached yet), and blacklisting a
+ * family for one of those meant a single blip cost the typeface in every
+ * export for the rest of the session.
+ */
+const familiesWithoutFaces = new Set<string>();
+
+/** Thrown when the stylesheet has no faces for a family: not worth retrying. */
+class MissingFacesError extends Error {}
 
 interface FontFaceBlock {
   css: string;
@@ -292,7 +302,7 @@ async function resolveFamilyBlocks(family: string): Promise<FontFaceBlock[]> {
 
   const blocks = (await loadStylesheet()).get(family);
   if (!blocks || blocks.length === 0) {
-    throw new Error(`The bundled stylesheet has no faces for "${family}"`);
+    throw new MissingFacesError(`The bundled stylesheet has no faces for "${family}"`);
   }
   return blocks;
 }
@@ -304,8 +314,8 @@ async function resolveFamilyBlocks(family: string): Promise<FontFaceBlock[]> {
  * Returns an empty string when nothing could be resolved, which leaves the
  * SVG exactly as it was.
  */
-export async function buildEmbeddedFontStyle(svg: string): Promise<string> {
-  const families = extractFamilies(svg).filter((family) => !failedFamilies.has(family));
+export async function buildEmbeddedFontStyle(svg: string, quiet = false): Promise<string> {
+  const families = extractFamilies(svg).filter((family) => !familiesWithoutFaces.has(family));
   if (families.length === 0) return '';
 
   const text = extractRenderedText(svg);
@@ -340,8 +350,8 @@ export async function buildEmbeddedFontStyle(svg: string): Promise<string> {
         );
       } catch (err) {
         // One unavailable family must not sink the whole export.
-        failedFamilies.add(family);
-        console.warn(`Could not embed the "${family}" web font in the export:`, err);
+        if (err instanceof MissingFacesError) familiesWithoutFaces.add(family);
+        if (!quiet) console.warn(`Could not embed the "${family}" web font in the export:`, err);
       }
     })
   );
@@ -374,12 +384,39 @@ export async function embedFontsInSvg(svg: string): Promise<string> {
   }
 }
 
+/**
+ * Pulls the subsets the artwork on screen would need, ahead of any export.
+ *
+ * A service worker only claims control of a page *after* that page has already
+ * issued its requests, so on a first visit the typefaces are fetched outside
+ * it and never reach its runtime cache. Lose the network in that first
+ * session and the fonts are nowhere: the export still succeeds, still opens,
+ * and has quietly fallen back to a system face — the exact failure this
+ * module exists to prevent, arriving through the one door it did not watch.
+ *
+ * Reading them through `fetch` puts them in that cache and in this module's
+ * own memory, so a later export is both offline-proof and instant. It is the
+ * same selection the export makes, so it costs the two or three subsets the
+ * current artwork actually paints, and nothing for artwork with no text.
+ *
+ * Best-effort in the strictest sense: it returns a resolved promise whatever
+ * happens, and says nothing. Warming is not a thing a user asked for, so its
+ * failure is not a thing to report — the export still speaks for itself.
+ */
+export async function warmFontsForSvg(svg: string): Promise<void> {
+  try {
+    await buildEmbeddedFontStyle(svg, true);
+  } catch {
+    // Nothing to do and nobody to tell: the export path reports for itself.
+  }
+}
+
 /** Test seam: clears every cache so a run starts from a known state. */
 export function __resetFontEmbedderCaches(): void {
   familyBlocksCache.clear();
   fontDataUriCache.clear();
   stylesheetRequest = null;
-  failedFamilies.clear();
+  familiesWithoutFaces.clear();
 }
 
 /** Exported for unit tests. */

@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test';
-import { downloadBytes, enterStudio, waitForSavedProject } from './helpers';
+import {
+  downloadBytes,
+  enterStudio,
+  waitForCachedTypeface,
+  waitForSavedProject,
+} from './helpers';
 
 /**
  * Losing the network must not lose the tool.
@@ -42,8 +47,9 @@ test('the worker takes control, and the app survives losing the network', async 
 
 test('an export made offline still carries its typeface', async ({ page, context }) => {
   // The subtlest version of this failure: the export succeeds, the file opens,
-  // and the typeface is gone. The stylesheet is precached and the subsets are
-  // cached as they are rendered, so what the page has drawn it can embed.
+  // and the typeface is gone. The stylesheet is precached; the subsets are
+  // pulled into the worker's cache by the studio itself, because a worker
+  // claims a page too late to have seen that page load its own fonts.
   await enterStudio(page);
   await expect
     .poll(
@@ -57,6 +63,10 @@ test('an export made offline still carries its typeface', async ({ page, context
     .toBe(true);
 
   await waitForSavedProject(page);
+  // The bytes have to be in the worker's cache before the network goes, or the
+  // export has nothing to embed and says nothing about it.
+  await waitForCachedTypeface(page);
+
   await context.setOffline(true);
   await page.reload();
   await expect(page.locator('#logo-svg-canvas-container svg.artboard-svg')).toBeVisible();

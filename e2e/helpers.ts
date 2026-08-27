@@ -115,3 +115,31 @@ export async function savedBrandName(page: Page): Promise<string | null> {
 export async function waitForSavedProject(page: Page): Promise<void> {
   await expect.poll(() => savedBrandName(page), { timeout: 15_000 }).not.toBeNull();
 }
+
+/**
+ * Waits until a typeface is in the service worker's cache.
+ *
+ * This is the precondition every offline export rests on, and the one that was
+ * silently missing: a worker claims a page only after that page has already
+ * fetched its fonts, so a first visit left the cache empty and the app warms
+ * it deliberately instead. Asserting the cache rather than waiting a while
+ * also stops the browser's own HTTP cache from quietly standing in — which is
+ * exactly how this passed on one machine and failed on another.
+ */
+export async function waitForCachedTypeface(page: Page): Promise<void> {
+  await expect
+    .poll(
+      () =>
+        page.evaluate(async () => {
+          for (const name of await caches.keys()) {
+            const cache = await caches.open(name);
+            for (const request of await cache.keys()) {
+              if (request.url.endsWith('.woff2')) return true;
+            }
+          }
+          return false;
+        }),
+      { timeout: 20_000 }
+    )
+    .toBe(true);
+}
