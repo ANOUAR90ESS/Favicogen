@@ -1,4 +1,17 @@
 export const en = {
+  landing: {
+    headline: 'One logo. Every asset you need.',
+    subhead: 'Upload it once and get the files your website, apps, stores and social profiles ask for — generated here, in your browser.',
+    dropHere: 'Drop your logo here, or click to choose a file',
+    accepts: 'PNG, JPG, SVG, WebP or GIF',
+    working: 'Reading your logo…',
+    seeIncluded: 'See what’s included — {{count}} files',
+    skip: 'Or design one from scratch',
+    privacy: 'Your logo stays on your device. Nothing is uploaded to a server.',
+    tooLarge: 'That file is larger than 25MB. Try a smaller export of the same logo.',
+    wrongType: 'That file type is not supported. Use PNG, JPG, SVG, WebP or GIF.',
+    unreadable: 'That file could not be read. It may be corrupted, or not an image.',
+  },
   brandPackage: {
     cta: 'All assets',
     title: 'Brand asset package',
