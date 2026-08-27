@@ -27,6 +27,7 @@ import {
   androidLauncherPx,
   insetSvg,
 } from './platformAssets';
+import type { PackageCategory, PackageStep } from './packagePlan';
 
 export const FAVICON_SPECS: FaviconSpec[] = [
   {
@@ -909,11 +910,26 @@ export function generateWebmanifestJson(brandName = 'My App', themeColor = '#0f1
   );
 }
 
+/**
+ * JPEG is written at the three sizes a store or a social profile asks for,
+ * not once per favicon size — a 16px JPEG is of no use to anyone. Exported so
+ * the package planner can count what will actually be produced.
+ */
+export const JPEG_EXPORT_SIZES = [180, 192, 512];
+
 export interface FaviconZipOptions {
   includeWebp?: boolean;
   includeJpeg?: boolean;
   includePlayStoreFeature?: boolean;
   organizedFolders?: boolean;
+  /**
+   * The platform folders. Default true so the standalone export stays whole;
+   * the package builder turns them off and adds those categories itself, so
+   * nothing is generated twice.
+   */
+  includeAndroid?: boolean;
+  includeIos?: boolean;
+  includeBrand?: boolean;
   onProgress?: (percent: number, statusText: string) => void;
 }
 
@@ -933,6 +949,9 @@ export async function generateFaviconZip(
     includeJpeg = true,
     includePlayStoreFeature = true,
     organizedFolders = false,
+    includeAndroid = true,
+    includeIos = true,
+    includeBrand = true,
     onProgress,
   } = options;
 
@@ -1069,27 +1088,27 @@ is text you typed yourself.
 
   // 5. JPEGs if enabled (popular sizes: 180, 192, 512)
   if (includeJpeg) {
-    for (const sz of [180, 192, 512]) {
+    for (const sz of JPEG_EXPORT_SIZES) {
       const jpgBlob = await renderSvgToBlob(svgString, sz, 'jpeg');
       (jpegFolder || zip).file(`icon-${sz}x${sz}.jpg`, jpgBlob);
     }
   }
 
   // 6. Android launcher resources and the iOS asset catalogue.
-  onProgress?.(80, 'Generating Android launcher icons...');
-  await addAndroidAssets(zip as unknown as JSZipLike, config);
-  onProgress?.(85, 'Generating the iOS app icon...');
-  await addIosAssets(zip as unknown as JSZipLike, config);
+  if (includeAndroid) {
+    onProgress?.(80, 'Generating Android launcher icons...');
+    await addAndroidAssets(zip as unknown as JSZipLike, config);
+  }
+  if (includeIos) {
+    onProgress?.(85, 'Generating the iOS app icon...');
+    await addIosAssets(zip as unknown as JSZipLike, config);
+  }
 
   // 7. Brand variants — the black / white / one-colour / transparent versions
   //    any hand-off is expected to include.
-  onProgress?.(88, 'Generating brand variants...');
-  const brandFolder = zip.folder('brand');
-  for (const variantId of BRAND_VARIANT_IDS) {
-    const variantSvg = generateBrandVariantSvg(config, variantId);
-    const stem = brandVariantFilename(brandName, variantId);
-    brandFolder?.file(`${stem}.svg`, await embedFontsInSvg(variantSvg));
-    brandFolder?.file(`${stem}.png`, await renderSvgToBlob(variantSvg, 1024, 'png'));
+  if (includeBrand) {
+    onProgress?.(88, 'Generating brand variants...');
+    await addBrandAssets(zip as unknown as JSZipLike, config, brandName);
   }
 
   // 8. Play Store Feature Graphic if enabled
@@ -1135,6 +1154,22 @@ export function generateBrandVariantSvg(
   const svg = generateSvgString(buildBrandVariantConfig(config, id, monochromeColor), 512);
   if (variantFidelity(config) !== 'silhouette') return svg;
   return applyRasterVariantFilter(svg, rasterVariantFilter(id, monochromeColor));
+}
+
+/** The brand hand-off set, written into `brand/`. */
+async function addBrandAssets(
+  zip: JSZipLike,
+  config: LogoConfig,
+  brandName: string
+): Promise<void> {
+  const folder = zip.folder('brand');
+  if (!folder) return;
+  for (const variantId of BRAND_VARIANT_IDS) {
+    const variantSvg = generateBrandVariantSvg(config, variantId);
+    const stem = brandVariantFilename(brandName, variantId);
+    folder.file(`${stem}.svg`, await embedFontsInSvg(variantSvg));
+    folder.file(`${stem}.png`, await renderSvgToBlob(variantSvg, 1024, 'png'));
+  }
 }
 
 /**
@@ -2239,6 +2274,167 @@ Included in this package:
   }
 
   return await zip.generateAsync({ type: 'blob' });
+}
+
+
+/* ── The brand package ────────────────────────────────────────────────────── */
+
+export interface BrandPackageOptions {
+  categories: PackageCategory[];
+  bannerOptions?: SocialBannerOptions;
+  /** Called as each step starts and finishes, for the progress list. */
+  onStep?: (step: PackageStep, state: 'running' | 'done') => void;
+}
+
+/**
+ * Copies one generated ZIP into another under a folder. The website and
+ * social sets already have working builders that return a finished archive;
+ * re-implementing them here to get a nested folder would be two copies of the
+ * same logic drifting apart.
+ */
+async function mergeZipInto(zip: JSZipLike, source: Blob, prefix: string): Promise<void> {
+  const { default: JSZip } = await import('jszip');
+  const loaded = await JSZip.loadAsync(source);
+  const entries = Object.entries(loaded.files);
+  for (const [path, entry] of entries) {
+    if (entry.dir) continue;
+    zip.file(`${prefix}/${path}`, await entry.async('blob'));
+  }
+}
+
+/**
+ * One archive for whichever categories the user asked for.
+ *
+ * Only what was selected is generated. Producing everything and discarding
+ * the rest would be simpler to write and noticeably slower to run — a full
+ * package is several hundred rasterisations, each one a canvas draw.
+ */
+export async function generateBrandPackageZip(
+  config: LogoConfig,
+  options: BrandPackageOptions
+): Promise<Blob> {
+  const { default: JSZip } = await import('jszip');
+  const zip = new JSZip();
+  const like = zip as unknown as JSZipLike;
+  const brandName = config.text || config.name || 'Brand';
+  const { categories, bannerOptions, onStep } = options;
+
+  const run = async (step: PackageStep, work: () => Promise<void>) => {
+    onStep?.(step, 'running');
+    await work();
+    onStep?.(step, 'done');
+  };
+
+  if (categories.includes('website')) {
+    await run('website', async () => {
+      const websiteZip = await generateFaviconZip(config, {
+        includeAndroid: false,
+        includeIos: false,
+        includeBrand: false,
+        includePlayStoreFeature: false,
+        organizedFolders: true,
+      });
+      await mergeZipInto(like, websiteZip, 'website');
+    });
+  }
+
+  if (categories.includes('android')) {
+    await run('android', () => addAndroidAssets(like, config));
+  }
+
+  if (categories.includes('ios')) {
+    await run('ios', () => addIosAssets(like, config));
+  }
+
+  if (categories.includes('google-play')) {
+    await run('google-play', async () => {
+      const playSvg = generateFeatureGraphicSvg(config, {
+        layout: 'center-hero',
+        title: config.text || config.name || '',
+        subtitle: config.tagline || '',
+        badgeText: '',
+        bgTheme: 'brand',
+        showPhoneMockup: true,
+        showGlowEffect: true,
+      });
+      const folder = like.folder('google-play');
+      folder?.file(
+        'feature-graphic-1024x500.png',
+        await rasterizeSvg(playSvg, 1024, 500, 'png')
+      );
+      folder?.file(
+        'feature-graphic-1024x500.jpg',
+        await rasterizeSvg(playSvg, 1024, 500, 'jpeg')
+      );
+    });
+  }
+
+  if (categories.includes('social')) {
+    await run('social', async () => {
+      const socialZip = await generateSocialMediaKitZip(
+        config,
+        bannerOptions ?? { layout: 'center-hero', bgTheme: 'dark' }
+      );
+      await mergeZipInto(like, socialZip, 'social');
+    });
+  }
+
+  if (categories.includes('brand')) {
+    await run('brand', () => addBrandAssets(like, config, brandName));
+  }
+
+  zip.file('README.txt', buildPackageReadme(brandName, categories));
+
+  onStep?.('zip', 'running');
+  const blob = await zip.generateAsync({ type: 'blob' });
+  onStep?.('zip', 'done');
+  return blob;
+}
+
+/** The guide that ships in the package, describing only what is in it. */
+export function buildPackageReadme(brandName: string, categories: PackageCategory[]): string {
+  const section = (category: PackageCategory): string => {
+    switch (category) {
+      case 'website':
+        return `website/
+  Every icon a site needs, plus site.webmanifest, browserconfig.xml and an
+  html-head-snippet.html to paste into your <head>. Copy the files into the
+  root of your public directory.`;
+      case 'android':
+        return `android/
+  Drop the mipmap-* folders into app/src/main/res/. Legacy launcher icons are
+  48/72/96/144/192px; the adaptive icon's two layers are 108dp
+  (108/162/216/324/432px), bound by mipmap-anydpi-v26/ic_launcher.xml. The
+  foreground sits inside the centre 72dp, because a launcher may mask away
+  anything outside that circle.`;
+      case 'ios':
+        return `ios/
+  Drag AppIcon.appiconset into your Xcode asset catalogue. Xcode 14 and later
+  derive every other size from the single 1024px icon. It is painted on an
+  opaque ground: Apple requires an app icon with no transparency.`;
+      case 'google-play':
+        return `google-play/
+  The 1024x500 feature graphic, as PNG and JPG.`;
+      case 'social':
+        return `social/
+  Profile pictures at each platform's own size, and banners and covers at
+  theirs.`;
+      case 'brand':
+        return `brand/
+  The hand-off set: the design as made, the same without its background, and
+  black, white and one-colour versions. Each as SVG and a 1024px PNG.`;
+    }
+  };
+
+  return `${brandName} — brand asset package
+${'='.repeat(Math.min(60, brandName.length + 24))}
+
+${categories.map(section).join('\n\n')}
+
+Nothing in this package asserts anything about you. There are no ratings, no
+download counts and no verification badges: any badge or tagline on a
+generated graphic is text you typed yourself.
+`;
 }
 
 // Downloads live in ./download — re-exported here so existing imports keep working.

@@ -18,6 +18,7 @@ import {
   Save,
   ShieldCheck,
   MoreHorizontal,
+  Package,
   } from 'lucide-react';
 import { SupportedLanguage } from '../types';
 import { Modal } from './Modal';
@@ -38,6 +39,7 @@ interface NavbarProps {
   onOpenCropTrim?: () => void;
   onSmartImport?: () => void;
   onOpenFaviconExport: () => void;
+  onOpenBrandPackage: () => void;
   onOpenFeatureGraphic: () => void;
   onOpenUniversalResizer: () => void;
   onOpenSavedProjects: () => void;
@@ -63,6 +65,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAIGenerator,
   onOpenCropTrim,
   onOpenFaviconExport,
+  onOpenBrandPackage,
   onOpenUniversalResizer,
   onOpenSavedProjects,
   onOpenGooglePlayPolicy,
@@ -356,6 +359,18 @@ export const Navbar: React.FC<NavbarProps> = ({
               }
             </button>
           </div>
+
+          {/* The whole package — the thing most people came for */}
+          <button
+            id="btn-brand-package"
+            onClick={onOpenBrandPackage}
+            className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 px-3 py-1 text-xs font-bold text-white shadow-2xs transition-colors cursor-pointer"
+            title={t('brandPackage.title')}
+            aria-label={t('brandPackage.title')}
+          >
+            <Package className="h-3.5 w-3.5" />
+            <span className="hidden lg:inline font-sans font-bold">{t('brandPackage.cta')}</span>
+          </button>
 
           {/* Favicon & Multi-size Export Button */}
           <button
