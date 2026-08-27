@@ -8,6 +8,15 @@ import {
 } from '../types';
 import { ICON_LIBRARY } from './iconLibrary';
 import { embedFontsInSvg } from './fontEmbedder';
+import {
+  BRAND_VARIANT_IDS,
+  BrandVariantId,
+  applyRasterVariantFilter,
+  brandVariantFilename,
+  buildBrandVariantConfig,
+  rasterVariantFilter,
+  variantFidelity,
+} from './brandVariants';
 
 export const FAVICON_SPECS: FaviconSpec[] = [
   {
@@ -960,6 +969,17 @@ export async function generateFaviconZip(
 - browserconfig.xml : Microsoft IE / Edge Windows tile configuration.
 ${includePlayStoreFeature ? '- google-play-feature-graphic-1024x500.png / .jpg : Google Play Store promo header.' : ''}
 
+📁 brand/ — the hand-off set, each as .svg and a 1024px .png:
+- ...-logo            : the design exactly as you made it.
+- ...-logo-transparent: same colours, no background plate.
+- ...-logo-black      : one colour, black. For light backgrounds and print.
+- ...-logo-white      : one colour, white. For dark backgrounds.
+- ...-logo-monochrome : one colour, for stamps, embroidery and faxes.
+
+Nothing in this package asserts anything about you: no ratings, no download
+counts, no verification badges. Any badge or tagline on a generated graphic
+is text you typed yourself.
+
 100% W3C, Google Lighthouse, Apple Safari & PWA compliant.
 `
   );
@@ -1022,7 +1042,18 @@ ${includePlayStoreFeature ? '- google-play-feature-graphic-1024x500.png / .jpg :
     }
   }
 
-  // 6. Play Store Feature Graphic if enabled
+  // 6. Brand variants — the black / white / one-colour / transparent versions
+  //    any hand-off is expected to include.
+  onProgress?.(88, 'Generating brand variants...');
+  const brandFolder = zip.folder('brand');
+  for (const variantId of BRAND_VARIANT_IDS) {
+    const variantSvg = generateBrandVariantSvg(config, variantId);
+    const stem = brandVariantFilename(brandName, variantId);
+    brandFolder?.file(`${stem}.svg`, await embedFontsInSvg(variantSvg));
+    brandFolder?.file(`${stem}.png`, await renderSvgToBlob(variantSvg, 1024, 'png'));
+  }
+
+  // 7. Play Store Feature Graphic if enabled
   if (includePlayStoreFeature) {
     onProgress?.(95, 'Generating Google Play Store 1024×500 feature graphic...');
     const playSvg = generateFeatureGraphicSvg(config, {
@@ -1052,6 +1083,20 @@ ${includePlayStoreFeature ? '- google-play-feature-graphic-1024x500.png / .jpg :
   return finalZip;
 }
 
+
+/**
+ * One brand variant, ready to save. Rebuilt from the design where that is
+ * possible, keyed from the picture's own alpha where it is not.
+ */
+export function generateBrandVariantSvg(
+  config: LogoConfig,
+  id: BrandVariantId,
+  monochromeColor?: string
+): string {
+  const svg = generateSvgString(buildBrandVariantConfig(config, id, monochromeColor), 512);
+  if (variantFidelity(config) !== 'silhouette') return svg;
+  return applyRasterVariantFilter(svg, rasterVariantFilter(id, monochromeColor));
+}
 
 /**
  * Generates exact 1024x500 Google Play Store Feature Graphic SVG

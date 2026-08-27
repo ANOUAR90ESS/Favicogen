@@ -318,6 +318,13 @@ export const en = {
     resolutionLabel: 'Canvas Resolution:',
   },
   faviconModal: {
+    brandVariations: 'Brand variations',
+    brandVariationsSilhouette: 'From a photo — one-colour versions come out as a silhouette',
+    variant_original: 'Original',
+    variant_transparent: 'Transparent',
+    variant_black: 'Black',
+    variant_white: 'White',
+    variant_monochrome: 'Monochrome',
     initializingZipPackage: 'Initializing ZIP package...',
     htmlCodeTitle: 'HTML <head> Integration Snippet',
     compliantNote: 'Every generated asset meets Google Play, Apple Touch, and PWA icon specifications.',

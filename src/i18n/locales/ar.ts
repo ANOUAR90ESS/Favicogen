@@ -318,6 +318,13 @@ export const ar = {
     resolutionLabel: 'دقة اللوحة:',
   },
   faviconModal: {
+    brandVariations: 'تنويعات العلامة',
+    brandVariationsSilhouette: 'المصدر صورة — نسخ اللون الواحد تخرج ظلّاً صامتاً',
+    variant_original: 'الأصل',
+    variant_transparent: 'شفاف',
+    variant_black: 'أسود',
+    variant_white: 'أبيض',
+    variant_monochrome: 'أحادي اللون',
     initializingZipPackage: 'بدء إعداد الحزمة...',
     htmlCodeTitle: 'مقتطف الدمج في وسم <head>',
     compliantNote: 'كل الأصول المولَّدة مطابقة لمواصفات أيقونات Google Play وApple Touch وPWA.',

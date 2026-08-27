@@ -22,8 +22,14 @@ import {
   generateHtmlHeadSnippet,
   generateWebmanifestJson,
   generateFeatureGraphicSvg,
+  generateBrandVariantSvg,
   rasterizeSvg,
 } from '../utils/canvasRenderer';
+import {
+  BRAND_VARIANT_IDS,
+  brandVariantFilename,
+  variantFidelity,
+} from '../utils/brandVariants';
 import { downloadBlob, downloadSvg } from '../utils/download';
 import { Modal } from './Modal';
 
@@ -326,6 +332,65 @@ export const FaviconExportModal: React.FC<FaviconExportModalProps> = ({
               >
                 JPG 1024×500
               </button>
+            </div>
+          </div>
+
+          {/* Brand variations — the one-colour and transparent hand-off set */}
+          <div className="space-y-2 pt-2">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                {t('faviconModal.brandVariations')}
+              </span>
+              {variantFidelity(config) === 'silhouette' && (
+                <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">
+                  {t('faviconModal.brandVariationsSilhouette')}
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+              {BRAND_VARIANT_IDS.map((variantId) => {
+                const variantSvg = generateBrandVariantSvg(config, variantId);
+                const stem = brandVariantFilename(brandName, variantId);
+                return (
+                  <div
+                    key={variantId}
+                    className="flex flex-col gap-1.5 rounded-xl border border-slate-200 bg-white p-2"
+                  >
+                    <div
+                      className={`flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg p-2 ${
+                        variantId === 'white' ? 'bg-slate-800' : 'checkerboard'
+                      }`}
+                    >
+                      <div
+                        className="h-full w-full [&>svg]:h-full [&>svg]:w-full"
+                        dangerouslySetInnerHTML={{ __html: variantSvg }}
+                      />
+                    </div>
+                    <span className="text-[10px] font-bold text-slate-700 text-center">
+                      {t(`faviconModal.variant_${variantId}`)}
+                    </span>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => downloadSvg(variantSvg, `${stem}.svg`)}
+                        className="flex-1 rounded-md border border-slate-200 py-1 text-[10px] font-bold text-slate-700 hover:bg-slate-50 cursor-pointer"
+                      >
+                        SVG
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () =>
+                          downloadBlob(await renderSvgToBlob(variantSvg, 1024, 'png'), `${stem}.png`)
+                        }
+                        className="flex-1 rounded-md bg-indigo-600 py-1 text-[10px] font-bold text-white hover:bg-indigo-700 cursor-pointer"
+                      >
+                        PNG
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
