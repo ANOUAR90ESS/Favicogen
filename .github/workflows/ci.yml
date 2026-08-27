@@ -58,5 +58,21 @@ jobs:
           test "$(ls dist/fonts/*.woff2 | wc -l)" -gt 40 || { echo "font files missing from the build"; exit 1; }
           echo "self-hosted: no Google Fonts references in the build"
 
+      - name: Check the app can still be installed and run offline
+        run: |
+          set -e
+          # A missing service worker is not a build error — the app just
+          # quietly stops being installable and stops working offline.
+          test -f dist/sw.js || { echo "no service worker in the build"; exit 1; }
+          test -f dist/manifest.json || { echo "no web app manifest"; exit 1; }
+          # The shell and every lazy chunk have to be in the precache, or an
+          # offline reload lands on a blank page.
+          test "$(grep -c 'index.html' dist/sw.js)" -ge 1 || { echo "index.html is not precached"; exit 1; }
+          test "$(grep -c 'fonts/fonts.css' dist/sw.js)" -ge 1 || { echo "the font stylesheet is not precached"; exit 1; }
+          # And the things that must never be in it.
+          if grep -qE 'url:"fonts/[^"]*woff2"' dist/sw.js; then echo "font subsets should be runtime-cached, not precached"; exit 1; fi
+          if grep -q 'server.cjs' dist/sw.js; then echo "the express server is in the precache"; exit 1; fi
+          echo "service worker present, precache looks right"
+
       - name: Check both locales define the same keys
         run: bun run check:i18n
