@@ -99,3 +99,67 @@ test('the build stays installable', async ({ page, request }) => {
 
   expect((await request.get('/sw.js')).status()).toBe(200);
 });
+
+test('a typeface chosen after the network is gone still reaches the file', async ({
+  page,
+  context,
+}) => {
+  // The gap the previous test does not cover. What the artwork already uses is
+  // cached because the page drew it; a family the visitor has not picked yet is
+  // not, and picking one offline used to export a file that had quietly fallen
+  // back to a system face. Precaching all sixty-three subsets would close it by
+  // doubling the install. Opening the list is the moment that says which of
+  // them is about to matter, and it nearly always happens with a connection.
+  await enterStudio(page);
+  await expect
+    .poll(
+      () =>
+        page.evaluate(async () => {
+          await navigator.serviceWorker.ready;
+          return Boolean(navigator.serviceWorker.controller);
+        }),
+      { timeout: 30_000 }
+    )
+    .toBe(true);
+  await waitForSavedProject(page);
+
+  await page.getByRole('button', { name: 'Text', exact: true }).click();
+  const picker = page.locator('select').first();
+  await picker.focus();
+
+  // The alternatives, in the worker's cache — asserted, not waited out.
+  await expect
+    .poll(
+      () =>
+        page.evaluate(async () => {
+          for (const name of await caches.keys()) {
+            const cache = await caches.open(name);
+            for (const request of await cache.keys()) {
+              if (/montserrat.*\.woff2$/.test(request.url)) return true;
+            }
+          }
+          return false;
+        }),
+      { timeout: 20_000 }
+    )
+    .toBe(true);
+
+  await context.setOffline(true);
+
+  // Now choose a typeface this session has never drawn with.
+  await picker.selectOption('Montserrat');
+  await expect(page.locator('#logo-svg-canvas-container svg.artboard-svg')).toContainText(
+    /\S/
+  );
+
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: /Export SVG/i }).first().click(),
+  ]);
+
+  const svg = (await downloadBytes(download)).toString('utf8');
+  expect(svg).toContain('Montserrat');
+  expect(svg, 'the newly chosen typeface is named but not carried').toContain(
+    'data:font/woff2;base64,'
+  );
+});

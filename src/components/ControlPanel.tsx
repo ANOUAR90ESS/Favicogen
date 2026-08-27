@@ -27,6 +27,8 @@ import { SmartPaletteGenerator } from './SmartPaletteGenerator';
 import { ComplementaryPaletteBar } from './ComplementaryPaletteBar';
 import { WatermarkControls } from './WatermarkControls';
 import { sanitizeSvgMarkup } from '../utils/svgSanitizer';
+import { generateSvgString } from '../utils/canvasRenderer';
+import { warmAlternateFamilies } from '../utils/fontEmbedder';
 
 interface ControlPanelProps {
   config: LogoConfig;
@@ -646,6 +648,16 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   <select
                     value={config.fontFamily}
                     onChange={(e) => updateConfig({ fontFamily: e.target.value })}
+                    /*
+                     * Opening the list is the moment that says a different
+                     * typeface is about to matter, and it nearly always
+                     * happens with a connection still there. Pulling the
+                     * alternatives now is what keeps the choice exportable
+                     * after that connection goes. Focus as well as pointer:
+                     * the list opens from the keyboard too.
+                     */
+                    onPointerDown={() => void warmAlternateFamilies(generateSvgString(config, 512))}
+                    onFocus={() => void warmAlternateFamilies(generateSvgString(config, 512))}
                     className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-indigo-500 outline-none shadow-2xs"
                   >
                     {FONTS_LIST.map((font) => (

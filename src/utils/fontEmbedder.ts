@@ -308,6 +308,28 @@ async function resolveFamilyBlocks(family: string): Promise<FontFaceBlock[]> {
 }
 
 /**
+ * The faces one family needs to paint this text at these weights.
+ *
+ * Shared by the export and by the warming below, so the bytes fetched ahead of
+ * time are exactly the bytes the export will ask for. Two copies of this
+ * selection would drift, and the warming would then be quietly useless — which
+ * is indistinguishable from working right up until someone is offline.
+ */
+async function facesFor(
+  family: string,
+  text: string,
+  wantedWeights: number[]
+): Promise<FontFaceBlock[]> {
+  const blocks = await resolveFamilyBlocks(family);
+  const available = [...new Set(blocks.map((block) => block.weight))];
+  const keep = new Set(wantedWeights.map((wanted) => nearestWeight(available, wanted)));
+
+  return blocks.filter(
+    (block) => keep.has(block.weight) && textNeedsRanges(text, block.unicodeRanges)
+  );
+}
+
+/**
  * Builds a `<style>` element containing every `@font-face` the markup needs,
  * with the font binaries inlined as data URIs.
  *
@@ -328,14 +350,7 @@ export async function buildEmbeddedFontStyle(svg: string, quiet = false): Promis
   await Promise.all(
     families.map(async (family) => {
       try {
-        const blocks = await resolveFamilyBlocks(family);
-
-        const available = [...new Set(blocks.map((block) => block.weight))];
-        const keep = new Set(wantedWeights.map((wanted) => nearestWeight(available, wanted)));
-
-        const needed = blocks.filter(
-          (block) => keep.has(block.weight) && textNeedsRanges(text, block.unicodeRanges)
-        );
+        const needed = await facesFor(family, text, wantedWeights);
 
         await Promise.all(
           needed.map(async (block) => {
@@ -411,12 +426,72 @@ export async function warmFontsForSvg(svg: string): Promise<void> {
   }
 }
 
+/**
+ * Subsets already pulled into the worker's cache, by URL.
+ *
+ * Keyed by URL rather than by family because which subsets a family needs
+ * depends on the text and the weights, and both change as someone works. A
+ * family marked done would then skip the pull for a weight it never fetched.
+ */
+const warmedUrls = new Set<string>();
+
+/**
+ * Pulls the *other* typefaces, at the moment someone opens the list of them.
+ *
+ * The artwork on screen only reveals the family it already uses. A visitor who
+ * picks a different one after losing the network would export without it —
+ * silently, the way this whole module is meant to prevent. Precaching all
+ * sixty-three subsets would close that at the cost of doubling the install for
+ * the two or three anyone renders; opening the list is the moment that says
+ * which of those two or three are about to matter, and it almost always
+ * happens with a connection still there.
+ *
+ * Only the subsets the current text and weights need, so a Latin brand name
+ * pulls nothing at all from the Arabic families: their ranges do not cover it.
+ * A bare `fetch` rather than the data-URI path — the point is to fill the
+ * worker's cache, and holding nine families of base64 in memory for a choice
+ * that will land on one of them is not worth the megabyte.
+ *
+ * Best-effort and silent, like every other warming: nobody asked for it.
+ */
+export async function warmAlternateFamilies(currentSvg: string): Promise<void> {
+  const text = extractRenderedText(currentSvg);
+  if (!text.trim()) return;
+
+  const wantedWeights = extractWeights(currentSvg);
+
+  await Promise.all(
+    KNOWN_GOOGLE_FAMILIES.filter((family) => !familiesWithoutFaces.has(family)).map(
+      async (family) => {
+        try {
+          const faces = await facesFor(family, text, wantedWeights);
+
+          await Promise.all(
+            faces
+              .filter((face) => !warmedUrls.has(face.url))
+              .map(async (face) => {
+                const response = await fetch(face.url);
+                // Only a subset that actually arrived is one we can skip next
+                // time; a failed pull is retried the next time the list opens.
+                if (response.ok) warmedUrls.add(face.url);
+              })
+          );
+        } catch {
+          // Offline, or a family this stylesheet does not carry. The export
+          // path reports for itself; nothing here is worth interrupting anyone.
+        }
+      }
+    )
+  );
+}
+
 /** Test seam: clears every cache so a run starts from a known state. */
 export function __resetFontEmbedderCaches(): void {
   familyBlocksCache.clear();
   fontDataUriCache.clear();
   stylesheetRequest = null;
   familiesWithoutFaces.clear();
+  warmedUrls.clear();
 }
 
 /** Exported for unit tests. */
