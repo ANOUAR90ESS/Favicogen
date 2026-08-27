@@ -227,3 +227,90 @@ export function insetSvg(svg: string, fraction: number): string {
     2
   )}) scale(${fraction.toFixed(4)})">${body}</g></svg>`;
 }
+
+/* ── Safe areas ───────────────────────────────────────────────────────────
+ *
+ * A safe-area guide is a promise that what sits inside it will not be cropped
+ * on a real device. That promise can only be kept where the platform actually
+ * publishes the numbers.
+ *
+ * The banner generator used to draw a dashed box at 8% / 10% inset on every
+ * size it did not recognise. Nothing about that box came from any platform —
+ * it was a guess dressed as a specification, and a user trusting it could
+ * still lose their logo to a crop. Sizes with no documented safe area now get
+ * no guide at all, and the UI says so.
+ */
+
+export interface SafeBand {
+  /** Width and height of the band, in the canvas's own pixels. */
+  width: number;
+  height: number;
+  /** How strongly to draw it: the tightest crop is the one that matters. */
+  emphasis: 'primary' | 'secondary';
+  /** Shown on the guide, e.g. "Mobile 1546 × 423". */
+  label: string;
+  /** Which viewport crops this hard — the UI translates the name. */
+  device: 'desktop' | 'tablet' | 'mobile';
+}
+
+/**
+ * Keyed by canvas size, because that is what the generator knows. Only sizes
+ * whose safe area the platform documents appear here.
+ */
+const SAFE_BANDS_BY_SIZE: Record<string, SafeBand[]> = {
+  // YouTube publishes all three: the banner is cropped hardest on a phone,
+  // and only the centre 1546 × 423 is guaranteed to survive everywhere.
+  '2560x1440': [
+    { width: 2560, height: 423, emphasis: 'secondary', label: 'Desktop 2560 × 423', device: 'desktop' },
+    { width: 1855, height: 423, emphasis: 'secondary', label: 'Tablet 1855 × 423', device: 'tablet' },
+    { width: 1546, height: 423, emphasis: 'primary', label: 'Mobile 1546 × 423', device: 'mobile' },
+  ],
+};
+
+/** The documented safe bands for a canvas, or an empty list if there are none. */
+export function safeBandsFor(width: number, height: number): SafeBand[] {
+  return SAFE_BANDS_BY_SIZE[`${width}x${height}`] ?? [];
+}
+
+export function hasDocumentedSafeArea(width: number, height: number): boolean {
+  return safeBandsFor(width, height).length > 0;
+}
+
+/**
+ * Every platform crops a profile picture to a circle. That is not a published
+ * measurement, it is the shape itself, so it is safe to show wherever a
+ * preset asks for a circular crop.
+ */
+export const AVATAR_CIRCLE_CROP = true;
+
+/**
+ * Show a banner as one device actually crops it.
+ *
+ * A guide drawn over the full artwork tells the user where the crop falls; it
+ * still leaves them to picture the result. This throws the rest away and shows
+ * what survives — the same published bands, applied rather than annotated.
+ *
+ * The band is centred, which is how every platform in the table crops, and the
+ * viewBox is rewritten rather than the artwork redrawn, so what is previewed is
+ * the exported file itself.
+ */
+export function cropSvgToBand(svg: string, band: SafeBand, canvasWidth: number, canvasHeight: number): string {
+  const x = (canvasWidth - band.width) / 2;
+  const y = (canvasHeight - band.height) / 2;
+  // A band wider or taller than its canvas would pan the artwork off its own
+  // edge; there is nothing outside the canvas to show, so leave it alone.
+  if (x < 0 || y < 0) return svg;
+
+  const openTagEnd = svg.indexOf('>');
+  if (openTagEnd === -1 || !/<svg[\s>]/.test(svg.slice(0, openTagEnd + 1))) return svg;
+
+  const open = svg.slice(0, openTagEnd + 1);
+  if (!/viewBox="/.test(open)) return svg;
+
+  const cropped = open
+    .replace(/viewBox="[^"]*"/, `viewBox="${x} ${y} ${band.width} ${band.height}"`)
+    .replace(/\swidth="[^"]*"/, ` width="${band.width}"`)
+    .replace(/\sheight="[^"]*"/, ` height="${band.height}"`);
+
+  return cropped + svg.slice(openTagEnd + 1);
+}

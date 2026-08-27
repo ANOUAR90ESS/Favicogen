@@ -293,7 +293,6 @@ export interface YouTubeKitConfig {
   channelHandle: string;
   channelTagline: string;
   uploadSchedule: string;
-  subscriberCountMock: string;
   theme: 'youtube-red' | 'dark-obsidian' | 'brand-match' | 'cyber-neon' | 'sunset-glow' | 'emerald-clean' | 'gold-prestige';
   layout: 'center-focus' | 'split-socials' | 'clean-minimal' | 'gamer-creator';
   showSafeZones: boolean;

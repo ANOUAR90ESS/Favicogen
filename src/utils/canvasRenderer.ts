@@ -26,6 +26,7 @@ import {
   androidAdaptivePx,
   androidLauncherPx,
   insetSvg,
+  safeBandsFor,
 } from './platformAssets';
 import type { PackageCategory, PackageStep } from './packagePlan';
 
@@ -1768,6 +1769,30 @@ export const SOCIAL_MEDIA_PRESETS: SocialMediaPreset[] = [
 /**
  * Generates an ultra-crisp responsive Social Media Banner SVG (16:9, 3:1, 4:1, or 1:1)
  */
+/**
+ * The banner compositions the Social Kit offers, in the order it shows them.
+ *
+ * The picker and the tests read this one list: `brand-luxury` spent a while
+ * sharing a branch with `center-hero`, so the button produced the same banner
+ * under a second name, and nothing was watching for it.
+ */
+export const SOCIAL_BANNER_LAYOUT_IDS = [
+  'center-hero',
+  'split-hero',
+  'minimal-clean',
+  'brand-luxury',
+  'youtube-channel',
+] as const satisfies readonly SocialBannerOptions['layout'][];
+
+/**
+ * The compact composition: the mark and the name side by side in one small
+ * block, rather than spread across the stage.
+ *
+ * It is named because it is the one layout that sizes its own lockup instead
+ * of deriving from the stage, so the tests hold it to the same fit as the rest.
+ */
+export const COMPACT_BANNER_LAYOUT = 'youtube-channel' satisfies SocialBannerOptions['layout'];
+
 export function generateSocialBannerSvg(
   config: LogoConfig,
   options: SocialBannerOptions,
@@ -1879,8 +1904,31 @@ export function generateSocialBannerSvg(
   // Extract inner SVG content (strip outer <svg> tags)
   const innerSvgContent = logoSvg.replace(/^<svg[^>]*>|<\/svg>$/gi, '');
 
+  /*
+   * The composition stage.
+   *
+   * Where a platform publishes what it keeps of a banner, that band — not the
+   * canvas — is the drawing surface. Composing across the whole canvas is what
+   * put the mark half outside a phone's crop on a 2560 x 1440 channel header
+   * and the wordmark entirely outside it. Where nothing is published the stage
+   * is the canvas, and nothing about those sizes changes.
+   *
+   * Every documented band is centred, so the centre point is the same either
+   * way. What moves is the scale, the vertical clamps and the type size.
+   */
+  const band = safeBandsFor(w, h).at(-1);
+  const stageW = band?.width ?? w;
+  const stageH = band?.height ?? h;
+  const stageLeft = (w - stageW) / 2;
+  const stageTop = (h - stageH) / 2;
+  const stageBottom = stageTop + stageH;
+
+  // Ambient glow is background, not composition: it belongs to the canvas and
+  // keeps its size when the stage shrinks, or the artwork loses its ground.
+  const canvasMin = Math.min(w, h);
+
   // Calculate dynamic responsive scale
-  const minDimension = Math.min(w, h);
+  const minDimension = Math.min(stageW, stageH);
   const logoTargetSize = minDimension * 0.42;
   const logoScale = logoTargetSize / 512;
   const logoHalfSize = logoTargetSize / 2;
@@ -1888,19 +1936,19 @@ export function generateSocialBannerSvg(
   let layoutContent = '';
 
   // 1. Center Hero Layout
-  if (options.layout === 'center-hero' || options.layout === 'brand-luxury') {
+  if (options.layout === 'center-hero') {
     const cx = w / 2;
     const cy = h / 2;
-    const logoY = h > 800 ? cy - logoHalfSize - 80 : cy - logoHalfSize - 40;
+    const logoY = stageH > 800 ? cy - logoHalfSize - 80 : cy - logoHalfSize - 40;
 
     layoutContent = `
       <!-- Ambient Glow Orbs -->
       ${options.showGlowEffect ? `
-        <circle cx="${cx}" cy="${cy - 30}" r="${minDimension * 0.4}" fill="${accentGlow}" opacity="0.3" filter="url(#sb_blur)" />
+        <circle cx="${cx}" cy="${cy - 30}" r="${canvasMin * 0.4}" fill="${accentGlow}" opacity="0.3" filter="url(#sb_blur)" />
       ` : ''}
 
       <!-- Center Logo Container -->
-      <g transform="translate(${cx - logoHalfSize}, ${Math.max(40, logoY)})" filter="url(#sb_shadow)">
+      <g transform="translate(${cx - logoHalfSize}, ${Math.max(stageTop + 20, logoY)})" filter="url(#sb_shadow)">
         <g transform="scale(${logoScale})">
           ${innerSvgContent}
         </g>
@@ -1908,22 +1956,96 @@ export function generateSocialBannerSvg(
 
       <!-- Badge Pill -->
       ${options.showBadge && badgeText ? `
-        <g transform="translate(${cx}, ${Math.max(60, logoY + logoTargetSize + 30)})">
+        <g transform="translate(${cx}, ${Math.max(stageTop + 30, logoY + logoTargetSize + 30)})">
           <rect x="-140" y="-16" width="280" height="32" rx="16" fill="${cardBg}" stroke="${cardBorder}" stroke-width="1.5" />
-          <text x="0" y="5" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(12, Math.min(16, w * 0.015))}" font-weight="700" fill="${textColor}" letter-spacing="1">
+          <text x="0" y="5" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(12, Math.min(16, stageW * 0.015))}" font-weight="700" fill="${textColor}" letter-spacing="1">
             ${escapeXml(badgeText)}
           </text>
         </g>
       ` : ''}
 
       <!-- Title & Subtitle -->
-      <text x="${cx}" y="${Math.min(h - 80, logoY + logoTargetSize + (options.showBadge && badgeText ? 95 : 65))}" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(24, Math.min(68, w * 0.042))}" font-weight="900" fill="${textColor}" letter-spacing="-0.5" filter="url(#sb_subtle_shadow)">
+      <text x="${cx}" y="${Math.min(stageBottom - 80, logoY + logoTargetSize + (options.showBadge && badgeText ? 95 : 65))}" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(24, Math.min(68, stageW * 0.042))}" font-weight="900" fill="${textColor}" letter-spacing="-0.5" filter="url(#sb_subtle_shadow)">
         ${escapeXml(title)}
       </text>
 
-      <text x="${cx}" y="${Math.min(h - 40, logoY + logoTargetSize + (options.showBadge && badgeText ? 145 : 115))}" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(14, Math.min(26, w * 0.018))}" font-weight="500" fill="${subtextColor}">
+      <text x="${cx}" y="${Math.min(stageBottom - 40, logoY + logoTargetSize + (options.showBadge && badgeText ? 145 : 115))}" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(14, Math.min(26, stageW * 0.018))}" font-weight="500" fill="${subtextColor}">
         ${escapeXml(subtitle)}
       </text>
+    `;
+  }
+  // 1b. Brand Luxury.
+  //
+  // This used to share the centred-hero branch, so the two buttons produced the
+  // same banner under different names. Restraint is what separates them: no
+  // glow, a hairline double frame, a smaller mark with air around it, and a
+  // tracked serif wordmark over a hairline rule.
+  else if (options.layout === 'brand-luxury') {
+    const cx = w / 2;
+    const cy = h / 2;
+    // Deliberately smaller than the hero mark — the negative space is the look.
+    const markSize = minDimension * 0.3;
+    const markScale = markSize / 512;
+    const inset = Math.max(16, minDimension * 0.055);
+    const titleSize = Math.max(20, Math.min(52, stageW * 0.031));
+    const subSize = Math.max(11, Math.min(19, stageW * 0.0125));
+    const tracking = titleSize * 0.16;
+    const hasSubtitle = Boolean(subtitle);
+    // Measure the stack, then centre it. Offsetting the mark by a fraction of
+    // the height instead leaves the whole block riding high in the frame.
+    const markGap = Math.max(28, stageH * 0.085);
+    const ruleDrop = titleSize * 0.5 + 14;
+    const stackHeight =
+      markSize +
+      markGap +
+      titleSize * 0.8 +
+      (hasSubtitle ? ruleDrop + 30 + subSize * 0.65 : titleSize * 0.25);
+    const markTop = Math.max(stageTop + inset + 16, cy - stackHeight / 2);
+    const titleY = markTop + markSize + markGap + titleSize * 0.8;
+    const ruleY = titleY + ruleDrop;
+    const ruleHalf = Math.min(stageW * 0.08, 110);
+
+    layoutContent = `
+      <!-- Hairline double frame -->
+      <rect x="${stageLeft + inset}" y="${stageTop + inset}" width="${stageW - inset * 2}" height="${stageH - inset * 2}"
+        fill="none" stroke="${cardBorder}" stroke-width="1" opacity="0.85" />
+      <rect x="${stageLeft + inset + 7}" y="${stageTop + inset + 7}" width="${stageW - (inset + 7) * 2}" height="${stageH - (inset + 7) * 2}"
+        fill="none" stroke="${cardBorder}" stroke-width="0.75" opacity="0.45" />
+
+      <!-- Caption, where the hero layout puts a pill -->
+      ${options.showBadge && badgeText ? `
+        <text x="${cx}" y="${markTop - 16}" text-anchor="middle" dx="${subSize * 0.11}"
+          font-family="system-ui, -apple-system, sans-serif" font-size="${subSize * 0.85}"
+          font-weight="600" fill="${subtextColor}" letter-spacing="${subSize * 0.22}">
+          ${escapeXml(badgeText)}
+        </text>
+      ` : ''}
+
+      <!-- Mark -->
+      <g transform="translate(${cx - markSize / 2}, ${markTop})">
+        <g transform="scale(${markScale})">
+          ${innerSvgContent}
+        </g>
+      </g>
+
+      <!-- Wordmark. Letter-spacing also lands after the final glyph, which drags
+           a middle-anchored line left by half a step; dx puts it back. -->
+      <text x="${cx}" y="${titleY}" text-anchor="middle" dx="${tracking / 2}"
+        font-family="Georgia, 'Times New Roman', serif" font-size="${titleSize}"
+        font-weight="400" fill="${textColor}" letter-spacing="${tracking}">
+        ${escapeXml(title)}
+      </text>
+
+      ${hasSubtitle ? `
+        <!-- Hairline rule -->
+        <line x1="${cx - ruleHalf}" y1="${ruleY}" x2="${cx + ruleHalf}" y2="${ruleY}"
+          stroke="${cardBorder}" stroke-width="1" opacity="0.8" />
+        <text x="${cx}" y="${ruleY + 30 + subSize * 0.65}" text-anchor="middle" dx="${subSize * 0.15}"
+          font-family="system-ui, -apple-system, sans-serif" font-size="${subSize}"
+          font-weight="500" fill="${subtextColor}" letter-spacing="${subSize * 0.3}">
+          ${escapeXml(subtitle)}
+        </text>
+      ` : ''}
     `;
   }
   // 2. YouTube Channel Specific Layout (Strictly inside safe area)
@@ -1933,15 +2055,30 @@ export function generateSocialBannerSvg(
     const avatarSize = Math.min(180, h * 0.28);
     const avatarScale = avatarSize / 512;
     const avatarHalf = avatarSize / 2;
+    const titleSize = Math.max(28, Math.min(54, w * 0.03));
+    const gap = Math.max(16, avatarSize * 0.22);
+    // The lockup used to start at a flat cx - 500, which centres it only near
+    // 2560 wide and runs it off the left edge of anything under about 1000.
+    // There is no text metric here, so the wordmark is estimated from its
+    // character count at the size it is set — close enough to centre by, and
+    // clamped so the block can never leave the canvas.
+    const titleWidth = title.length * titleSize * 0.55;
+    const blockWidth = avatarSize + gap + titleWidth;
+    const blockX = Math.max(w * 0.04, cx - blockWidth / 2);
+    // The text block hangs from the avatar's centre line; at a small avatar a
+    // flat 30px drop put the wordmark above it.
+    const textDrop = Math.max(12, avatarHalf * 0.36);
+    const lineTwo = titleSize * 0.62;
+    const lineThree = titleSize * 1.18;
 
     layoutContent = `
       ${options.showGlowEffect ? `
-        <circle cx="${cx - 280}" cy="${cy}" r="${minDimension * 0.35}" fill="${accentGlow}" opacity="0.35" filter="url(#sb_blur)" />
-        <circle cx="${cx + 280}" cy="${cy}" r="${minDimension * 0.3}" fill="${accentGlow}" opacity="0.2" filter="url(#sb_blur)" />
+        <circle cx="${cx - 280}" cy="${cy}" r="${canvasMin * 0.35}" fill="${accentGlow}" opacity="0.35" filter="url(#sb_blur)" />
+        <circle cx="${cx + 280}" cy="${cy}" r="${canvasMin * 0.3}" fill="${accentGlow}" opacity="0.2" filter="url(#sb_blur)" />
       ` : ''}
 
       <!-- Central Safe-Area Container -->
-      <g transform="translate(${cx - 500}, ${cy - avatarHalf})">
+      <g transform="translate(${blockX}, ${cy - avatarHalf})">
         <!-- Channel Avatar with Circular Stroke -->
         <g transform="translate(0, 0)" filter="url(#sb_shadow)">
           <circle cx="${avatarHalf}" cy="${avatarHalf}" r="${avatarHalf + 4}" fill="${accentGlow}" opacity="0.4" />
@@ -1951,21 +2088,21 @@ export function generateSocialBannerSvg(
         </g>
 
         <!-- Channel Info Block -->
-        <g transform="translate(${avatarSize + 40}, ${avatarHalf - 30})">
+        <g transform="translate(${avatarSize + gap}, ${avatarHalf - textDrop})">
           <!-- Title -->
           <g transform="translate(0, 0)">
-            <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(28, Math.min(54, w * 0.03))}" font-weight="900" fill="${textColor}" letter-spacing="-0.5">
+            <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="${titleSize}" font-weight="900" fill="${textColor}" letter-spacing="-0.5">
               ${escapeXml(title)}
             </text>
           </g>
 
           <!-- Handle & Upload Schedule -->
-          <text x="0" y="32" font-family="system-ui, sans-serif" font-size="${Math.max(13, Math.min(20, w * 0.012))}" font-weight="600" fill="${subtextColor}">
+          <text x="0" y="${lineTwo}" font-family="system-ui, sans-serif" font-size="${Math.max(13, Math.min(20, w * 0.012))}" font-weight="600" fill="${subtextColor}">
             ${escapeXml([channelHandle, uploadSchedule].filter(Boolean).join(' • '))}
           </text>
 
           <!-- Tagline -->
-          <text x="0" y="62" font-family="system-ui, sans-serif" font-size="${Math.max(12, Math.min(17, w * 0.01))}" font-weight="400" fill="${subtextColor}" opacity="0.85">
+          <text x="0" y="${lineThree}" font-family="system-ui, sans-serif" font-size="${Math.max(12, Math.min(17, w * 0.01))}" font-weight="400" fill="${subtextColor}" opacity="0.85">
             ${escapeXml(subtitle)}
           </text>
         </g>
@@ -1975,14 +2112,14 @@ export function generateSocialBannerSvg(
   }
   // 3. Split Hero (Left logo, Right text)
   else if (options.layout === 'split-hero' || options.layout === 'streamer-gamer') {
-    const isWide = w / h >= 2;
-    const logoX = isWide ? w * 0.12 : w * 0.08;
+    const isWide = stageW / stageH >= 2;
+    const logoX = stageLeft + (isWide ? stageW * 0.12 : stageW * 0.08);
     const cy = h / 2;
-    const textX = isWide ? w * 0.42 : w * 0.45;
+    const textX = stageLeft + (isWide ? stageW * 0.42 : stageW * 0.45);
 
     layoutContent = `
       ${options.showGlowEffect ? `
-        <circle cx="${logoX + logoHalfSize}" cy="${cy}" r="${minDimension * 0.45}" fill="${accentGlow}" opacity="0.3" filter="url(#sb_blur)" />
+        <circle cx="${logoX + logoHalfSize}" cy="${cy}" r="${canvasMin * 0.45}" fill="${accentGlow}" opacity="0.3" filter="url(#sb_blur)" />
       ` : ''}
 
       <!-- Left Logo -->
@@ -1996,16 +2133,16 @@ export function generateSocialBannerSvg(
       <g transform="translate(${textX}, ${cy})">
         ${options.showBadge && badgeText ? `
           <rect x="0" y="-85" width="220" height="28" rx="14" fill="${cardBg}" stroke="${cardBorder}" stroke-width="1.5" />
-          <text x="110" y="-66" text-anchor="middle" font-family="system-ui, sans-serif" font-size="${Math.max(11, Math.min(14, w * 0.012))}" font-weight="700" fill="${textColor}">
+          <text x="110" y="-66" text-anchor="middle" font-family="system-ui, sans-serif" font-size="${Math.max(11, Math.min(14, stageW * 0.012))}" font-weight="700" fill="${textColor}">
             ${escapeXml(badgeText)}
           </text>
         ` : ''}
 
-        <text x="0" y="-15" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(26, Math.min(64, w * 0.04))}" font-weight="900" fill="${textColor}" letter-spacing="-1">
+        <text x="0" y="-15" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(26, Math.min(64, stageW * 0.04))}" font-weight="900" fill="${textColor}" letter-spacing="-1">
           ${escapeXml(title)}
         </text>
 
-        <text x="0" y="32" font-family="system-ui, sans-serif" font-size="${Math.max(14, Math.min(24, w * 0.016))}" font-weight="500" fill="${subtextColor}">
+        <text x="0" y="32" font-family="system-ui, sans-serif" font-size="${Math.max(14, Math.min(24, stageW * 0.016))}" font-weight="500" fill="${subtextColor}">
           ${escapeXml(subtitle)}
         </text>
 
@@ -2017,7 +2154,7 @@ export function generateSocialBannerSvg(
     const cx = w / 2;
     const cy = h / 2;
     layoutContent = `
-      <circle cx="${cx}" cy="${cy}" r="${minDimension * 0.35}" fill="${accentGlow}" opacity="0.2" filter="url(#sb_blur)" />
+      <circle cx="${cx}" cy="${cy}" r="${canvasMin * 0.35}" fill="${accentGlow}" opacity="0.2" filter="url(#sb_blur)" />
       
       <g transform="translate(${cx - logoHalfSize}, ${cy - logoHalfSize})" filter="url(#sb_shadow)">
         <g transform="scale(${logoScale})">
@@ -2028,42 +2165,31 @@ export function generateSocialBannerSvg(
   }
 
   // Safe Zone Guide Overlay
+  //
+  // Only drawn where the platform documents where it crops. The previous
+  // fallback — a dashed box at 8% / 10% inset on any unrecognised size — was
+  // a guess presented as a specification, and trusting it could still cost
+  // someone their logo.
   let safeZoneOverlay = '';
   if (options.showSafeZone) {
-    if (w === 2560 && h === 1440) {
-      // YouTube Full TV (2560x1440), Desktop (2560x423), Tablet (1855x423), Mobile (1546x423)
-      const szMobileW = 1546;
-      const szDesktopH = 423;
-      const szY = (h - szDesktopH) / 2;
-      const szMobileX = (w - szMobileW) / 2;
-      const szTabletW = 1855;
-      const szTabletX = (w - szTabletW) / 2;
-
-      safeZoneOverlay = `
-        <!-- Desktop safe strip -->
-        <rect x="0" y="${szY}" width="${w}" height="${szDesktopH}" fill="none" stroke="#60a5fa" stroke-width="2" stroke-dasharray="10 5" opacity="0.7" />
-        <text x="30" y="${szY + 30}" font-family="sans-serif" font-size="16" font-weight="700" fill="#60a5fa">
-          Desktop View Area (2560 × 423)
-        </text>
-
-        <!-- Tablet safe box -->
-        <rect x="${szTabletX}" y="${szY}" width="${szTabletW}" height="${szDesktopH}" fill="none" stroke="#a78bfa" stroke-width="2" stroke-dasharray="8 4" opacity="0.8" />
-        <text x="${szTabletX + 20}" y="${szY + 30}" font-family="sans-serif" font-size="16" font-weight="700" fill="#a78bfa">
-          Tablet Safe (1855 × 423)
-        </text>
-
-        <!-- Guaranteed Mobile Safe Area (1546 x 423) -->
-        <rect x="${szMobileX}" y="${szY}" width="${szMobileW}" height="${szDesktopH}" fill="rgba(225, 29, 72, 0.08)" stroke="#e11d48" stroke-width="4" stroke-dasharray="14 6" />
-        <rect x="${szMobileX}" y="${szY - 38}" width="380" height="34" rx="8" fill="#e11d48" />
-        <text x="${szMobileX + 16}" y="${szY - 15}" font-family="monospace" font-size="15" font-weight="900" fill="#ffffff">
-          ▪ Mobile Safe Zone (1546 × 423)
-        </text>
-      `;
-    } else {
-      safeZoneOverlay = `
-        <rect x="${w * 0.08}" y="${h * 0.1}" width="${w * 0.84}" height="${h * 0.8}" fill="none" stroke="#e11d48" stroke-width="3" stroke-dasharray="12 6" opacity="0.8" />
-      `;
-    }
+    const bands = safeBandsFor(w, h);
+    safeZoneOverlay = bands
+      .map((band) => {
+        const x = (w - band.width) / 2;
+        const y = (h - band.height) / 2;
+        const primary = band.emphasis === 'primary';
+        const stroke = primary ? '#e11d48' : '#60a5fa';
+        return `
+        <rect x="${x}" y="${y}" width="${band.width}" height="${band.height}"
+          fill="${primary ? 'rgba(225, 29, 72, 0.08)' : 'none'}"
+          stroke="${stroke}" stroke-width="${primary ? 4 : 2}"
+          stroke-dasharray="${primary ? '14 6' : '10 5'}" opacity="${primary ? 1 : 0.7}" />
+        <text x="${x + 20}" y="${y + 28}" font-family="monospace" font-size="16"
+          font-weight="${primary ? 900 : 700}" fill="${stroke}">
+          ${escapeXml(band.label)}
+        </text>`;
+      })
+      .join('');
   }
 
   return namespaceSvgIds(`

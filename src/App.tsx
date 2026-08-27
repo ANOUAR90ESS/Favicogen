@@ -28,6 +28,7 @@ import { runProductionComplianceCheck } from './utils/productionCheck';
 // Every modal is code-split: none of them is needed to paint the first frame,
 // and together with JSZip they were most of a 990 kB entry bundle.
 const FaviconExportModal = lazy(() => import('./components/FaviconExportModal').then((m) => ({ default: m.FaviconExportModal })));
+const LandingScreen = lazy(() => import('./components/LandingScreen').then((m) => ({ default: m.LandingScreen })));
 const BrandPackageModal = lazy(() => import('./components/BrandPackageModal').then((m) => ({ default: m.BrandPackageModal })));
 const TemplateGalleryModal = lazy(() => import('./components/TemplateGalleryModal').then((m) => ({ default: m.TemplateGalleryModal })));
 const LiveMockupsModal = lazy(() => import('./components/LiveMockupsModal').then((m) => ({ default: m.LiveMockupsModal })));
@@ -103,6 +104,10 @@ export function App() {
   const [lastSavedAt, setLastSavedAt] = useState<number>(Date.now());
   const [storageWarning, setStorageWarning] = useState<StorageFailure | null>(null);
 
+  // Shown on a first run only: a returning visitor has work to get back to.
+  // Declared before the restore effect, which is what decides it.
+  const [showLanding, setShowLanding] = useState<boolean>(false);
+
   // Restore the last session. Projects live in IndexedDB, so this is async;
   // until it resolves the canvas shows the default design rather than a
   // half-loaded one.
@@ -113,9 +118,11 @@ export function App() {
       if (cancelled) return;
       // Nothing saved yet means this is a first run, so open on the sample
       // rather than an empty canvas.
-      const restored = stored.text || stored.tagline ? stored : makeBlankProject();
+      const isFirstRun = !stored.text && !stored.tagline;
+      const restored = isFirstRun ? makeBlankProject() : stored;
       setConfig(restored);
       setHistory({ entries: [restored], index: 0 });
+      setShowLanding(isFirstRun);
       setIsRestoring(false);
     });
 
@@ -525,10 +532,24 @@ export function App() {
         onOpenGooglePlayPolicy={() => setIsGooglePlayPolicyOpen(true)}
         onQuickSave={handleQuickSave}
         lastSavedAt={lastSavedAt}
+        minimal={showLanding}
         language={language}
         onToggleLanguage={toggleLanguage}
       />
 
+      {/* First run leads with the upload; the studio is one click away. */}
+      {showLanding ? (
+        <LazyMount when={showLanding}>
+          <LandingScreen
+            onLogoReady={(patch) => {
+              handleConfigChange(patch);
+              setShowLanding(false);
+            }}
+            onSkip={() => setShowLanding(false)}
+          />
+        </LazyMount>
+      ) : (
+      <>
       {/* Main Studio Workspace: Sidebar Controls + Interactive Canvas Stage */}
       <div className="flex flex-1 min-h-0 flex-col md:flex-row max-md:landscape:flex-row overflow-hidden relative p-2 sm:p-3 gap-2.5 sm:gap-3 bg-slate-100/70">
         {/* Sidebar Customizer Controls */}
@@ -557,14 +578,22 @@ export function App() {
         </main>
       </div>
 
+      </>
+      )}
+
       {/* Bottom Professional Polish Footer Bar */}
       <footer className="h-9 bg-white border-t border-slate-200 flex items-center justify-between px-3 sm:px-6 text-[11px] font-medium text-slate-500 shrink-0">
+        {/* Nothing to report about a project the visitor has not started. */}
         <div className="flex items-center gap-3">
-          <span className="truncate max-w-[140px] sm:max-w-none">
-            {t('nav.saved')}: <strong className="text-slate-700 font-semibold">{displayProjectName}</strong>
-          </span>
-          <span className="hidden sm:inline text-slate-300">|</span>
-          <span className="hidden sm:inline font-mono">{t('common.resolution')}: 512 × 512 px</span>
+          {!showLanding && (
+            <>
+              <span className="truncate max-w-[140px] sm:max-w-none">
+                {t('nav.saved')}: <strong className="text-slate-700 font-semibold">{displayProjectName}</strong>
+              </span>
+              <span className="hidden sm:inline text-slate-300">|</span>
+              <span className="hidden sm:inline font-mono">{t('common.resolution')}: 512 × 512 px</span>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <button
