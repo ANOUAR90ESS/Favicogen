@@ -427,6 +427,7 @@ export const ar = {
     downloadMockup: 'تحميل صورة المحاكاة',
   },
   socialKitModal: {
+    noDocumentedSafeArea: 'هذه المنصّة لا تنشر منطقة آمنة لهذا المقاس — لا يُرسم دليل.',
     platformAll: 'الكل',
     platformYoutube: 'يوتيوب',
     platformX: 'X (تويتر)',

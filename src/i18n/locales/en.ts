@@ -427,6 +427,7 @@ export const en = {
     downloadMockup: 'Download Mockup Image',
   },
   socialKitModal: {
+    noDocumentedSafeArea: 'This platform does not publish a safe area for this size — no guide is drawn.',
     platformAll: 'All',
     platformYoutube: 'YouTube',
     platformX: 'X (Twitter)',

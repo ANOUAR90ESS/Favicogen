@@ -227,3 +227,56 @@ export function insetSvg(svg: string, fraction: number): string {
     2
   )}) scale(${fraction.toFixed(4)})">${body}</g></svg>`;
 }
+
+/* ── Safe areas ───────────────────────────────────────────────────────────
+ *
+ * A safe-area guide is a promise that what sits inside it will not be cropped
+ * on a real device. That promise can only be kept where the platform actually
+ * publishes the numbers.
+ *
+ * The banner generator used to draw a dashed box at 8% / 10% inset on every
+ * size it did not recognise. Nothing about that box came from any platform —
+ * it was a guess dressed as a specification, and a user trusting it could
+ * still lose their logo to a crop. Sizes with no documented safe area now get
+ * no guide at all, and the UI says so.
+ */
+
+export interface SafeBand {
+  /** Width and height of the band, in the canvas's own pixels. */
+  width: number;
+  height: number;
+  /** How strongly to draw it: the tightest crop is the one that matters. */
+  emphasis: 'primary' | 'secondary';
+  /** Shown on the guide, e.g. "Mobile 1546 × 423". */
+  label: string;
+}
+
+/**
+ * Keyed by canvas size, because that is what the generator knows. Only sizes
+ * whose safe area the platform documents appear here.
+ */
+const SAFE_BANDS_BY_SIZE: Record<string, SafeBand[]> = {
+  // YouTube publishes all three: the banner is cropped hardest on a phone,
+  // and only the centre 1546 × 423 is guaranteed to survive everywhere.
+  '2560x1440': [
+    { width: 2560, height: 423, emphasis: 'secondary', label: 'Desktop 2560 × 423' },
+    { width: 1855, height: 423, emphasis: 'secondary', label: 'Tablet 1855 × 423' },
+    { width: 1546, height: 423, emphasis: 'primary', label: 'Mobile 1546 × 423' },
+  ],
+};
+
+/** The documented safe bands for a canvas, or an empty list if there are none. */
+export function safeBandsFor(width: number, height: number): SafeBand[] {
+  return SAFE_BANDS_BY_SIZE[`${width}x${height}`] ?? [];
+}
+
+export function hasDocumentedSafeArea(width: number, height: number): boolean {
+  return safeBandsFor(width, height).length > 0;
+}
+
+/**
+ * Every platform crops a profile picture to a circle. That is not a published
+ * measurement, it is the shape itself, so it is safe to show wherever a
+ * preset asks for a circular crop.
+ */
+export const AVATAR_CIRCLE_CROP = true;

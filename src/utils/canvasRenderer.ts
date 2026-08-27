@@ -26,6 +26,7 @@ import {
   androidAdaptivePx,
   androidLauncherPx,
   insetSvg,
+  safeBandsFor,
 } from './platformAssets';
 import type { PackageCategory, PackageStep } from './packagePlan';
 
@@ -2028,42 +2029,31 @@ export function generateSocialBannerSvg(
   }
 
   // Safe Zone Guide Overlay
+  //
+  // Only drawn where the platform documents where it crops. The previous
+  // fallback — a dashed box at 8% / 10% inset on any unrecognised size — was
+  // a guess presented as a specification, and trusting it could still cost
+  // someone their logo.
   let safeZoneOverlay = '';
   if (options.showSafeZone) {
-    if (w === 2560 && h === 1440) {
-      // YouTube Full TV (2560x1440), Desktop (2560x423), Tablet (1855x423), Mobile (1546x423)
-      const szMobileW = 1546;
-      const szDesktopH = 423;
-      const szY = (h - szDesktopH) / 2;
-      const szMobileX = (w - szMobileW) / 2;
-      const szTabletW = 1855;
-      const szTabletX = (w - szTabletW) / 2;
-
-      safeZoneOverlay = `
-        <!-- Desktop safe strip -->
-        <rect x="0" y="${szY}" width="${w}" height="${szDesktopH}" fill="none" stroke="#60a5fa" stroke-width="2" stroke-dasharray="10 5" opacity="0.7" />
-        <text x="30" y="${szY + 30}" font-family="sans-serif" font-size="16" font-weight="700" fill="#60a5fa">
-          Desktop View Area (2560 × 423)
-        </text>
-
-        <!-- Tablet safe box -->
-        <rect x="${szTabletX}" y="${szY}" width="${szTabletW}" height="${szDesktopH}" fill="none" stroke="#a78bfa" stroke-width="2" stroke-dasharray="8 4" opacity="0.8" />
-        <text x="${szTabletX + 20}" y="${szY + 30}" font-family="sans-serif" font-size="16" font-weight="700" fill="#a78bfa">
-          Tablet Safe (1855 × 423)
-        </text>
-
-        <!-- Guaranteed Mobile Safe Area (1546 x 423) -->
-        <rect x="${szMobileX}" y="${szY}" width="${szMobileW}" height="${szDesktopH}" fill="rgba(225, 29, 72, 0.08)" stroke="#e11d48" stroke-width="4" stroke-dasharray="14 6" />
-        <rect x="${szMobileX}" y="${szY - 38}" width="380" height="34" rx="8" fill="#e11d48" />
-        <text x="${szMobileX + 16}" y="${szY - 15}" font-family="monospace" font-size="15" font-weight="900" fill="#ffffff">
-          ▪ Mobile Safe Zone (1546 × 423)
-        </text>
-      `;
-    } else {
-      safeZoneOverlay = `
-        <rect x="${w * 0.08}" y="${h * 0.1}" width="${w * 0.84}" height="${h * 0.8}" fill="none" stroke="#e11d48" stroke-width="3" stroke-dasharray="12 6" opacity="0.8" />
-      `;
-    }
+    const bands = safeBandsFor(w, h);
+    safeZoneOverlay = bands
+      .map((band) => {
+        const x = (w - band.width) / 2;
+        const y = (h - band.height) / 2;
+        const primary = band.emphasis === 'primary';
+        const stroke = primary ? '#e11d48' : '#60a5fa';
+        return `
+        <rect x="${x}" y="${y}" width="${band.width}" height="${band.height}"
+          fill="${primary ? 'rgba(225, 29, 72, 0.08)' : 'none'}"
+          stroke="${stroke}" stroke-width="${primary ? 4 : 2}"
+          stroke-dasharray="${primary ? '14 6' : '10 5'}" opacity="${primary ? 1 : 0.7}" />
+        <text x="${x + 20}" y="${y + 28}" font-family="monospace" font-size="16"
+          font-weight="${primary ? 900 : 700}" fill="${stroke}">
+          ${escapeXml(band.label)}
+        </text>`;
+      })
+      .join('');
   }
 
   return namespaceSvgIds(`

@@ -23,6 +23,7 @@ import {
   generateSocialMediaKitZip,
 } from '../utils/canvasRenderer';
 import { downloadBlob, downloadSvg } from '../utils/download';
+import { hasDocumentedSafeArea } from '../utils/platformAssets';
 import { Modal } from './Modal';
 
 interface SocialMediaKitModalProps {
@@ -597,6 +598,15 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
                           </div>
                         </div>
                       )}
+
+                      {/* A guide is only shown where the platform publishes one */}
+                      {isBanner &&
+                        bannerOptions.showSafeZone &&
+                        !hasDocumentedSafeArea(preset.width, preset.height) && (
+                          <div className="absolute inset-x-3 top-2 z-10 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[10px] font-semibold text-amber-300">
+                            {t('socialKitModal.noDocumentedSafeArea')}
+                          </div>
+                        )}
 
                       {/* 16:9 / Banner Preview */}
                       {isBanner && (
