@@ -17,6 +17,16 @@ import {
   rasterVariantFilter,
   variantFidelity,
 } from './brandVariants';
+import {
+  ANDROID_ADAPTIVE_XML,
+  ANDROID_DENSITIES,
+  ANDROID_SAFE_FRACTION,
+  IOS_APP_ICON_PX,
+  IOS_CONTENTS_JSON,
+  androidAdaptivePx,
+  androidLauncherPx,
+  insetSvg,
+} from './platformAssets';
 
 export const FAVICON_SPECS: FaviconSpec[] = [
   {
@@ -728,7 +738,13 @@ export async function rasterizeSvg(
   width: number,
   height: number,
   format: 'png' | 'jpeg' | 'webp' = 'png',
-  quality = 0.95
+  quality = 0.95,
+  /**
+   * Paints an opaque ground before the artwork. JPEG needs one because it has
+   * no alpha channel; an iOS app icon needs one because Apple requires an icon
+   * with no transparency.
+   */
+  opaqueBackground?: string
 ): Promise<Blob> {
   // An SVG loaded through <img> renders in an isolated document that cannot
   // reach the page's web fonts, so the bytes have to travel with the markup.
@@ -756,8 +772,8 @@ export async function rasterizeSvg(
 
       // JPEG has no alpha channel: without an opaque ground, transparent
       // areas rasterize to black instead of white.
-      if (format === 'jpeg') {
-        ctx.fillStyle = '#ffffff';
+      if (opaqueBackground || format === 'jpeg') {
+        ctx.fillStyle = opaqueBackground || '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
 
@@ -969,6 +985,23 @@ export async function generateFaviconZip(
 - browserconfig.xml : Microsoft IE / Edge Windows tile configuration.
 ${includePlayStoreFeature ? '- google-play-feature-graphic-1024x500.png / .jpg : Google Play Store promo header.' : ''}
 
+📁 android/ — drop the mipmap-* folders into app/src/main/res/:
+- mipmap-{mdpi,hdpi,xhdpi,xxhdpi,xxxhdpi}/ic_launcher.png       48 / 72 / 96 / 144 / 192 px
+- .../ic_launcher_round.png                                     the same sizes, circular
+- .../ic_launcher_foreground.png                                108dp adaptive layer, 108 / 162 / 216 / 324 / 432 px
+- .../ic_launcher_background.png                                the plate, same sizes
+- mipmap-anydpi-v26/ic_launcher.xml, ic_launcher_round.xml      binds the two layers on API 26+
+  The foreground sits inside the centre 72dp of 108dp, because a launcher may
+  mask away anything outside that circle.
+
+📁 ios/ — drag AppIcon.appiconset into your Xcode asset catalogue:
+- AppIcon.appiconset/icon-1024.png   Xcode 14+ derives every other size from this one.
+- AppIcon.appiconset/Contents.json
+  The icon is flattened onto an opaque ground — no pixel is transparent —
+  because Apple requires an app icon with no transparency. (The file is still
+  written as RGBA, which is all a browser canvas can emit; Xcode flattens it
+  when it builds the catalogue.)
+
 📁 brand/ — the hand-off set, each as .svg and a 1024px .png:
 - ...-logo            : the design exactly as you made it.
 - ...-logo-transparent: same colours, no background plate.
@@ -1042,7 +1075,13 @@ is text you typed yourself.
     }
   }
 
-  // 6. Brand variants — the black / white / one-colour / transparent versions
+  // 6. Android launcher resources and the iOS asset catalogue.
+  onProgress?.(80, 'Generating Android launcher icons...');
+  await addAndroidAssets(zip as unknown as JSZipLike, config);
+  onProgress?.(85, 'Generating the iOS app icon...');
+  await addIosAssets(zip as unknown as JSZipLike, config);
+
+  // 7. Brand variants — the black / white / one-colour / transparent versions
   //    any hand-off is expected to include.
   onProgress?.(88, 'Generating brand variants...');
   const brandFolder = zip.folder('brand');
@@ -1053,7 +1092,7 @@ is text you typed yourself.
     brandFolder?.file(`${stem}.png`, await renderSvgToBlob(variantSvg, 1024, 'png'));
   }
 
-  // 7. Play Store Feature Graphic if enabled
+  // 8. Play Store Feature Graphic if enabled
   if (includePlayStoreFeature) {
     onProgress?.(95, 'Generating Google Play Store 1024×500 feature graphic...');
     const playSvg = generateFeatureGraphicSvg(config, {
@@ -1096,6 +1135,98 @@ export function generateBrandVariantSvg(
   const svg = generateSvgString(buildBrandVariantConfig(config, id, monochromeColor), 512);
   if (variantFidelity(config) !== 'silhouette') return svg;
   return applyRasterVariantFilter(svg, rasterVariantFilter(id, monochromeColor));
+}
+
+/**
+ * The two layers of an Android adaptive icon.
+ *
+ * The foreground is the mark alone, inset to the 72dp safe circle — a
+ * launcher may mask anything outside it, so a full-bleed foreground loses its
+ * edges on any device with round icons. The background is the plate on its
+ * own, full bleed; when the design has no plate it falls back to a solid
+ * colour, because a transparent adaptive background shows the launcher's
+ * wallpaper through the icon.
+ */
+
+/** The slice of JSZip's folder API these helpers use. */
+interface JSZipLike {
+  file(path: string, data: string | Blob): unknown;
+  folder(name: string): JSZipLike | null;
+}
+
+export function generateAdaptiveIconLayers(config: LogoConfig): {
+  foreground: string;
+  background: string;
+} {
+  const foreground = insetSvg(generateBrandVariantSvg(config, 'transparent'), ANDROID_SAFE_FRACTION);
+
+  const plateOnly: LogoConfig = {
+    ...config,
+    bgType: config.bgType === 'transparent' ? 'solid' : config.bgType,
+    bgColor1: config.bgColor1 || '#ffffff',
+    shapeMask: 'square',
+    borderWidth: 0,
+    showText: false,
+    showTagline: false,
+    showRing: false,
+    showBadgeRibbon: false,
+    iconSize: 0,
+    watermark: config.watermark ? { ...config.watermark, enabled: false } : config.watermark,
+  };
+
+  return { foreground, background: generateSvgString(plateOnly, 512) };
+}
+
+/**
+ * Writes the Android launcher resources into a package, laid out exactly as
+ * an Android project expects them.
+ */
+async function addAndroidAssets(zip: JSZipLike, config: LogoConfig): Promise<void> {
+  const folder = zip.folder('android');
+  if (!folder) return;
+
+  const squareSvg = generateSvgString(config, 512);
+  const roundSvg = generateSvgString({ ...config, shapeMask: 'circle' }, 512);
+  const { foreground, background } = generateAdaptiveIconLayers(config);
+
+  for (const density of ANDROID_DENSITIES) {
+    const dir = folder.folder(density.folder);
+    if (!dir) continue;
+    const launcher = androidLauncherPx(density);
+    const adaptive = androidAdaptivePx(density);
+
+    dir.file('ic_launcher.png', await rasterizeSvg(squareSvg, launcher, launcher, 'png'));
+    dir.file('ic_launcher_round.png', await rasterizeSvg(roundSvg, launcher, launcher, 'png'));
+    dir.file('ic_launcher_foreground.png', await rasterizeSvg(foreground, adaptive, adaptive, 'png'));
+    dir.file('ic_launcher_background.png', await rasterizeSvg(background, adaptive, adaptive, 'png'));
+  }
+
+  const anydpi = folder.folder('mipmap-anydpi-v26');
+  anydpi?.file('ic_launcher.xml', ANDROID_ADAPTIVE_XML);
+  anydpi?.file('ic_launcher_round.xml', ANDROID_ADAPTIVE_XML);
+}
+
+/**
+ * Writes the iOS asset catalogue. One 1024px icon, flattened: Xcode 14 and
+ * later derive every other size, and App Store Connect refuses an icon with
+ * an alpha channel.
+ */
+async function addIosAssets(zip: JSZipLike, config: LogoConfig): Promise<void> {
+  const appicon = zip.folder('ios')?.folder('AppIcon.appiconset');
+  if (!appicon) return;
+
+  const ground = config.bgType === 'transparent' ? '#ffffff' : config.bgColor1 || '#ffffff';
+  const icon = await rasterizeSvg(
+    generateSvgString(config, 512),
+    IOS_APP_ICON_PX,
+    IOS_APP_ICON_PX,
+    'png',
+    0.95,
+    ground
+  );
+
+  appicon.file(`icon-${IOS_APP_ICON_PX}.png`, icon);
+  appicon.file('Contents.json', IOS_CONTENTS_JSON);
 }
 
 /**
