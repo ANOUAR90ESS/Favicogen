@@ -1,6 +1,6 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
-import App from './App.tsx';
+import Root from './Root.tsx';
 import {ErrorBoundary} from './components/ErrorBoundary.tsx';
 import './i18n';
 import './index.css';
@@ -9,7 +9,7 @@ import { registerServiceWorker } from './utils/registerServiceWorker.ts';
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
-      <App />
+      <Root />
     </ErrorBoundary>
   </StrictMode>,
 );

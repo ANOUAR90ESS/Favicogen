@@ -16,7 +16,7 @@ import { downloadBytes, enterStudio, pngSize } from './helpers';
 test('the package holds exactly what the screen promised, at the sizes it claims', async ({
   page,
 }) => {
-  await page.goto('/');
+  await page.goto('/studio');
   const promised = Number(
     /(\d+)/.exec(await page.getByRole('button', { name: /see what.s included/i }).innerText())?.[1]
   );

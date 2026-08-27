@@ -83,7 +83,7 @@ test('an export made offline still carries its typeface', async ({ page, context
 
 test('the build stays installable', async ({ page, request }) => {
   // A manifest and a worker with a fetch handler are the two halves of it.
-  await page.goto('/');
+  await page.goto('/studio');
 
   const manifestHref = await page.locator('link[rel=manifest]').getAttribute('href');
   expect(manifestHref).toBeTruthy();

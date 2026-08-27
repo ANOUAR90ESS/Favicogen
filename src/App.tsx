@@ -25,6 +25,7 @@ import {
 import { generateSvgString } from './utils/canvasRenderer';
 import { smartImportImage } from './utils/smartImport';
 import { runProductionComplianceCheck } from './utils/productionCheck';
+import type { Route } from './utils/router';
 
 
 // Every modal is code-split: none of them is needed to paint the first frame,
@@ -67,7 +68,16 @@ const HISTORY_LIMIT = 30;
 /** Edits to one field closer together than this collapse into a single step. */
 const HISTORY_COALESCE_MS = 700;
 
-export function App() {
+/**
+ * The studio.
+ *
+ * `onNavigate` is the only thing the workspace knows about the pages around it:
+ * enough for the account control in the header to lead somewhere, and not so
+ * much that the studio depends on any of them existing. It is optional for the
+ * same reason — this component was mounted directly before there were routes,
+ * and nothing about drawing a logo needs one.
+ */
+export function App({ onNavigate }: { onNavigate?: (to: Route) => void } = {}) {
   const { t, i18n } = useTranslation();
   const language = (i18n.language as SupportedLanguage) || 'en';
   const isAr = language === 'ar';
@@ -575,6 +585,7 @@ export function App() {
         minimal={showLanding}
         language={language}
         onToggleLanguage={toggleLanguage}
+        onNavigate={onNavigate}
       />
 
       {/* First run leads with the upload; the studio is one click away. */}

@@ -2,7 +2,7 @@
   "name": "Logo & Favicon Studio",
   "short_name": "LogoStudio",
   "description": "Professional Logo & Favicon creator with YouTube branding kit, icon generation, and multi-format exports.",
-  "start_url": "/",
+  "start_url": "/studio",
   "scope": "/",
   "display": "standalone",
   "background_color": "#09090b",

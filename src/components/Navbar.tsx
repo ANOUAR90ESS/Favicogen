@@ -1,5 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../auth/AuthProvider';
+import { isAuthConfigured } from '../utils/supabaseConfig';
+import type { Route } from '../utils/router';
 import {
   FolderOpen,
   LayoutGrid,
@@ -51,6 +54,12 @@ interface NavbarProps {
   /** Landing-screen chrome: the brand and the language switch, nothing that
    *  acts on a project the visitor has not started yet. */
   minimal?: boolean;
+  /**
+   * Where the account control leads. Absent when the studio is mounted on its
+   * own, in which case no account control is drawn at all — a button that
+   * cannot navigate is worse than no button.
+   */
+  onNavigate?: (to: Route) => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -75,7 +84,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   onQuickSave,
   minimal = false,
   onToggleLanguage,
+  onNavigate,
 }) => {
+  const { status: authStatus, signOut } = useAuth();
   const { t, i18n } = useTranslation();
   const isAr = i18n.language === 'ar';
   const [showNewConfirm, setShowNewConfirm] = useState<boolean>(false);
@@ -333,6 +344,31 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right / Export and Language */}
         <div className="order-3 max-md:tall:order-2 flex items-center gap-1.5 shrink-0">
+          {/*
+            * The account, for the workspace.
+            *
+            * Only drawn when this build has an account service *and* somewhere
+            * to navigate. Otherwise someone who signed in on the landing page
+            * would reach the studio and find no way back out of the session.
+            */}
+          {isAuthConfigured && onNavigate && authStatus === 'signed-in' && (
+            <button
+              onClick={() => void signOut()}
+              className="rounded-lg border border-slate-200 px-2.5 py-1 text-[11px] font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+            >
+              {t('auth.nav.signOut')}
+            </button>
+          )}
+          {isAuthConfigured && onNavigate && authStatus === 'signed-out' && (
+            <button
+              id="btn-nav-signin"
+              onClick={() => onNavigate('/signin')}
+              className="rounded-lg border border-slate-200 px-2.5 py-1 text-[11px] font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
+            >
+              {t('auth.nav.signIn')}
+            </button>
+          )}
+
           {/* Segmented Language Switcher */}
           <div className="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 shadow-2xs">
             <button

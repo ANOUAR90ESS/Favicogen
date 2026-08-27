@@ -9,7 +9,7 @@ import { enterStudio, rasterizeCanvas, savedBrandName } from './helpers';
  */
 
 test('a first visit leads with the upload, and never interrupts saved work', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/studio');
   await expect(page.getByRole('button', { name: /see what.s included/i })).toBeVisible();
 
   await page.getByRole('button', { name: /design one from scratch/i }).click();
@@ -37,7 +37,7 @@ test('the number on the first-run screen is the number of files', async ({ page 
   // It reads "See what's included — 81 files". That figure is computed from the
   // same tables the generators loop over, and package.spec.ts opens the archive
   // and counts. Here we only insist the screen commits to a real number.
-  await page.goto('/');
+  await page.goto('/studio');
   const label = await page.getByRole('button', { name: /see what.s included/i }).innerText();
   const promised = Number(/(\d+)/.exec(label)?.[1]);
   expect(promised).toBeGreaterThan(20);
@@ -66,7 +66,7 @@ test('the canvas keeps its transparent ground', async ({ page }) => {
 });
 
 test('the interface mirrors into Arabic', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/studio');
   await page.locator('#btn-lang-ar').click();
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
   // Not merely flipped: actually translated.

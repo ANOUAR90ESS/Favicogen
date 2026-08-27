@@ -5,9 +5,15 @@ import { expect, type Download, type Page } from '@playwright/test';
  * clicking that gets there.
  */
 
-/** Dismisses the first-run screen and waits for the studio to be drawing. */
+/**
+ * Dismisses the first-run screen and waits for the studio to be drawing.
+ *
+ * `/studio` rather than `/`: the root is the public landing page now, and a
+ * returning visitor is bounced from it to here. Going straight to the studio is
+ * what an installed app and the native shell both do.
+ */
 export async function enterStudio(page: Page): Promise<void> {
-  await page.goto('/');
+  await page.goto('/studio');
   await page.getByRole('button', { name: /design one from scratch/i }).click();
   await expect(page.locator('#logo-svg-canvas-container svg.artboard-svg')).toBeVisible();
 }
