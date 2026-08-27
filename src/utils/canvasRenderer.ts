@@ -447,6 +447,26 @@ export function generateSvgString(config: LogoConfig, targetSize = 512): string 
     const size = config.iconSize || 160;
     const halfSize = size / 2;
     const fill = config.iconGradient ? `url(#${iconGradId})` : config.iconColor || '#38bdf8';
+    /*
+     * Icon markup is authored in the lucide idiom — `stroke="currentColor"` —
+     * so the paint arrives through the CSS `color` property. That property
+     * only accepts a <color>, and a gradient is a paint server rather than a
+     * colour, so `color="url(#iconGrad)"` is invalid, ignored, and
+     * `currentColor` falls back to black. Dual-tone is on in the default
+     * template, so every icon rendered solid black and the colour controls
+     * looked like they did nothing: measured at 0 pixels of the chosen colour
+     * against 11,296 black ones.
+     *
+     * Painting the value into the markup works for a colour and a gradient
+     * alike, and stops depending on inheritance surviving into the isolated
+     * document a raster export renders in.
+     *
+     * A function replacer, because `$&` and friends in a user-supplied colour
+     * would otherwise be expanded as replacement patterns.
+     */
+    const paintIcon = (markup: string): string => markup.replace(/currentColor/g, () => fill);
+    /** `color` is still set where it is valid — a gradient is not. */
+    const colorAttr = config.iconGradient ? '' : `color="${fill}"`;
     const flipTransform = `${config.iconFlipH ? 'scale(-1, 1)' : ''} ${config.iconFlipV ? 'scale(1, -1)' : ''}`;
     const rotateTransform = config.iconRotation ? `rotate(${config.iconRotation} ${iconX} ${iconY})` : '';
     const filterAttr = config.iconShadow ? `filter="url(#${iconFilterId})"` : '';
@@ -492,9 +512,9 @@ export function generateSvgString(config: LogoConfig, targetSize = 512): string 
       `;
     } else if (config.iconType === 'custom-svg' && config.customSvgString) {
       iconElement = `
-        <g transform="translate(${iconX - halfSize}, ${iconY - halfSize}) ${rotateTransform} ${flipTransform}" opacity="${config.iconOpacity || 1}" color="${fill}" ${filterAttr}>
+        <g transform="translate(${iconX - halfSize}, ${iconY - halfSize}) ${rotateTransform} ${flipTransform}" opacity="${config.iconOpacity || 1}" ${colorAttr} ${filterAttr}>
           <svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="${fill}" ${outlineStyle}>
-            ${config.customSvgString}
+            ${paintIcon(config.customSvgString)}
           </svg>
         </g>
       `;
@@ -507,9 +527,9 @@ export function generateSvgString(config: LogoConfig, targetSize = 512): string 
     } else if (iconItem) {
       const viewBox = iconItem.viewBox || '0 0 24 24';
       iconElement = `
-        <g transform="translate(${iconX - halfSize}, ${iconY - halfSize}) ${rotateTransform}" opacity="${config.iconOpacity || 1}" color="${fill}" ${filterAttr}>
+        <g transform="translate(${iconX - halfSize}, ${iconY - halfSize}) ${rotateTransform}" opacity="${config.iconOpacity || 1}" ${colorAttr} ${filterAttr}>
           <svg width="${size}" height="${size}" viewBox="${viewBox}" fill="${fill}" ${outlineStyle}>
-            ${iconItem.path}
+            ${paintIcon(iconItem.path)}
           </svg>
         </g>
       `;
@@ -937,49 +957,17 @@ export interface FaviconZipOptions {
 /**
  * Generates a full ready-to-use Favicon ZIP package with all sizes and formats
  */
-export async function generateFaviconZip(
-  config: LogoConfig,
-  options: FaviconZipOptions = {}
-): Promise<Blob> {
-  const { default: JSZip } = await import('jszip');
-  const zip = new JSZip();
-  const brandName = config.text || config.name || 'Brand';
-  const themeColor = config.bgColor1 || '#0f172a';
-  const {
-    includeWebp = true,
-    includeJpeg = true,
-    includePlayStoreFeature = true,
-    organizedFolders = false,
-    includeAndroid = true,
-    includeIos = true,
-    includeBrand = true,
-    onProgress,
-  } = options;
-
-  onProgress?.(5, 'Preparing SVG master asset...');
-  const svgString = generateSvgString(config, 512);
-
-  // 1. Root & Documentation
-  // The .svg the user ships must carry its fonts too, not just the rasters.
-  zip.file('favicon.svg', await embedFontsInSvg(svgString));
-  zip.file('site.webmanifest', generateWebmanifestJson(brandName, themeColor));
-  zip.file('html-head-snippet.html', generateHtmlHeadSnippet(brandName, themeColor));
-  zip.file(
-    'browserconfig.xml',
-    `<?xml version="1.0" encoding="utf-8"?>
-<browserconfig>
-  <msapplication>
-    <tile>
-      <square150x150logo src="/mstile-150x150.png"/>
-      <TileColor>${themeColor}</TileColor>
-    </tile>
-  </msapplication>
-</browserconfig>`
-  );
-
-  zip.file(
-    'README_FAVICON_GUIDE.txt',
-    `=============================================================
+/**
+ * The guide that ships inside the website folder.
+ *
+ * Pulled out of the ZIP builder so it can be read by a test. It used to end
+ * with "100% W3C, Google Lighthouse, Apple Safari & PWA compliant" — a
+ * certification nobody issued, shipped in every package. The scan that keeps
+ * that kind of copy out of the interface only ever read the locale files, so
+ * a claim living in a generator walked straight past it.
+ */
+export function buildFaviconGuide(brandName: string, includePlayStoreFeature = false): string {
+  return `=============================================================
   ${brandName} - Complete Favicon & Web App Icon Package
   Generated by Logo & Favicon Studio PRO
   Created at: ${new Date().toLocaleString()}
@@ -1033,9 +1021,53 @@ Nothing in this package asserts anything about you: no ratings, no download
 counts, no verification badges. Any badge or tagline on a generated graphic
 is text you typed yourself.
 
-100% W3C, Google Lighthouse, Apple Safari & PWA compliant.
-`
+The sizes and file names above are the ones each platform publishes. Nothing
+here has been through W3C, Lighthouse or Apple review, and this file does not
+claim it has.
+`;
+}
+
+export async function generateFaviconZip(
+  config: LogoConfig,
+  options: FaviconZipOptions = {}
+): Promise<Blob> {
+  const { default: JSZip } = await import('jszip');
+  const zip = new JSZip();
+  const brandName = config.text || config.name || 'Brand';
+  const themeColor = config.bgColor1 || '#0f172a';
+  const {
+    includeWebp = true,
+    includeJpeg = true,
+    includePlayStoreFeature = true,
+    organizedFolders = false,
+    includeAndroid = true,
+    includeIos = true,
+    includeBrand = true,
+    onProgress,
+  } = options;
+
+  onProgress?.(5, 'Preparing SVG master asset...');
+  const svgString = generateSvgString(config, 512);
+
+  // 1. Root & Documentation
+  // The .svg the user ships must carry its fonts too, not just the rasters.
+  zip.file('favicon.svg', await embedFontsInSvg(svgString));
+  zip.file('site.webmanifest', generateWebmanifestJson(brandName, themeColor));
+  zip.file('html-head-snippet.html', generateHtmlHeadSnippet(brandName, themeColor));
+  zip.file(
+    'browserconfig.xml',
+    `<?xml version="1.0" encoding="utf-8"?>
+<browserconfig>
+  <msapplication>
+    <tile>
+      <square150x150logo src="/mstile-150x150.png"/>
+      <TileColor>${themeColor}</TileColor>
+    </tile>
+  </msapplication>
+</browserconfig>`
   );
+
+  zip.file('README_FAVICON_GUIDE.txt', buildFaviconGuide(brandName, includePlayStoreFeature));
 
   // Folders if requested
   const pngFolder = organizedFolders ? zip.folder('png') : zip;
