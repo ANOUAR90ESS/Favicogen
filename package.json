@@ -19,7 +19,8 @@
     "build:web": "vite build",
     "sync:native": "npm run build:web && cap sync",
     "open:android": "cap open android",
-    "open:ios": "cap open ios"
+    "open:ios": "cap open ios",
+    "fetch:fonts": "node scripts/fetch-fonts.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",

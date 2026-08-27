@@ -39,11 +39,24 @@ jobs:
         run: |
           set -e
           for asset in icon-192.png icon-512.png favicon.svg manifest.json \
+                       fonts/fonts.css fonts/LICENSE.txt \
                        legal/PRIVACY_POLICY.md legal/PRIVACY_POLICY.ar.md \
                        legal/TERMS_OF_SERVICE.md legal/TERMS_OF_SERVICE.ar.md; do
             test -f "dist/$asset" || { echo "missing dist/$asset"; exit 1; }
           done
           echo "all declared assets present"
+
+      - name: Check nothing reaches for Google Fonts at run time
+        run: |
+          set -e
+          # The typefaces ship with the app. A reintroduced link or fetch would
+          # bring back exports that silently lose their font offline.
+          if grep -rn "fonts.googleapis.com\|fonts.gstatic.com" dist/assets dist/index.html; then
+            echo "the built app still references Google Fonts"
+            exit 1
+          fi
+          test "$(ls dist/fonts/*.woff2 | wc -l)" -gt 40 || { echo "font files missing from the build"; exit 1; }
+          echo "self-hosted: no Google Fonts references in the build"
 
       - name: Check both locales define the same keys
         run: bun run check:i18n

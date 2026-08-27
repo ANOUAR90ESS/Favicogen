@@ -102,3 +102,23 @@ never return.
 The first run on a device should check: an export reaches the share sheet, the
 file that lands is the right size and opens, Android's back button closes a
 dialog rather than the app, and the toolbar clears the notch.
+
+## Typefaces
+
+The app's nine families are self-hosted in `public/fonts/`, produced by
+`npm run fetch:fonts` and committed. Nothing fetches Google at run time.
+
+This matters more in the app than on the web. Every export embeds its font bytes
+into the SVG — that is what keeps the preview and the exported PNG from
+disagreeing about the typeface — and those bytes used to be fetched from
+`fonts.gstatic.com` at the moment of export. Inside a native shell, on a plane,
+or on a network that blocks Google, that fetch fails and the export *succeeds
+without its font*: a file that looks right on the user's screen and wrong
+everywhere else.
+
+The `unicode-range` split Google serves is preserved, so a browser still
+downloads only the subsets a page needs — measured at 43 KB in English and
+82 KB in Arabic, against 1.4 MB sitting in the repository.
+
+Re-run `npm run fetch:fonts` to pick up new font versions. It needs the network;
+a normal build and CI never do.
