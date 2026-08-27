@@ -614,22 +614,30 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               </label>
             </div>
 
+            {/* The name is not only type on the canvas: it names every exported
+                file and heads the guides in the package. Someone who uploaded a
+                finished logo has the text layer off, and hiding the field with
+                it left them no way to name their own download. */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                {t('controlPanel.textTab.brandName')}
+              </label>
+              <input
+                type="text"
+                value={config.text}
+                onChange={(e) => updateConfig({ text: e.target.value })}
+                placeholder={t('controlPanel.textTab.brandNamePlaceholder')}
+                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-base font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none shadow-2xs"
+              />
+              {!config.showText && (
+                <p className="text-[11px] text-slate-500">
+                  {t('controlPanel.textTab.namesFilesOnly')}
+                </p>
+              )}
+            </div>
+
             {config.showText && (
               <div className="space-y-4">
-                {/* Brand Name Input */}
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                    {t('controlPanel.textTab.brandName')}
-                  </label>
-                  <input
-                    type="text"
-                    value={config.text}
-                    onChange={(e) => updateConfig({ text: e.target.value })}
-                    placeholder={t('controlPanel.textTab.brandNamePlaceholder')}
-                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-base font-bold text-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none shadow-2xs"
-                  />
-                </div>
-
                 {/* Font Selector */}
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">

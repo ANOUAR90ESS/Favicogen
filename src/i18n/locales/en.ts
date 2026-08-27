@@ -203,6 +203,7 @@ export const en = {
       badgeStyle: 'Vector Emblem / Badge Frame',
     },
     textTab: {
+      namesFilesOnly: 'The text layer is off, so this will not appear on the artwork — it names your exported files and the guides in the package.',
       title: 'Brand Name & Typography',
       brandName: 'Brand / Company Name',
       brandNamePlaceholder: 'Enter your brand name...',
