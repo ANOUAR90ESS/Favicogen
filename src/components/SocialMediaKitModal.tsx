@@ -21,6 +21,7 @@ import {
   renderSvgToBlob,
   rasterizeSvg,
   generateSocialMediaKitZip,
+  SOCIAL_BANNER_LAYOUT_IDS,
 } from '../utils/canvasRenderer';
 import { downloadBlob, downloadSvg } from '../utils/download';
 import { hasDocumentedSafeArea } from '../utils/platformAssets';
@@ -76,6 +77,28 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
       return true;
     });
   }, [activeTab, platformFilter]);
+
+  // One label table, so the picker and the generator cannot drift apart.
+  const layoutLabels: Record<(typeof SOCIAL_BANNER_LAYOUT_IDS)[number], string> = {
+    'center-hero': t('socialKitModal.layoutCenterHero'),
+    'split-hero': t('socialKitModal.layoutLogoDetail'),
+    'minimal-clean': t('socialKitModal.layoutMinimal'),
+    'brand-luxury': t('socialKitModal.layoutLuxury'),
+  };
+
+  // A name alone ("Luxury identity") says nothing about what the button does.
+  const layoutThumbnails = useMemo(() => {
+    const drawn = {} as Record<(typeof SOCIAL_BANNER_LAYOUT_IDS)[number], string>;
+    for (const id of SOCIAL_BANNER_LAYOUT_IDS) {
+      drawn[id] = generateSocialBannerSvg(
+        config,
+        { ...bannerOptions, layout: id, showSafeZone: false },
+        640,
+        240
+      );
+    }
+    return drawn;
+  }, [config, bannerOptions]);
 
   // Base SVG for 1:1 items
   const base1x1Svg = useMemo(() => {
@@ -255,14 +278,14 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
             {/* Platform Filter Pills */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
               {[
-                { id: 'all', labelAr: t('socialKitModal.platformAll'), labelEn: 'All' },
-                { id: 'youtube', labelAr: t('socialKitModal.platformYoutube'), labelEn: 'YouTube' },
-                { id: 'twitter', labelAr: t('socialKitModal.platformX'), labelEn: 'X / Twitter' },
-                { id: 'instagram', labelAr: t('socialKitModal.platformInstagram'), labelEn: 'Instagram' },
-                { id: 'linkedin', labelAr: t('socialKitModal.platformLinkedin'), labelEn: 'LinkedIn' },
-                { id: 'facebook', labelAr: t('socialKitModal.platformFacebook'), labelEn: 'Facebook' },
-                { id: 'discord', labelAr: t('socialKitModal.platformDiscord'), labelEn: 'Discord' },
-                { id: 'tiktok', labelAr: t('socialKitModal.platformTiktok'), labelEn: 'TikTok' },
+                { id: 'all', label: t('socialKitModal.platformAll') },
+                { id: 'youtube', label: t('socialKitModal.platformYoutube') },
+                { id: 'twitter', label: t('socialKitModal.platformX') },
+                { id: 'instagram', label: t('socialKitModal.platformInstagram') },
+                { id: 'linkedin', label: t('socialKitModal.platformLinkedin') },
+                { id: 'facebook', label: t('socialKitModal.platformFacebook') },
+                { id: 'discord', label: t('socialKitModal.platformDiscord') },
+                { id: 'tiktok', label: t('socialKitModal.platformTiktok') },
               ].map((plat) => (
                 <button
                   key={plat.id}
@@ -273,7 +296,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
                       : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700'
                   }`}
                 >
-                  {isAr ? plat.labelAr : plat.labelEn}
+                  {plat.label}
                 </button>
               ))}
             </div>
@@ -296,27 +319,26 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
                   {t('socialKitModal.bannerComposition')}
                 </label>
                 <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { id: 'center-hero', labelAr: t('socialKitModal.layoutCenterHero'), labelEn: 'Center Hero' },
-                    { id: 'split-hero', labelAr: t('socialKitModal.layoutLogoDetail'), labelEn: 'Split Side Hero' },
-                    { id: 'minimal-clean', labelAr: t('socialKitModal.layoutMinimal'), labelEn: 'Minimal Clean' },
-                    { id: 'brand-luxury', labelAr: t('socialKitModal.layoutLuxury'), labelEn: 'Brand Luxury' },
-                  ].map((layout) => (
+                  {SOCIAL_BANNER_LAYOUT_IDS.map((id) => (
                     <button
-                      key={layout.id}
-                      onClick={() =>
-                        setBannerOptions((prev) => ({
-                          ...prev,
-                          layout: layout.id as any,
-                        }))
-                      }
-                      className={`px-3 py-2 text-xs rounded-lg border text-start transition-all ${
-                        bannerOptions.layout === layout.id
+                      key={id}
+                      onClick={() => setBannerOptions((prev) => ({ ...prev, layout: id }))}
+                      aria-pressed={bannerOptions.layout === id}
+                      className={`rounded-lg border p-1.5 text-start text-xs transition-all ${
+                        bannerOptions.layout === id
                           ? 'bg-indigo-600/20 border-indigo-500 text-indigo-200 font-semibold'
                           : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
                       }`}
                     >
-                      {isAr ? layout.labelAr : layout.labelEn}
+                      {/* Drawn by the generator that draws the banner, so the
+                          thumbnail cannot promise a composition it will not
+                          produce — including the user's own colours and text. */}
+                      <span
+                        className="block w-full overflow-hidden rounded-md border border-slate-800/80 [&>svg]:h-full [&>svg]:w-full"
+                        style={{ aspectRatio: '640 / 240' }}
+                        dangerouslySetInnerHTML={{ __html: layoutThumbnails[id] }}
+                      />
+                      <span className="mt-1.5 block px-0.5">{layoutLabels[id]}</span>
                     </button>
                   ))}
                 </div>
@@ -328,21 +350,21 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
                   {t('socialKitModal.backgroundTheme')}
                 </label>
                 <div className="grid grid-cols-3 gap-2 text-xs">
-                  {[
-                    { id: 'brand', labelAr: t('socialKitModal.themeBrand'), labelEn: 'Brand Match' },
-                    { id: 'dark', labelAr: t('socialKitModal.themeDarkLuxe'), labelEn: 'Obsidian Dark' },
-                    { id: 'sunset', labelAr: t('socialKitModal.themeSunset'), labelEn: 'Sunset Glow' },
-                    { id: 'emerald', labelAr: t('socialKitModal.themeEmerald'), labelEn: 'Emerald' },
-                    { id: 'cyberpunk', labelAr: t('socialKitModal.themeCyberpunk'), labelEn: 'Cyberpunk' },
-                    { id: 'light', labelAr: t('socialKitModal.themeBright'), labelEn: 'Clean Light' },
-                    { id: 'transparent', labelAr: t('socialKitModal.themeTransparent'), labelEn: 'Transparent' },
-                  ].map((theme) => (
+                  {([
+                    { id: 'brand', label: t('socialKitModal.themeBrand') },
+                    { id: 'dark', label: t('socialKitModal.themeDarkLuxe') },
+                    { id: 'sunset', label: t('socialKitModal.themeSunset') },
+                    { id: 'emerald', label: t('socialKitModal.themeEmerald') },
+                    { id: 'cyberpunk', label: t('socialKitModal.themeCyberpunk') },
+                    { id: 'light', label: t('socialKitModal.themeBright') },
+                    { id: 'transparent', label: t('socialKitModal.themeTransparent') },
+                  ] satisfies { id: SocialBannerOptions['bgTheme']; label: string }[]).map((theme) => (
                     <button
                       key={theme.id}
                       onClick={() =>
                         setBannerOptions((prev) => ({
                           ...prev,
-                          bgTheme: theme.id as any,
+                          bgTheme: theme.id,
                         }))
                       }
                       className={`px-2.5 py-1.5 rounded-lg border text-center transition-all ${
@@ -351,7 +373,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
                           : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
                       }`}
                     >
-                      {isAr ? theme.labelAr : theme.labelEn}
+                      {theme.label}
                     </button>
                   ))}
                 </div>
@@ -594,7 +616,9 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
 
                           {/* Social avatar watermark pill */}
                           <div className="absolute -bottom-1 bg-slate-950/90 border border-slate-800 text-[10px] text-slate-400 px-2 py-0.5 rounded-full backdrop-blur">
-                            {preset.cropStyle === 'circle' ? 'Circle Avatar Crop' : 'Square Post (1:1)'}
+                            {preset.cropStyle === 'circle'
+                              ? t('socialKitModal.cropCircle')
+                              : t('socialKitModal.cropSquare')}
                           </div>
                         </div>
                       )}

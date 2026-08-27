@@ -1769,6 +1769,20 @@ export const SOCIAL_MEDIA_PRESETS: SocialMediaPreset[] = [
 /**
  * Generates an ultra-crisp responsive Social Media Banner SVG (16:9, 3:1, 4:1, or 1:1)
  */
+/**
+ * The banner compositions the Social Kit offers, in the order it shows them.
+ *
+ * The picker and the tests read this one list: `brand-luxury` spent a while
+ * sharing a branch with `center-hero`, so the button produced the same banner
+ * under a second name, and nothing was watching for it.
+ */
+export const SOCIAL_BANNER_LAYOUT_IDS = [
+  'center-hero',
+  'split-hero',
+  'minimal-clean',
+  'brand-luxury',
+] as const satisfies readonly SocialBannerOptions['layout'][];
+
 export function generateSocialBannerSvg(
   config: LogoConfig,
   options: SocialBannerOptions,
@@ -1889,7 +1903,7 @@ export function generateSocialBannerSvg(
   let layoutContent = '';
 
   // 1. Center Hero Layout
-  if (options.layout === 'center-hero' || options.layout === 'brand-luxury') {
+  if (options.layout === 'center-hero') {
     const cx = w / 2;
     const cy = h / 2;
     const logoY = h > 800 ? cy - logoHalfSize - 80 : cy - logoHalfSize - 40;
@@ -1925,6 +1939,80 @@ export function generateSocialBannerSvg(
       <text x="${cx}" y="${Math.min(h - 40, logoY + logoTargetSize + (options.showBadge && badgeText ? 145 : 115))}" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(14, Math.min(26, w * 0.018))}" font-weight="500" fill="${subtextColor}">
         ${escapeXml(subtitle)}
       </text>
+    `;
+  }
+  // 1b. Brand Luxury.
+  //
+  // This used to share the centred-hero branch, so the two buttons produced the
+  // same banner under different names. Restraint is what separates them: no
+  // glow, a hairline double frame, a smaller mark with air around it, and a
+  // tracked serif wordmark over a hairline rule.
+  else if (options.layout === 'brand-luxury') {
+    const cx = w / 2;
+    const cy = h / 2;
+    // Deliberately smaller than the hero mark — the negative space is the look.
+    const markSize = minDimension * 0.3;
+    const markScale = markSize / 512;
+    const inset = Math.max(16, minDimension * 0.055);
+    const titleSize = Math.max(20, Math.min(52, w * 0.031));
+    const subSize = Math.max(11, Math.min(19, w * 0.0125));
+    const tracking = titleSize * 0.16;
+    const hasSubtitle = Boolean(subtitle);
+    // Measure the stack, then centre it. Offsetting the mark by a fraction of
+    // the height instead leaves the whole block riding high in the frame.
+    const markGap = Math.max(28, h * 0.085);
+    const ruleDrop = titleSize * 0.5 + 14;
+    const stackHeight =
+      markSize +
+      markGap +
+      titleSize * 0.8 +
+      (hasSubtitle ? ruleDrop + 30 + subSize * 0.65 : titleSize * 0.25);
+    const markTop = Math.max(inset + 16, cy - stackHeight / 2);
+    const titleY = markTop + markSize + markGap + titleSize * 0.8;
+    const ruleY = titleY + ruleDrop;
+    const ruleHalf = Math.min(w * 0.08, 110);
+
+    layoutContent = `
+      <!-- Hairline double frame -->
+      <rect x="${inset}" y="${inset}" width="${w - inset * 2}" height="${h - inset * 2}"
+        fill="none" stroke="${cardBorder}" stroke-width="1" opacity="0.85" />
+      <rect x="${inset + 7}" y="${inset + 7}" width="${w - (inset + 7) * 2}" height="${h - (inset + 7) * 2}"
+        fill="none" stroke="${cardBorder}" stroke-width="0.75" opacity="0.45" />
+
+      <!-- Caption, where the hero layout puts a pill -->
+      ${options.showBadge && badgeText ? `
+        <text x="${cx}" y="${markTop - 16}" text-anchor="middle" dx="${subSize * 0.11}"
+          font-family="system-ui, -apple-system, sans-serif" font-size="${subSize * 0.85}"
+          font-weight="600" fill="${subtextColor}" letter-spacing="${subSize * 0.22}">
+          ${escapeXml(badgeText)}
+        </text>
+      ` : ''}
+
+      <!-- Mark -->
+      <g transform="translate(${cx - markSize / 2}, ${markTop})">
+        <g transform="scale(${markScale})">
+          ${innerSvgContent}
+        </g>
+      </g>
+
+      <!-- Wordmark. Letter-spacing also lands after the final glyph, which drags
+           a middle-anchored line left by half a step; dx puts it back. -->
+      <text x="${cx}" y="${titleY}" text-anchor="middle" dx="${tracking / 2}"
+        font-family="Georgia, 'Times New Roman', serif" font-size="${titleSize}"
+        font-weight="400" fill="${textColor}" letter-spacing="${tracking}">
+        ${escapeXml(title)}
+      </text>
+
+      ${hasSubtitle ? `
+        <!-- Hairline rule -->
+        <line x1="${cx - ruleHalf}" y1="${ruleY}" x2="${cx + ruleHalf}" y2="${ruleY}"
+          stroke="${cardBorder}" stroke-width="1" opacity="0.8" />
+        <text x="${cx}" y="${ruleY + 30 + subSize * 0.65}" text-anchor="middle" dx="${subSize * 0.15}"
+          font-family="system-ui, -apple-system, sans-serif" font-size="${subSize}"
+          font-weight="500" fill="${subtextColor}" letter-spacing="${subSize * 0.3}">
+          ${escapeXml(subtitle)}
+        </text>
+      ` : ''}
     `;
   }
   // 2. YouTube Channel Specific Layout (Strictly inside safe area)

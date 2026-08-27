@@ -1,0 +1,121 @@
+import { describe, expect, it } from 'vitest';
+import { SOCIAL_BANNER_LAYOUT_IDS, generateSocialBannerSvg } from '../canvasRenderer';
+import { DEFAULT_LOGO_CONFIG } from '../templates';
+import type { LogoConfig, SocialBannerOptions } from '../../types';
+
+/**
+ * A layout name is a promise that picking it changes the picture.
+ *
+ * "Luxury identity" used to share a branch with "Centred hero", so the two
+ * buttons produced the same banner — identical once the per-render id suffixes
+ * were normalised away. Nothing failed, because nothing was comparing them.
+ * These tests compare them.
+ */
+
+const config = (o: Partial<LogoConfig> = {}): LogoConfig => ({ ...DEFAULT_LOGO_CONFIG, ...o });
+
+/**
+ * Every render namespaces its ids with a fresh counter, so two renders of one
+ * config never match byte for byte. Strip the suffixes and what is left is the
+ * drawing itself.
+ */
+const shape = (svg: string): string =>
+  svg.replace(/_default_project_\d+/g, '_P').replace(/_logo_[0-9a-z]+/g, '_L');
+
+const render = (
+  layout: SocialBannerOptions['layout'],
+  over: Partial<SocialBannerOptions> = {}
+): string =>
+  shape(
+    generateSocialBannerSvg(
+      config(),
+      {
+        layout,
+        bgTheme: 'dark',
+        title: 'Nebula',
+        subtitle: 'Design that carries',
+        showGlowEffect: true,
+        ...over,
+      },
+      1500,
+      500
+    )
+  );
+
+describe('the layouts the Social Kit offers', () => {
+  it('are all distinct pictures, not one picture under several names', () => {
+    const byShape = new Map<string, string[]>();
+    for (const id of SOCIAL_BANNER_LAYOUT_IDS) {
+      const key = render(id);
+      byShape.set(key, [...(byShape.get(key) ?? []), id]);
+    }
+    const duplicates = [...byShape.values()].filter((group) => group.length > 1);
+    expect(duplicates).toEqual([]);
+    expect(byShape.size).toBe(SOCIAL_BANNER_LAYOUT_IDS.length);
+  });
+
+  it('stay distinct at a square-ish size, where a layout could collapse', () => {
+    const shapes = SOCIAL_BANNER_LAYOUT_IDS.map((id) =>
+      shape(
+        generateSocialBannerSvg(config(), { layout: id, bgTheme: 'dark', title: 'Nebula' }, 1080, 1080)
+      )
+    );
+    expect(new Set(shapes).size).toBe(SOCIAL_BANNER_LAYOUT_IDS.length);
+  });
+
+  it('each produce a complete document', () => {
+    for (const id of SOCIAL_BANNER_LAYOUT_IDS) {
+      const svg = render(id);
+      expect(svg).toContain('<svg');
+      expect(svg).toContain('</svg>');
+    }
+  });
+
+  it('set the brand name wherever the composition carries type', () => {
+    // "Minimal" is the mark on its own by design — it is the one that says
+    // nothing, and that is the composition, not an omission.
+    for (const id of SOCIAL_BANNER_LAYOUT_IDS.filter((l) => l !== 'minimal-clean')) {
+      expect(render(id)).toContain('Nebula');
+    }
+    expect(render('minimal-clean')).not.toContain('Nebula');
+  });
+});
+
+describe('the luxury composition', () => {
+  it('draws the hairline frame that separates it from the hero layout', () => {
+    const luxury = render('brand-luxury');
+    const hero = render('center-hero');
+    expect(luxury).toContain('Hairline double frame');
+    expect(hero).not.toContain('Hairline double frame');
+  });
+
+  it('sets the wordmark in a serif face with tracking', () => {
+    const svg = render('brand-luxury');
+    expect(svg).toMatch(/font-family="Georgia[^"]*serif"/);
+    expect(svg).toMatch(/letter-spacing="[0-9.]+"/);
+  });
+
+  it('drops the rule and the subtitle when there is no subtitle', () => {
+    // Matched on the rule's own marker: the logo artwork contains <line>
+    // elements of its own, so the bare tag proves nothing either way.
+    expect(render('brand-luxury')).toContain('Hairline rule');
+    expect(render('brand-luxury', { subtitle: '' })).not.toContain('Hairline rule');
+  });
+
+  it('keeps the whole lockup inside the frame at a short banner height', () => {
+    // The stack is centred by measurement; a 1500×300 strip is where a
+    // fixed offset would have pushed the subtitle out of the frame.
+    const svg = generateSocialBannerSvg(
+      config(),
+      { layout: 'brand-luxury', bgTheme: 'dark', title: 'Nebula', subtitle: 'Design that carries' },
+      1500,
+      300
+    );
+    const ys = [...svg.matchAll(/<text[^>]*\sy="([\d.]+)"/g)].map((m) => Number(m[1]));
+    expect(ys.length).toBeGreaterThan(0);
+    for (const y of ys) {
+      expect(y).toBeGreaterThan(0);
+      expect(y).toBeLessThan(300);
+    }
+  });
+});
