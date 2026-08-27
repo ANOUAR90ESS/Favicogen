@@ -89,6 +89,14 @@ A few decisions worth knowing before changing things:
   `configSchema` are the boundary.
 - **Projects live in IndexedDB, not localStorage.** Base64 images blow past
   the 5MB origin cap, and a failed write must be surfaced, never swallowed.
+- **Upload once, choose what you need, get the files.** `BrandPackageModal`
+  is the front door for someone who arrives with a finished logo: pick from
+  website, Android, iOS, Google Play, social and brand, and one archive comes
+  out. `packagePlan.ts` derives the file count for each choice from the same
+  tables the generators read — never a written-down number, because a count
+  that disagrees with the ZIP is a small lie the user discovers at the worst
+  moment. It was off by one the first time it ran end to end; the fix was to
+  correct the derivation, not the display.
 - **An uploaded picture usually arrives with its background painted in.**
   Auto-trim only crops empty margins, which does nothing when the flat field
   reaches all four edges — and it then rides along into every export as a

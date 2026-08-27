@@ -8,6 +8,26 @@ import {
 } from '../types';
 import { ICON_LIBRARY } from './iconLibrary';
 import { embedFontsInSvg } from './fontEmbedder';
+import {
+  BRAND_VARIANT_IDS,
+  BrandVariantId,
+  applyRasterVariantFilter,
+  brandVariantFilename,
+  buildBrandVariantConfig,
+  rasterVariantFilter,
+  variantFidelity,
+} from './brandVariants';
+import {
+  ANDROID_ADAPTIVE_XML,
+  ANDROID_DENSITIES,
+  ANDROID_SAFE_FRACTION,
+  IOS_APP_ICON_PX,
+  IOS_CONTENTS_JSON,
+  androidAdaptivePx,
+  androidLauncherPx,
+  insetSvg,
+} from './platformAssets';
+import type { PackageCategory, PackageStep } from './packagePlan';
 
 export const FAVICON_SPECS: FaviconSpec[] = [
   {
@@ -719,7 +739,13 @@ export async function rasterizeSvg(
   width: number,
   height: number,
   format: 'png' | 'jpeg' | 'webp' = 'png',
-  quality = 0.95
+  quality = 0.95,
+  /**
+   * Paints an opaque ground before the artwork. JPEG needs one because it has
+   * no alpha channel; an iOS app icon needs one because Apple requires an icon
+   * with no transparency.
+   */
+  opaqueBackground?: string
 ): Promise<Blob> {
   // An SVG loaded through <img> renders in an isolated document that cannot
   // reach the page's web fonts, so the bytes have to travel with the markup.
@@ -747,8 +773,8 @@ export async function rasterizeSvg(
 
       // JPEG has no alpha channel: without an opaque ground, transparent
       // areas rasterize to black instead of white.
-      if (format === 'jpeg') {
-        ctx.fillStyle = '#ffffff';
+      if (opaqueBackground || format === 'jpeg') {
+        ctx.fillStyle = opaqueBackground || '#ffffff';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
       }
 
@@ -884,11 +910,26 @@ export function generateWebmanifestJson(brandName = 'My App', themeColor = '#0f1
   );
 }
 
+/**
+ * JPEG is written at the three sizes a store or a social profile asks for,
+ * not once per favicon size — a 16px JPEG is of no use to anyone. Exported so
+ * the package planner can count what will actually be produced.
+ */
+export const JPEG_EXPORT_SIZES = [180, 192, 512];
+
 export interface FaviconZipOptions {
   includeWebp?: boolean;
   includeJpeg?: boolean;
   includePlayStoreFeature?: boolean;
   organizedFolders?: boolean;
+  /**
+   * The platform folders. Default true so the standalone export stays whole;
+   * the package builder turns them off and adds those categories itself, so
+   * nothing is generated twice.
+   */
+  includeAndroid?: boolean;
+  includeIos?: boolean;
+  includeBrand?: boolean;
   onProgress?: (percent: number, statusText: string) => void;
 }
 
@@ -908,6 +949,9 @@ export async function generateFaviconZip(
     includeJpeg = true,
     includePlayStoreFeature = true,
     organizedFolders = false,
+    includeAndroid = true,
+    includeIos = true,
+    includeBrand = true,
     onProgress,
   } = options;
 
@@ -959,6 +1003,34 @@ export async function generateFaviconZip(
 - site.webmanifest : Progressive Web App (PWA) manifest.
 - browserconfig.xml : Microsoft IE / Edge Windows tile configuration.
 ${includePlayStoreFeature ? '- google-play-feature-graphic-1024x500.png / .jpg : Google Play Store promo header.' : ''}
+
+📁 android/ — drop the mipmap-* folders into app/src/main/res/:
+- mipmap-{mdpi,hdpi,xhdpi,xxhdpi,xxxhdpi}/ic_launcher.png       48 / 72 / 96 / 144 / 192 px
+- .../ic_launcher_round.png                                     the same sizes, circular
+- .../ic_launcher_foreground.png                                108dp adaptive layer, 108 / 162 / 216 / 324 / 432 px
+- .../ic_launcher_background.png                                the plate, same sizes
+- mipmap-anydpi-v26/ic_launcher.xml, ic_launcher_round.xml      binds the two layers on API 26+
+  The foreground sits inside the centre 72dp of 108dp, because a launcher may
+  mask away anything outside that circle.
+
+📁 ios/ — drag AppIcon.appiconset into your Xcode asset catalogue:
+- AppIcon.appiconset/icon-1024.png   Xcode 14+ derives every other size from this one.
+- AppIcon.appiconset/Contents.json
+  The icon is flattened onto an opaque ground — no pixel is transparent —
+  because Apple requires an app icon with no transparency. (The file is still
+  written as RGBA, which is all a browser canvas can emit; Xcode flattens it
+  when it builds the catalogue.)
+
+📁 brand/ — the hand-off set, each as .svg and a 1024px .png:
+- ...-logo            : the design exactly as you made it.
+- ...-logo-transparent: same colours, no background plate.
+- ...-logo-black      : one colour, black. For light backgrounds and print.
+- ...-logo-white      : one colour, white. For dark backgrounds.
+- ...-logo-monochrome : one colour, for stamps, embroidery and faxes.
+
+Nothing in this package asserts anything about you: no ratings, no download
+counts, no verification badges. Any badge or tagline on a generated graphic
+is text you typed yourself.
 
 100% W3C, Google Lighthouse, Apple Safari & PWA compliant.
 `
@@ -1016,24 +1088,39 @@ ${includePlayStoreFeature ? '- google-play-feature-graphic-1024x500.png / .jpg :
 
   // 5. JPEGs if enabled (popular sizes: 180, 192, 512)
   if (includeJpeg) {
-    for (const sz of [180, 192, 512]) {
+    for (const sz of JPEG_EXPORT_SIZES) {
       const jpgBlob = await renderSvgToBlob(svgString, sz, 'jpeg');
       (jpegFolder || zip).file(`icon-${sz}x${sz}.jpg`, jpgBlob);
     }
   }
 
-  // 6. Play Store Feature Graphic if enabled
+  // 6. Android launcher resources and the iOS asset catalogue.
+  if (includeAndroid) {
+    onProgress?.(80, 'Generating Android launcher icons...');
+    await addAndroidAssets(zip as unknown as JSZipLike, config);
+  }
+  if (includeIos) {
+    onProgress?.(85, 'Generating the iOS app icon...');
+    await addIosAssets(zip as unknown as JSZipLike, config);
+  }
+
+  // 7. Brand variants — the black / white / one-colour / transparent versions
+  //    any hand-off is expected to include.
+  if (includeBrand) {
+    onProgress?.(88, 'Generating brand variants...');
+    await addBrandAssets(zip as unknown as JSZipLike, config, brandName);
+  }
+
+  // 8. Play Store Feature Graphic if enabled
   if (includePlayStoreFeature) {
     onProgress?.(95, 'Generating Google Play Store 1024×500 feature graphic...');
     const playSvg = generateFeatureGraphicSvg(config, {
       layout: 'center-hero',
       title: config.text || config.name || 'App',
-      subtitle: config.tagline || 'Mobile & Web App',
-      badgeText: '★ 4.9 • 100K+ Downloads',
+      subtitle: config.tagline || '',
+      badgeText: '',
       bgTheme: 'brand',
       showPhoneMockup: true,
-      showPlayBadge: true,
-      showRatingStars: true,
       showGlowEffect: true,
     });
     const playPng = await rasterizeSvg(playSvg, 1024, 500, 'png');
@@ -1054,6 +1141,128 @@ ${includePlayStoreFeature ? '- google-play-feature-graphic-1024x500.png / .jpg :
   return finalZip;
 }
 
+
+/**
+ * One brand variant, ready to save. Rebuilt from the design where that is
+ * possible, keyed from the picture's own alpha where it is not.
+ */
+export function generateBrandVariantSvg(
+  config: LogoConfig,
+  id: BrandVariantId,
+  monochromeColor?: string
+): string {
+  const svg = generateSvgString(buildBrandVariantConfig(config, id, monochromeColor), 512);
+  if (variantFidelity(config) !== 'silhouette') return svg;
+  return applyRasterVariantFilter(svg, rasterVariantFilter(id, monochromeColor));
+}
+
+/** The brand hand-off set, written into `brand/`. */
+async function addBrandAssets(
+  zip: JSZipLike,
+  config: LogoConfig,
+  brandName: string
+): Promise<void> {
+  const folder = zip.folder('brand');
+  if (!folder) return;
+  for (const variantId of BRAND_VARIANT_IDS) {
+    const variantSvg = generateBrandVariantSvg(config, variantId);
+    const stem = brandVariantFilename(brandName, variantId);
+    folder.file(`${stem}.svg`, await embedFontsInSvg(variantSvg));
+    folder.file(`${stem}.png`, await renderSvgToBlob(variantSvg, 1024, 'png'));
+  }
+}
+
+/**
+ * The two layers of an Android adaptive icon.
+ *
+ * The foreground is the mark alone, inset to the 72dp safe circle — a
+ * launcher may mask anything outside it, so a full-bleed foreground loses its
+ * edges on any device with round icons. The background is the plate on its
+ * own, full bleed; when the design has no plate it falls back to a solid
+ * colour, because a transparent adaptive background shows the launcher's
+ * wallpaper through the icon.
+ */
+
+/** The slice of JSZip's folder API these helpers use. */
+interface JSZipLike {
+  file(path: string, data: string | Blob): unknown;
+  folder(name: string): JSZipLike | null;
+}
+
+export function generateAdaptiveIconLayers(config: LogoConfig): {
+  foreground: string;
+  background: string;
+} {
+  const foreground = insetSvg(generateBrandVariantSvg(config, 'transparent'), ANDROID_SAFE_FRACTION);
+
+  const plateOnly: LogoConfig = {
+    ...config,
+    bgType: config.bgType === 'transparent' ? 'solid' : config.bgType,
+    bgColor1: config.bgColor1 || '#ffffff',
+    shapeMask: 'square',
+    borderWidth: 0,
+    showText: false,
+    showTagline: false,
+    showRing: false,
+    showBadgeRibbon: false,
+    iconSize: 0,
+    watermark: config.watermark ? { ...config.watermark, enabled: false } : config.watermark,
+  };
+
+  return { foreground, background: generateSvgString(plateOnly, 512) };
+}
+
+/**
+ * Writes the Android launcher resources into a package, laid out exactly as
+ * an Android project expects them.
+ */
+async function addAndroidAssets(zip: JSZipLike, config: LogoConfig): Promise<void> {
+  const folder = zip.folder('android');
+  if (!folder) return;
+
+  const squareSvg = generateSvgString(config, 512);
+  const roundSvg = generateSvgString({ ...config, shapeMask: 'circle' }, 512);
+  const { foreground, background } = generateAdaptiveIconLayers(config);
+
+  for (const density of ANDROID_DENSITIES) {
+    const dir = folder.folder(density.folder);
+    if (!dir) continue;
+    const launcher = androidLauncherPx(density);
+    const adaptive = androidAdaptivePx(density);
+
+    dir.file('ic_launcher.png', await rasterizeSvg(squareSvg, launcher, launcher, 'png'));
+    dir.file('ic_launcher_round.png', await rasterizeSvg(roundSvg, launcher, launcher, 'png'));
+    dir.file('ic_launcher_foreground.png', await rasterizeSvg(foreground, adaptive, adaptive, 'png'));
+    dir.file('ic_launcher_background.png', await rasterizeSvg(background, adaptive, adaptive, 'png'));
+  }
+
+  const anydpi = folder.folder('mipmap-anydpi-v26');
+  anydpi?.file('ic_launcher.xml', ANDROID_ADAPTIVE_XML);
+  anydpi?.file('ic_launcher_round.xml', ANDROID_ADAPTIVE_XML);
+}
+
+/**
+ * Writes the iOS asset catalogue. One 1024px icon, flattened: Xcode 14 and
+ * later derive every other size, and App Store Connect refuses an icon with
+ * an alpha channel.
+ */
+async function addIosAssets(zip: JSZipLike, config: LogoConfig): Promise<void> {
+  const appicon = zip.folder('ios')?.folder('AppIcon.appiconset');
+  if (!appicon) return;
+
+  const ground = config.bgType === 'transparent' ? '#ffffff' : config.bgColor1 || '#ffffff';
+  const icon = await rasterizeSvg(
+    generateSvgString(config, 512),
+    IOS_APP_ICON_PX,
+    IOS_APP_ICON_PX,
+    'png',
+    0.95,
+    ground
+  );
+
+  appicon.file(`icon-${IOS_APP_ICON_PX}.png`, icon);
+  appicon.file('Contents.json', IOS_CONTENTS_JSON);
+}
 
 /**
  * Generates exact 1024x500 Google Play Store Feature Graphic SVG
@@ -1162,7 +1371,12 @@ export function generateFeatureGraphicSvg(
 
   const title = options.title || config.text || config.name || 'My App';
   const subtitle = options.subtitle || config.tagline || 'Experience the next generation application';
-  const badgeText = options.badgeText || '★ 4.9 • 100K+ Downloads';
+  // Never invented. A rating or a download count this tool cannot know is a
+  // claim on a store listing, so the only honest default is nothing at all.
+  // For the same reason there is no rating bar and no "GET IT ON Google Play"
+  // badge anywhere below: the first is a fabricated number, the second is
+  // Google's trademark and belongs only to apps that are actually listed.
+  const badgeText = (options.badgeText || '').trim();
 
   // Extract inner SVG content (strip outer <svg> tags) to embed directly
   const innerSvgContent = logoSvg.replace(/^<svg[^>]*>|<\/svg>$/gi, '');
@@ -1186,12 +1400,14 @@ export function generateFeatureGraphicSvg(
       </g>
 
       <!-- Badge Pill -->
-      <g transform="translate(512, 290)">
-        <rect x="-130" y="0" width="260" height="32" rx="16" fill="${cardBg}" stroke="${cardBorder}" stroke-width="1.5" />
-        <text x="0" y="21" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="${textColor}" letter-spacing="0.5">
-          ${escapeXml(badgeText)}
-        </text>
-      </g>
+      ${badgeText ? `
+        <g transform="translate(512, 290)">
+          <rect x="-130" y="0" width="260" height="32" rx="16" fill="${cardBg}" stroke="${cardBorder}" stroke-width="1.5" />
+          <text x="0" y="21" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="${textColor}" letter-spacing="0.5">
+            ${escapeXml(badgeText)}
+          </text>
+        </g>
+      ` : ''}
 
       <!-- Title & Subtitle -->
       <text x="512" y="375" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="44" font-weight="900" fill="${textColor}" letter-spacing="-0.5" filter="url(#fg_subtle_shadow)">
@@ -1202,16 +1418,7 @@ export function generateFeatureGraphicSvg(
         ${escapeXml(subtitle)}
       </text>
 
-      <!-- Play Store Official Pill (Optional) -->
-      ${options.showPlayBadge ? `
-        <g transform="translate(512, 458)">
-          <rect x="-80" y="-14" width="160" height="28" rx="8" fill="#000000" opacity="0.8" />
-          <path d="M -60 -5 L -52 0 L -60 5 Z" fill="#00e676" />
-          <text x="-44" y="4" font-family="system-ui, sans-serif" font-size="10" font-weight="800" fill="#ffffff" letter-spacing="1">
-            GOOGLE PLAY
-          </text>
-        </g>
-      ` : ''}
+
     `;
   } 
   // 2. Split Showcase Layout (Phone on Side + Hero Typography)
@@ -1235,29 +1442,7 @@ export function generateFeatureGraphicSvg(
           ${escapeXml(subtitle)}
         </text>
 
-        <!-- Rating Stars Bar -->
-        ${options.showRatingStars ? `
-          <g transform="translate(0, 175)">
-            <text x="0" y="18" font-size="20" fill="#facc15">★★★★★</text>
-            <text x="120" y="18" font-family="system-ui, sans-serif" font-size="14" font-weight="700" fill="${textColor}">
-              4.9 Rating
-            </text>
-          </g>
-        ` : ''}
 
-        <!-- Google Play Store Badge -->
-        ${options.showPlayBadge ? `
-          <g transform="translate(0, 240)">
-            <rect width="180" height="48" rx="10" fill="#000000" stroke="rgba(255,255,255,0.2)" stroke-width="1" />
-            <path d="M 20 16 L 36 24 L 20 32 Z" fill="#00e676" />
-            <text x="48" y="22" font-family="system-ui, sans-serif" font-size="9" font-weight="600" fill="#94a3b8" letter-spacing="0.5">
-              GET IT ON
-            </text>
-            <text x="48" y="37" font-family="system-ui, sans-serif" font-size="14" font-weight="800" fill="#ffffff" letter-spacing="0.5">
-              Google Play
-            </text>
-          </g>
-        ` : ''}
       </g>
 
       <!-- Right Side 3D Smartphone Device Mockup Frame -->
@@ -1363,12 +1548,6 @@ export function generateFeatureGraphicSvg(
           ${escapeXml(subtitle)}
         </text>
 
-        <!-- Rating Stars -->
-        ${options.showRatingStars ? `
-          <text x="350" y="360" text-anchor="middle" font-size="18" fill="#facc15">
-            ★★★★★
-          </text>
-        ` : ''}
       </g>
     `;
   }
@@ -1690,10 +1869,12 @@ export function generateSocialBannerSvg(
   }
 
   const title = options.title || config.text || config.name || 'Brand Name';
-  const subtitle = options.subtitle || config.tagline || 'Official Social Media Channel';
-  const badgeText = options.badgeText || 'OFFICIAL CHANNEL • 2026';
-  const channelHandle = options.channelHandle || `@${(config.text || 'channel').toLowerCase().replace(/\s+/g, '')}`;
-  const uploadSchedule = options.uploadSchedule || 'NEW VIDEOS EVERY WEEK';
+  const subtitle = options.subtitle || config.tagline || '';
+  // Empty unless the user typed it. A badge, a handle or an upload schedule
+  // invented here would be printed onto an asset as if it were true.
+  const badgeText = (options.badgeText || '').trim();
+  const channelHandle = (options.channelHandle || '').trim();
+  const uploadSchedule = (options.uploadSchedule || '').trim();
 
   // Extract inner SVG content (strip outer <svg> tags)
   const innerSvgContent = logoSvg.replace(/^<svg[^>]*>|<\/svg>$/gi, '');
@@ -1726,7 +1907,7 @@ export function generateSocialBannerSvg(
       </g>
 
       <!-- Badge Pill -->
-      ${options.showBadge ? `
+      ${options.showBadge && badgeText ? `
         <g transform="translate(${cx}, ${Math.max(60, logoY + logoTargetSize + 30)})">
           <rect x="-140" y="-16" width="280" height="32" rx="16" fill="${cardBg}" stroke="${cardBorder}" stroke-width="1.5" />
           <text x="0" y="5" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(12, Math.min(16, w * 0.015))}" font-weight="700" fill="${textColor}" letter-spacing="1">
@@ -1736,11 +1917,11 @@ export function generateSocialBannerSvg(
       ` : ''}
 
       <!-- Title & Subtitle -->
-      <text x="${cx}" y="${Math.min(h - 80, logoY + logoTargetSize + (options.showBadge ? 95 : 65))}" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(24, Math.min(68, w * 0.042))}" font-weight="900" fill="${textColor}" letter-spacing="-0.5" filter="url(#sb_subtle_shadow)">
+      <text x="${cx}" y="${Math.min(h - 80, logoY + logoTargetSize + (options.showBadge && badgeText ? 95 : 65))}" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(24, Math.min(68, w * 0.042))}" font-weight="900" fill="${textColor}" letter-spacing="-0.5" filter="url(#sb_subtle_shadow)">
         ${escapeXml(title)}
       </text>
 
-      <text x="${cx}" y="${Math.min(h - 40, logoY + logoTargetSize + (options.showBadge ? 145 : 115))}" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(14, Math.min(26, w * 0.018))}" font-weight="500" fill="${subtextColor}">
+      <text x="${cx}" y="${Math.min(h - 40, logoY + logoTargetSize + (options.showBadge && badgeText ? 145 : 115))}" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(14, Math.min(26, w * 0.018))}" font-weight="500" fill="${subtextColor}">
         ${escapeXml(subtitle)}
       </text>
     `;
@@ -1771,19 +1952,16 @@ export function generateSocialBannerSvg(
 
         <!-- Channel Info Block -->
         <g transform="translate(${avatarSize + 40}, ${avatarHalf - 30})">
-          <!-- Title & Verified Badge -->
+          <!-- Title -->
           <g transform="translate(0, 0)">
             <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(28, Math.min(54, w * 0.03))}" font-weight="900" fill="${textColor}" letter-spacing="-0.5">
               ${escapeXml(title)}
             </text>
-            <!-- Checkmark badge -->
-            <circle cx="${title.length * 24 + 20}" cy="-12" r="10" fill="#38bdf8" />
-            <path d="M ${title.length * 24 + 16} -12 L ${title.length * 24 + 19} -9 L ${title.length * 24 + 25} -15" stroke="#ffffff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
           </g>
 
           <!-- Handle & Upload Schedule -->
           <text x="0" y="32" font-family="system-ui, sans-serif" font-size="${Math.max(13, Math.min(20, w * 0.012))}" font-weight="600" fill="${subtextColor}">
-            ${escapeXml(channelHandle)} • ${escapeXml(uploadSchedule)}
+            ${escapeXml([channelHandle, uploadSchedule].filter(Boolean).join(' • '))}
           </text>
 
           <!-- Tagline -->
@@ -1792,13 +1970,6 @@ export function generateSocialBannerSvg(
           </text>
         </g>
 
-        <!-- Right Subscribe CTA Badge -->
-        <g transform="translate(740, ${avatarHalf - 20})">
-          <rect width="180" height="46" rx="23" fill="#ff0000" filter="url(#sb_subtle_shadow)" />
-          <text x="90" y="29" text-anchor="middle" font-family="system-ui, sans-serif" font-size="15" font-weight="900" fill="#ffffff" letter-spacing="0.5">
-            SUBSCRIBE
-          </text>
-        </g>
       </g>
     `;
   }
@@ -1823,7 +1994,7 @@ export function generateSocialBannerSvg(
 
       <!-- Right Typography Group -->
       <g transform="translate(${textX}, ${cy})">
-        ${options.showBadge ? `
+        ${options.showBadge && badgeText ? `
           <rect x="0" y="-85" width="220" height="28" rx="14" fill="${cardBg}" stroke="${cardBorder}" stroke-width="1.5" />
           <text x="110" y="-66" text-anchor="middle" font-family="system-ui, sans-serif" font-size="${Math.max(11, Math.min(14, w * 0.012))}" font-weight="700" fill="${textColor}">
             ${escapeXml(badgeText)}
@@ -1838,13 +2009,6 @@ export function generateSocialBannerSvg(
           ${escapeXml(subtitle)}
         </text>
 
-        <!-- Social Action Buttons Callout -->
-        <g transform="translate(0, 65)">
-          <rect width="160" height="38" rx="19" fill="${accentGlow}" />
-          <text x="80" y="24" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="800" fill="#ffffff">
-            SUBSCRIBE
-          </text>
-        </g>
       </g>
     `;
   }
@@ -1892,7 +2056,7 @@ export function generateSocialBannerSvg(
         <rect x="${szMobileX}" y="${szY}" width="${szMobileW}" height="${szDesktopH}" fill="rgba(225, 29, 72, 0.08)" stroke="#e11d48" stroke-width="4" stroke-dasharray="14 6" />
         <rect x="${szMobileX}" y="${szY - 38}" width="380" height="34" rx="8" fill="#e11d48" />
         <text x="${szMobileX + 16}" y="${szY - 15}" font-family="monospace" font-size="15" font-weight="900" fill="#ffffff">
-          ★ Mobile Safe Zone (1546 × 423)
+          ▪ Mobile Safe Zone (1546 × 423)
         </text>
       `;
     } else {
@@ -2110,6 +2274,167 @@ Included in this package:
   }
 
   return await zip.generateAsync({ type: 'blob' });
+}
+
+
+/* ── The brand package ────────────────────────────────────────────────────── */
+
+export interface BrandPackageOptions {
+  categories: PackageCategory[];
+  bannerOptions?: SocialBannerOptions;
+  /** Called as each step starts and finishes, for the progress list. */
+  onStep?: (step: PackageStep, state: 'running' | 'done') => void;
+}
+
+/**
+ * Copies one generated ZIP into another under a folder. The website and
+ * social sets already have working builders that return a finished archive;
+ * re-implementing them here to get a nested folder would be two copies of the
+ * same logic drifting apart.
+ */
+async function mergeZipInto(zip: JSZipLike, source: Blob, prefix: string): Promise<void> {
+  const { default: JSZip } = await import('jszip');
+  const loaded = await JSZip.loadAsync(source);
+  const entries = Object.entries(loaded.files);
+  for (const [path, entry] of entries) {
+    if (entry.dir) continue;
+    zip.file(`${prefix}/${path}`, await entry.async('blob'));
+  }
+}
+
+/**
+ * One archive for whichever categories the user asked for.
+ *
+ * Only what was selected is generated. Producing everything and discarding
+ * the rest would be simpler to write and noticeably slower to run — a full
+ * package is several hundred rasterisations, each one a canvas draw.
+ */
+export async function generateBrandPackageZip(
+  config: LogoConfig,
+  options: BrandPackageOptions
+): Promise<Blob> {
+  const { default: JSZip } = await import('jszip');
+  const zip = new JSZip();
+  const like = zip as unknown as JSZipLike;
+  const brandName = config.text || config.name || 'Brand';
+  const { categories, bannerOptions, onStep } = options;
+
+  const run = async (step: PackageStep, work: () => Promise<void>) => {
+    onStep?.(step, 'running');
+    await work();
+    onStep?.(step, 'done');
+  };
+
+  if (categories.includes('website')) {
+    await run('website', async () => {
+      const websiteZip = await generateFaviconZip(config, {
+        includeAndroid: false,
+        includeIos: false,
+        includeBrand: false,
+        includePlayStoreFeature: false,
+        organizedFolders: true,
+      });
+      await mergeZipInto(like, websiteZip, 'website');
+    });
+  }
+
+  if (categories.includes('android')) {
+    await run('android', () => addAndroidAssets(like, config));
+  }
+
+  if (categories.includes('ios')) {
+    await run('ios', () => addIosAssets(like, config));
+  }
+
+  if (categories.includes('google-play')) {
+    await run('google-play', async () => {
+      const playSvg = generateFeatureGraphicSvg(config, {
+        layout: 'center-hero',
+        title: config.text || config.name || '',
+        subtitle: config.tagline || '',
+        badgeText: '',
+        bgTheme: 'brand',
+        showPhoneMockup: true,
+        showGlowEffect: true,
+      });
+      const folder = like.folder('google-play');
+      folder?.file(
+        'feature-graphic-1024x500.png',
+        await rasterizeSvg(playSvg, 1024, 500, 'png')
+      );
+      folder?.file(
+        'feature-graphic-1024x500.jpg',
+        await rasterizeSvg(playSvg, 1024, 500, 'jpeg')
+      );
+    });
+  }
+
+  if (categories.includes('social')) {
+    await run('social', async () => {
+      const socialZip = await generateSocialMediaKitZip(
+        config,
+        bannerOptions ?? { layout: 'center-hero', bgTheme: 'dark' }
+      );
+      await mergeZipInto(like, socialZip, 'social');
+    });
+  }
+
+  if (categories.includes('brand')) {
+    await run('brand', () => addBrandAssets(like, config, brandName));
+  }
+
+  zip.file('README.txt', buildPackageReadme(brandName, categories));
+
+  onStep?.('zip', 'running');
+  const blob = await zip.generateAsync({ type: 'blob' });
+  onStep?.('zip', 'done');
+  return blob;
+}
+
+/** The guide that ships in the package, describing only what is in it. */
+export function buildPackageReadme(brandName: string, categories: PackageCategory[]): string {
+  const section = (category: PackageCategory): string => {
+    switch (category) {
+      case 'website':
+        return `website/
+  Every icon a site needs, plus site.webmanifest, browserconfig.xml and an
+  html-head-snippet.html to paste into your <head>. Copy the files into the
+  root of your public directory.`;
+      case 'android':
+        return `android/
+  Drop the mipmap-* folders into app/src/main/res/. Legacy launcher icons are
+  48/72/96/144/192px; the adaptive icon's two layers are 108dp
+  (108/162/216/324/432px), bound by mipmap-anydpi-v26/ic_launcher.xml. The
+  foreground sits inside the centre 72dp, because a launcher may mask away
+  anything outside that circle.`;
+      case 'ios':
+        return `ios/
+  Drag AppIcon.appiconset into your Xcode asset catalogue. Xcode 14 and later
+  derive every other size from the single 1024px icon. It is painted on an
+  opaque ground: Apple requires an app icon with no transparency.`;
+      case 'google-play':
+        return `google-play/
+  The 1024x500 feature graphic, as PNG and JPG.`;
+      case 'social':
+        return `social/
+  Profile pictures at each platform's own size, and banners and covers at
+  theirs.`;
+      case 'brand':
+        return `brand/
+  The hand-off set: the design as made, the same without its background, and
+  black, white and one-colour versions. Each as SVG and a 1024px PNG.`;
+    }
+  };
+
+  return `${brandName} — brand asset package
+${'='.repeat(Math.min(60, brandName.length + 24))}
+
+${categories.map(section).join('\n\n')}
+
+Nothing in this package asserts anything about you. There are no ratings, no
+download counts and no verification badges: any badge or tagline on a
+generated graphic is text you typed yourself.
+`;
 }
 
 // Downloads live in ./download — re-exported here so existing imports keep working.

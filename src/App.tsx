@@ -28,6 +28,7 @@ import { runProductionComplianceCheck } from './utils/productionCheck';
 // Every modal is code-split: none of them is needed to paint the first frame,
 // and together with JSZip they were most of a 990 kB entry bundle.
 const FaviconExportModal = lazy(() => import('./components/FaviconExportModal').then((m) => ({ default: m.FaviconExportModal })));
+const BrandPackageModal = lazy(() => import('./components/BrandPackageModal').then((m) => ({ default: m.BrandPackageModal })));
 const TemplateGalleryModal = lazy(() => import('./components/TemplateGalleryModal').then((m) => ({ default: m.TemplateGalleryModal })));
 const LiveMockupsModal = lazy(() => import('./components/LiveMockupsModal').then((m) => ({ default: m.LiveMockupsModal })));
 const SavedProjectsModal = lazy(() => import('./components/SavedProjectsModal').then((m) => ({ default: m.SavedProjectsModal })));
@@ -134,6 +135,7 @@ export function App() {
   const [isCropTrimModalOpen, setIsCropTrimModalOpen] = useState<boolean>(false);
   const [cropImageSource, setCropImageSource] = useState<string | null>(null);
   const [isFaviconExportOpen, setIsFaviconExportOpen] = useState<boolean>(false);
+  const [isBrandPackageOpen, setIsBrandPackageOpen] = useState<boolean>(false);
   const [isFeatureGraphicOpen, setIsFeatureGraphicOpen] = useState<boolean>(false);
   const [isUniversalResizerOpen, setIsUniversalResizerOpen] = useState<boolean>(false);
   const [isSavedProjectsOpen, setIsSavedProjectsOpen] = useState<boolean>(false);
@@ -516,6 +518,7 @@ export function App() {
         onOpenCropTrim={() => handleOpenCropTrim()}
         onSmartImport={() => smartImportInputRef.current?.click()}
         onOpenFaviconExport={() => setIsFaviconExportOpen(true)}
+        onOpenBrandPackage={() => setIsBrandPackageOpen(true)}
         onOpenFeatureGraphic={() => setIsFeatureGraphicOpen(true)}
         onOpenUniversalResizer={() => setIsUniversalResizerOpen(true)}
         onOpenSavedProjects={() => setIsSavedProjectsOpen(true)}
@@ -630,6 +633,15 @@ export function App() {
           onClose={() => setIsUniversalResizerOpen(false)}
           language={language}
           currentLogoConfig={config}
+        />
+      </LazyMount>
+
+      {/* 1b. Upload once, choose what you need, get every file */}
+      <LazyMount when={isBrandPackageOpen}>
+        <BrandPackageModal
+          isOpen={isBrandPackageOpen}
+          onClose={() => setIsBrandPackageOpen(false)}
+          config={config}
         />
       </LazyMount>
 

@@ -42,12 +42,10 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
   const [options, setOptions] = useState<FeatureGraphicOptions>({
     layout: 'center-hero',
     title: config.text || config.name || 'My App',
-    subtitle: config.tagline || (t('featureGraphicModal.nextGenerationMobileExperience')),
-    badgeText: t('featureGraphicModal.text49100kDownloads'),
+    subtitle: config.tagline || '',
+    badgeText: '',
     bgTheme: 'brand',
     showPhoneMockup: true,
-    showPlayBadge: true,
-    showRatingStars: true,
     showGlowEffect: true,
   });
 
@@ -377,32 +375,6 @@ export const FeatureGraphicModal: React.FC<FeatureGraphicModalProps> = ({
               </label>
 
               <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setOptions((p) => ({ ...p, showPlayBadge: !p.showPlayBadge }))}
-                  className={`flex items-center justify-between p-2 rounded-xl border text-xs font-semibold transition-all ${
-                    options.showPlayBadge
-                      ? 'bg-indigo-50 border-indigo-200 text-indigo-800'
-                      : 'bg-white border-slate-200 text-slate-500'
-                  }`}
-                >
-                  <span>Google Play</span>
-                  <div className={`w-2 h-2 rounded-full ${options.showPlayBadge ? 'bg-indigo-600' : 'bg-slate-300'}`} />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setOptions((p) => ({ ...p, showRatingStars: !p.showRatingStars }))}
-                  className={`flex items-center justify-between p-2 rounded-xl border text-xs font-semibold transition-all ${
-                    options.showRatingStars
-                      ? 'bg-indigo-50 border-indigo-200 text-indigo-800'
-                      : 'bg-white border-slate-200 text-slate-500'
-                  }`}
-                >
-                  <span>{t('featureGraphicModal.ratingStars')}</span>
-                  <div className={`w-2 h-2 rounded-full ${options.showRatingStars ? 'bg-indigo-600' : 'bg-slate-300'}`} />
-                </button>
-
                 <button
                   type="button"
                   onClick={() => setOptions((p) => ({ ...p, showGlowEffect: !p.showGlowEffect }))}

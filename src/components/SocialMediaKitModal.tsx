@@ -51,10 +51,10 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
   const [bannerOptions, setBannerOptions] = useState<SocialBannerOptions>({
     layout: 'center-hero',
     title: config.text || config.name || 'Brand Name',
-    subtitle: config.tagline || 'Official Channel & Brand Presence',
+    subtitle: config.tagline || '',
     bgTheme: 'brand',
-    showBadge: true,
-    badgeText: 'VERIFIED CHANNEL • 2026',
+    showBadge: false,
+    badgeText: '',
     showGlowEffect: true,
     showSafeZone: false,
   });
