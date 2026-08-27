@@ -19,6 +19,7 @@ import {
   Smartphone,
   } from 'lucide-react';
 import { LogoConfig, SupportedLanguage } from '../types';
+import { apiUrl, hasApiBackend } from '../utils/apiBase';
 import { Modal } from './Modal';
 
 interface AILogoGeneratorModalProps {
@@ -163,7 +164,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
     setIsEnhancing(true);
     setErrorMsg(null);
     try {
-      const res = await fetch('/api/ai/enhance-prompt', {
+      const res = await fetch(apiUrl('/api/ai/enhance-prompt'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -222,7 +223,7 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
     setErrorMsg(null);
 
     try {
-      const res = await fetch('/api/ai/generate-logo', {
+      const res = await fetch(apiUrl('/api/ai/generate-logo'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -350,6 +351,14 @@ export const AILogoGeneratorModal: React.FC<AILogoGeneratorModalProps> = ({
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* An app build with no server configured can only fail here, and a
+            network error would not say why. */}
+        {!hasApiBackend() && (
+          <div className="mx-5 mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs font-medium text-amber-200">
+            {t('aiGeneratorModal.noBackendConfigured')}
+          </div>
+        )}
 
         {/* Toast Alert */}
         {successToast && (

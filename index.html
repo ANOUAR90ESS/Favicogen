@@ -2,7 +2,7 @@
 <html lang="en" dir="ltr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Logo & Favicon Studio | Professional Icon & Brand Creator</title>
     <meta name="description" content="Professional vector logo designer, complementary color palette generator, and multi-resolution favicon package builder (SVG, PNG, ICO, WebP, JPG) with live mockups and YouTube branding kit." />
     <meta name="theme-color" content="#4f46e5" />
@@ -13,9 +13,11 @@
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.json" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&family=Cairo:wght@300;400;600;700;800;900&family=IBM+Plex+Sans+Arabic:wght@300;400;600;700&family=Montserrat:wght@400;600;700;800;900&family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Righteous&family=Tajawal:wght@300;400;500;700;800;900&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <!-- Self-hosted. The page used to fetch these from Google on every visit,
+         which contradicted "nothing leaves your device" and left exports made
+         offline without their typeface. The unicode-range split is unchanged,
+         so a browser still downloads only the subsets it needs. -->
+    <link rel="stylesheet" href="/fonts/fonts.css">
   </head>
   <body class="bg-zinc-950 text-zinc-100 antialiased selection:bg-indigo-500 selection:text-white">
     <div id="root"></div>

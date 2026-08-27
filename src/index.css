@@ -90,3 +90,29 @@
   width: 100%;
   height: auto;
 }
+
+/* Notch, home indicator and rounded corners.
+ *
+ * A native shell draws the web layer edge to edge, so on a phone with a notch
+ * the toolbar's first button sits under it and the status bar prints over the
+ * brand. `viewport-fit=cover` in the document head is what makes these
+ * env() values report anything other than zero; in a browser tab, and on a
+ * device with no inset, every one of them is 0 and nothing moves.
+ *
+ * Applied to the root rather than to each bar so a new bar cannot be forgotten.
+ */
+body {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  box-sizing: border-box;
+}
+
+/* The app fills the viewport, so the padding above has to come out of its
+   height or the footer is pushed off the bottom of the screen. */
+#root {
+  min-height: calc(
+    100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
+  );
+}

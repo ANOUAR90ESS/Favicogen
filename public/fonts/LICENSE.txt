@@ -1,0 +1,14 @@
+The typefaces in this directory are redistributed under the SIL Open Font
+License, Version 1.1, which permits bundling them with an application.
+
+  - Cairo
+  - Tajawal
+  - Almarai
+  - IBM Plex Sans Arabic
+  - Outfit
+  - Montserrat
+  - Playfair Display
+  - Righteous
+  - Fira Code
+
+Full text: https://openfontlicense.org/documents/OFL.txt

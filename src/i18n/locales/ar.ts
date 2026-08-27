@@ -439,6 +439,11 @@ export const ar = {
     },
     downloadMockup: 'تحميل صورة المحاكاة',
   },
+  native: {
+    shared: 'حُفظ «{{filename}}» — اختر أين تريد الاحتفاظ به.',
+    saved: 'حُفظ «{{filename}}» في ملفات التطبيق.',
+    failed: 'تعذّر حفظ «{{filename}}» على هذا الجهاز.',
+  },
   socialKitModal: {
     layoutCompact: 'تكوين مُدمج',
     viewFull: 'التصميم كاملاً',
@@ -699,6 +704,7 @@ export const ar = {
     applyAndInsert: 'تطبيق وإدراج في الشعار',
   },
   aiGeneratorModal: {
+    noBackendConfigured: 'التوليد بالذكاء الاصطناعي يحتاج خادمًا، وهذه النسخة لم تُزوَّد بواحد. بقية أدوات الاستوديو تعمل دون اتصال.',
     styleMinimalName: 'شعار مينيمالي أنيق',
     styleMinimalDesc: 'خطوط واضحة وأشكال هندسية راقية',
     styleMinimalBadge: 'الأكثر شعبية',

@@ -439,6 +439,11 @@ export const en = {
     },
     downloadMockup: 'Download Mockup Image',
   },
+  native: {
+    shared: 'Saved “{{filename}}” — choose where to keep it.',
+    saved: 'Saved “{{filename}}” to the app’s files.',
+    failed: 'Could not save “{{filename}}” on this device.',
+  },
   socialKitModal: {
     layoutCompact: 'Compact lockup',
     viewFull: 'Full artwork',
@@ -699,6 +704,7 @@ export const en = {
     applyAndInsert: 'Apply & Insert to Stage',
   },
   aiGeneratorModal: {
+    noBackendConfigured: 'AI generation needs a server, and this build was not given one. Everything else in the studio works offline.',
     styleMinimalName: 'Minimalist Vector',
     styleMinimalDesc: 'Clean lines and refined geometry',
     styleMinimalBadge: 'Most popular',

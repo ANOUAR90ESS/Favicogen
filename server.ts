@@ -46,21 +46,19 @@ async function startServer() {
 
   app.use(
     helmet({
-      // The app inlines styles and loads Google Fonts, and rasterizes SVG
-      // through blob: URLs, so the default CSP would break it.
+      // The app inlines styles and rasterizes SVG through blob: URLs, so the
+      // default CSP would break it. Google's font origins are gone from every
+      // directive below: the typefaces ship with the app now, and an origin
+      // nothing needs is only an origin an injection could use.
       contentSecurityPolicy: isProduction
         ? {
             directives: {
               defaultSrc: ["'self'"],
               scriptSrc: ["'self'"],
-              styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-              fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+              styleSrc: ["'self'", "'unsafe-inline'"],
+              fontSrc: ["'self'", "data:"],
               imgSrc: ["'self'", "data:", "blob:"],
-              connectSrc: [
-                "'self'",
-                "https://fonts.googleapis.com",
-                "https://fonts.gstatic.com",
-              ],
+              connectSrc: ["'self'"],
               objectSrc: ["'none'"],
               frameAncestors: ["'none'"],
               baseUri: ["'self'"],

@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import { Navbar } from './components/Navbar';
 import { LazyMount } from './components/LazyMount';
+import { setNativeSaveNotice } from './utils/download';
+import { installAndroidBackButton } from './utils/nativeShell';
 import { ControlPanel } from './components/ControlPanel';
 import { CanvasStage } from './components/CanvasStage';
 import { LogoConfig, SupportedLanguage, Template } from './types';
@@ -325,6 +327,23 @@ export function App() {
   // ---------------------------------------------------------------------
   const smartImportInputRef = useRef<HTMLInputElement>(null);
   const [importStatus, setImportStatus] = useState<string | null>(null);
+
+  /*
+   * Native shell wiring.
+   *
+   * A browser announces its own downloads; a share sheet the user dismisses
+   * leaves no trace, so without a notice the export looks like it did nothing.
+   * Android's back button needs claiming too, or it quits the app from inside
+   * a dialog. Both are no-ops in a browser tab.
+   */
+  useEffect(() => {
+    setNativeSaveNotice((filename, outcome) => {
+      setImportStatus(t(`native.${outcome}`, { filename }));
+      window.setTimeout(() => setImportStatus(null), 4500);
+    });
+    void installAndroidBackButton();
+    return () => setNativeSaveNotice(null);
+  }, [t]);
 
   const handleSmartImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
