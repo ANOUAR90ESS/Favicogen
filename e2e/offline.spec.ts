@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { downloadBytes, enterStudio } from './helpers';
+import { downloadBytes, enterStudio, waitForSavedProject } from './helpers';
 
 /**
  * Losing the network must not lose the tool.
@@ -28,6 +28,11 @@ test('the worker takes control, and the app survives losing the network', async 
     )
     .toBe(true);
 
+  // The reload has to have something to come back to. A first run is decided
+  // by whether work is saved, and the save is debounced — reloading before it
+  // lands shows the first-run screen and reads as an app that did not survive.
+  await waitForSavedProject(page);
+
   await context.setOffline(true);
   await page.reload();
 
@@ -51,6 +56,7 @@ test('an export made offline still carries its typeface', async ({ page, context
     )
     .toBe(true);
 
+  await waitForSavedProject(page);
   await context.setOffline(true);
   await page.reload();
   await expect(page.locator('#logo-svg-canvas-container svg.artboard-svg')).toBeVisible();

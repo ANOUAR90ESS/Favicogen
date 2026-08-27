@@ -104,3 +104,14 @@ export async function savedBrandName(page: Page): Promise<string | null> {
     }
   });
 }
+
+/**
+ * Waits until there is a project in storage to come back to.
+ *
+ * What decides a first run is whether any work is saved, and the auto-save is
+ * debounced — so a test that reloads too early lands on the first-run screen
+ * rather than the studio, and reads as a broken app when nothing is broken.
+ */
+export async function waitForSavedProject(page: Page): Promise<void> {
+  await expect.poll(() => savedBrandName(page), { timeout: 15_000 }).not.toBeNull();
+}
