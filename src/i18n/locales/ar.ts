@@ -440,8 +440,7 @@ export const ar = {
     downloadMockup: 'تحميل صورة المحاكاة',
   },
   socialKitModal: {
-    layoutSafeArea: 'تكوين ضمن منطقة الأمان',
-    laidOutForFullCanvas: 'هذا التكوين موزّع على كامل اللوحة لا على منطقة الأمان — راجع عرض «هاتف»، أو اختر «{{layout}}».',
+    layoutCompact: 'تكوين مُدمج',
     viewFull: 'التصميم كاملاً',
     device_desktop: 'سطح المكتب',
     device_tablet: 'لوحي',

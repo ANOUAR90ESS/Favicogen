@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  SAFE_AREA_BANNER_LAYOUT,
+  COMPACT_BANNER_LAYOUT,
   SOCIAL_BANNER_LAYOUT_IDS,
   generateSocialBannerSvg,
 } from '../canvasRenderer';
@@ -125,43 +125,86 @@ describe('the luxury composition', () => {
   });
 });
 
-describe('the safe-area composition', () => {
-  it('is one of the compositions the picker offers', () => {
-    expect(SOCIAL_BANNER_LAYOUT_IDS).toContain(SAFE_AREA_BANNER_LAYOUT);
+describe('composing inside the documented safe area', () => {
+  /** The largest mark the layout draws, in canvas pixels. */
+  const markHeight = (layout: SocialBannerOptions['layout'], w: number, h: number): number => {
+    const svg = generateSocialBannerSvg(
+      config(),
+      { layout, bgTheme: 'dark', title: 'Nebula', subtitle: 'Smart technology solutions' },
+      w,
+      h
+    );
+    const scales = [...svg.matchAll(/<g transform="scale\(([\d.]+)\)"/g)].map((m) => Number(m[1]));
+    return Math.max(...scales) * 512;
+  };
+
+  it('fits every composition inside the band a phone keeps', () => {
+    // This is the fix. Each layout used to size its mark against the 1440-high
+    // canvas and centre on it, while a phone keeps only the middle 423 — so the
+    // mark was cut top and bottom and, in the centred hero, the wordmark and
+    // tagline fell outside the crop entirely.
+    const band = safeBandsFor(2560, 1440).at(-1)!;
+    expect(band.height).toBe(423);
+    for (const id of SOCIAL_BANNER_LAYOUT_IDS) {
+      expect(markHeight(id, 2560, 1440)).toBeLessThanOrEqual(band.height);
+    }
   });
 
-  it('is a different picture from every other one', () => {
-    const others = SOCIAL_BANNER_LAYOUT_IDS.filter((id) => id !== SAFE_AREA_BANNER_LAYOUT);
-    const safe = render(SAFE_AREA_BANNER_LAYOUT);
-    for (const id of others) expect(render(id)).not.toBe(safe);
+  it('keeps the centred hero’s type inside the band too', () => {
+    // Its baselines are absolute, which is what made it the worst case: they
+    // sat at y 1007 and 1057 against a band ending at 931.5.
+    const band = safeBandsFor(2560, 1440).at(-1)!;
+    const top = (1440 - band.height) / 2;
+    const svg = generateSocialBannerSvg(
+      config(),
+      { layout: 'center-hero', bgTheme: 'dark', title: 'Nebula', subtitle: 'Smart technology solutions' },
+      2560,
+      1440
+    );
+    const ys = [...svg.matchAll(/<text x="1280" y="([\d.]+)"/g)].map((m) => Number(m[1]));
+    expect(ys.length).toBeGreaterThan(0);
+    for (const y of ys) {
+      expect(y).toBeGreaterThanOrEqual(top);
+      expect(y).toBeLessThanOrEqual(top + band.height);
+    }
   });
 
-  it('scales itself to the band, not to the canvas', () => {
-    // The distinguishing fact, and the reason it survives the phone crop: on a
-    // 2560 × 1440 header the others size the mark against the 1440 height and
-    // are cut by the 423-high band, while this one stays well under it.
-    const band = safeBandsFor(2560, 1440).at(-1);
-    expect(band?.height).toBe(423);
+  it('draws the luxury frame on the band, not on the canvas edge', () => {
+    const band = safeBandsFor(2560, 1440).at(-1)!;
+    const svg = generateSocialBannerSvg(
+      config(),
+      { layout: 'brand-luxury', bgTheme: 'dark', title: 'Nebula', subtitle: 'Tagline' },
+      2560,
+      1440
+    );
+    const frame = /Hairline double frame -->\s*<rect x="([\d.]+)" y="([\d.]+)"/.exec(svg);
+    expect(frame).not.toBeNull();
+    expect(Number(frame![1])).toBeGreaterThanOrEqual((2560 - band.width) / 2);
+    expect(Number(frame![2])).toBeGreaterThanOrEqual((1440 - band.height) / 2);
+  });
 
-    const markHeight = (layout: (typeof SOCIAL_BANNER_LAYOUT_IDS)[number]): number => {
-      const svg = generateSocialBannerSvg(
-        config(),
-        { layout, bgTheme: 'dark', title: 'Nebula' },
-        2560,
-        1440
-      );
-      const scales = [...svg.matchAll(/<g transform="scale\(([\d.]+)\)"/g)].map((m) =>
-        Number(m[1])
-      );
-      return Math.max(...scales) * 512;
-    };
-
-    expect(markHeight(SAFE_AREA_BANNER_LAYOUT)).toBeLessThan(band!.height);
-    expect(markHeight('center-hero')).toBeGreaterThan(band!.height);
+  it('leaves a size with no documented band composing across the whole canvas', () => {
+    // The stage is the canvas wherever nothing is published, so none of this
+    // touches the sizes it has no numbers for.
+    expect(safeBandsFor(1500, 500)).toEqual([]);
+    expect(markHeight('center-hero', 1500, 500)).toBeCloseTo(500 * 0.42, 5);
+    expect(markHeight('minimal-clean', 1500, 500)).toBeCloseTo(500 * 0.42, 5);
   });
 });
 
-describe('the safe-area lockup’s placement', () => {
+describe('the compact composition', () => {
+  it('is one of the compositions the picker offers', () => {
+    expect(SOCIAL_BANNER_LAYOUT_IDS).toContain(COMPACT_BANNER_LAYOUT);
+  });
+
+  it('is a different picture from every other one', () => {
+    const others = SOCIAL_BANNER_LAYOUT_IDS.filter((id) => id !== COMPACT_BANNER_LAYOUT);
+    const compact = render(COMPACT_BANNER_LAYOUT);
+    for (const id of others) expect(render(id)).not.toBe(compact);
+  });
+});
+
+describe('the compact lockup’s placement', () => {
   /**
    * The lockup's own x on the canvas. Matched on the container comment because
    * the translates nested inside it are relative to the block, not the canvas —
@@ -185,7 +228,7 @@ describe('the safe-area lockup’s placement', () => {
     ]) {
       const svg = generateSocialBannerSvg(
         config(),
-        { layout: SAFE_AREA_BANNER_LAYOUT, bgTheme: 'dark', title: 'Nebula', subtitle: 'Tagline' },
+        { layout: COMPACT_BANNER_LAYOUT, bgTheme: 'dark', title: 'Nebula', subtitle: 'Tagline' },
         w,
         h
       );
@@ -198,7 +241,7 @@ describe('the safe-area lockup’s placement', () => {
     const svg = generateSocialBannerSvg(
       config(),
       {
-        layout: SAFE_AREA_BANNER_LAYOUT,
+        layout: COMPACT_BANNER_LAYOUT,
         bgTheme: 'dark',
         title: 'Northwind Technology Group',
         subtitle: 'Smart technology solutions',

@@ -22,7 +22,6 @@ import {
   rasterizeSvg,
   generateSocialMediaKitZip,
   SOCIAL_BANNER_LAYOUT_IDS,
-  SAFE_AREA_BANNER_LAYOUT,
 } from '../utils/canvasRenderer';
 import { downloadBlob, downloadSvg } from '../utils/download';
 import { cropSvgToBand, hasDocumentedSafeArea, safeBandsFor } from '../utils/platformAssets';
@@ -89,7 +88,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
     'split-hero': t('socialKitModal.layoutLogoDetail'),
     'minimal-clean': t('socialKitModal.layoutMinimal'),
     'brand-luxury': t('socialKitModal.layoutLuxury'),
-    'youtube-channel': t('socialKitModal.layoutSafeArea'),
+    'youtube-channel': t('socialKitModal.layoutCompact'),
   };
 
   // A name alone ("Luxury identity") says nothing about what the button does.
@@ -691,14 +690,6 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
                                   </button>
                                 ))}
                               </div>
-                            )}
-
-                            {bands.length > 0 && bannerOptions.layout !== SAFE_AREA_BANNER_LAYOUT && (
-                              <p className="z-10 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-center text-[11px] font-medium text-amber-300">
-                                {t('socialKitModal.laidOutForFullCanvas', {
-                                  layout: layoutLabels[SAFE_AREA_BANNER_LAYOUT],
-                                })}
-                              </p>
                             )}
 
                             {band && (

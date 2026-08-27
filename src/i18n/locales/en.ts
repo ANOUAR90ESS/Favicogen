@@ -440,8 +440,7 @@ export const en = {
     downloadMockup: 'Download Mockup Image',
   },
   socialKitModal: {
-    layoutSafeArea: 'Safe-area lockup',
-    laidOutForFullCanvas: 'This composition is laid out across the whole canvas, not the safe area — check the Phone view, or pick “{{layout}}”.',
+    layoutCompact: 'Compact lockup',
     viewFull: 'Full artwork',
     device_desktop: 'Desktop',
     device_tablet: 'Tablet',
