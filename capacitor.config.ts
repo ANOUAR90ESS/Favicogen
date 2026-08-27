@@ -9,11 +9,13 @@ import type { CapacitorConfig } from '@capacitor/cli';
  * directory on its own.
  *
  * `appId` is the identifier both stores key a listing to. Changing it after a
- * release starts a new app, so it is worth settling before the first upload —
- * the placeholder name in this repo does not oblige the bundle id to match it.
+ * release starts a new app, so it is fixed from the first upload onward — and
+ * free to change until then. It is also written into the Android package path,
+ * the iOS bundle id and the custom URL scheme, so `docs/native.md` lists every
+ * place it has to move together. The app's display name need not match it.
  */
 const config: CapacitorConfig = {
-  appId: 'com.favicogen.studio',
+  appId: 'com.currive.favicogen',
   appName: 'Logo & Favicon Studio',
   webDir: 'dist',
   android: {
