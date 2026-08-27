@@ -6,3 +6,7 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Playwright's own output: traces and screenshots kept from a failed run.
+test-results/
+playwright-report/

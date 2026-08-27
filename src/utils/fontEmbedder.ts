@@ -54,8 +54,18 @@ let stylesheetRequest: Promise<Map<string, FontFaceBlock[]>> | null = null;
 /** Downloaded font binaries as data URIs, keyed by their resolved URL. */
 const fontDataUriCache = new Map<string, string>();
 
-/** Families that failed to resolve — never retried within a session. */
-const failedFamilies = new Set<string>();
+/**
+ * Families the bundled stylesheet does not carry — never retried.
+ *
+ * Only a permanent condition belongs here. A failed *download* is transient by
+ * nature (a dropped connection, a subset not cached yet), and blacklisting a
+ * family for one of those meant a single blip cost the typeface in every
+ * export for the rest of the session.
+ */
+const familiesWithoutFaces = new Set<string>();
+
+/** Thrown when the stylesheet has no faces for a family: not worth retrying. */
+class MissingFacesError extends Error {}
 
 interface FontFaceBlock {
   css: string;
@@ -292,9 +302,31 @@ async function resolveFamilyBlocks(family: string): Promise<FontFaceBlock[]> {
 
   const blocks = (await loadStylesheet()).get(family);
   if (!blocks || blocks.length === 0) {
-    throw new Error(`The bundled stylesheet has no faces for "${family}"`);
+    throw new MissingFacesError(`The bundled stylesheet has no faces for "${family}"`);
   }
   return blocks;
+}
+
+/**
+ * The faces one family needs to paint this text at these weights.
+ *
+ * Shared by the export and by the warming below, so the bytes fetched ahead of
+ * time are exactly the bytes the export will ask for. Two copies of this
+ * selection would drift, and the warming would then be quietly useless — which
+ * is indistinguishable from working right up until someone is offline.
+ */
+async function facesFor(
+  family: string,
+  text: string,
+  wantedWeights: number[]
+): Promise<FontFaceBlock[]> {
+  const blocks = await resolveFamilyBlocks(family);
+  const available = [...new Set(blocks.map((block) => block.weight))];
+  const keep = new Set(wantedWeights.map((wanted) => nearestWeight(available, wanted)));
+
+  return blocks.filter(
+    (block) => keep.has(block.weight) && textNeedsRanges(text, block.unicodeRanges)
+  );
 }
 
 /**
@@ -304,8 +336,8 @@ async function resolveFamilyBlocks(family: string): Promise<FontFaceBlock[]> {
  * Returns an empty string when nothing could be resolved, which leaves the
  * SVG exactly as it was.
  */
-export async function buildEmbeddedFontStyle(svg: string): Promise<string> {
-  const families = extractFamilies(svg).filter((family) => !failedFamilies.has(family));
+export async function buildEmbeddedFontStyle(svg: string, quiet = false): Promise<string> {
+  const families = extractFamilies(svg).filter((family) => !familiesWithoutFaces.has(family));
   if (families.length === 0) return '';
 
   const text = extractRenderedText(svg);
@@ -318,14 +350,7 @@ export async function buildEmbeddedFontStyle(svg: string): Promise<string> {
   await Promise.all(
     families.map(async (family) => {
       try {
-        const blocks = await resolveFamilyBlocks(family);
-
-        const available = [...new Set(blocks.map((block) => block.weight))];
-        const keep = new Set(wantedWeights.map((wanted) => nearestWeight(available, wanted)));
-
-        const needed = blocks.filter(
-          (block) => keep.has(block.weight) && textNeedsRanges(text, block.unicodeRanges)
-        );
+        const needed = await facesFor(family, text, wantedWeights);
 
         await Promise.all(
           needed.map(async (block) => {
@@ -340,8 +365,8 @@ export async function buildEmbeddedFontStyle(svg: string): Promise<string> {
         );
       } catch (err) {
         // One unavailable family must not sink the whole export.
-        failedFamilies.add(family);
-        console.warn(`Could not embed the "${family}" web font in the export:`, err);
+        if (err instanceof MissingFacesError) familiesWithoutFaces.add(family);
+        if (!quiet) console.warn(`Could not embed the "${family}" web font in the export:`, err);
       }
     })
   );
@@ -374,12 +399,99 @@ export async function embedFontsInSvg(svg: string): Promise<string> {
   }
 }
 
+/**
+ * Pulls the subsets the artwork on screen would need, ahead of any export.
+ *
+ * A service worker only claims control of a page *after* that page has already
+ * issued its requests, so on a first visit the typefaces are fetched outside
+ * it and never reach its runtime cache. Lose the network in that first
+ * session and the fonts are nowhere: the export still succeeds, still opens,
+ * and has quietly fallen back to a system face — the exact failure this
+ * module exists to prevent, arriving through the one door it did not watch.
+ *
+ * Reading them through `fetch` puts them in that cache and in this module's
+ * own memory, so a later export is both offline-proof and instant. It is the
+ * same selection the export makes, so it costs the two or three subsets the
+ * current artwork actually paints, and nothing for artwork with no text.
+ *
+ * Best-effort in the strictest sense: it returns a resolved promise whatever
+ * happens, and says nothing. Warming is not a thing a user asked for, so its
+ * failure is not a thing to report — the export still speaks for itself.
+ */
+export async function warmFontsForSvg(svg: string): Promise<void> {
+  try {
+    await buildEmbeddedFontStyle(svg, true);
+  } catch {
+    // Nothing to do and nobody to tell: the export path reports for itself.
+  }
+}
+
+/**
+ * Subsets already pulled into the worker's cache, by URL.
+ *
+ * Keyed by URL rather than by family because which subsets a family needs
+ * depends on the text and the weights, and both change as someone works. A
+ * family marked done would then skip the pull for a weight it never fetched.
+ */
+const warmedUrls = new Set<string>();
+
+/**
+ * Pulls the *other* typefaces, at the moment someone opens the list of them.
+ *
+ * The artwork on screen only reveals the family it already uses. A visitor who
+ * picks a different one after losing the network would export without it —
+ * silently, the way this whole module is meant to prevent. Precaching all
+ * sixty-three subsets would close that at the cost of doubling the install for
+ * the two or three anyone renders; opening the list is the moment that says
+ * which of those two or three are about to matter, and it almost always
+ * happens with a connection still there.
+ *
+ * Only the subsets the current text and weights need, so a Latin brand name
+ * pulls nothing at all from the Arabic families: their ranges do not cover it.
+ * A bare `fetch` rather than the data-URI path — the point is to fill the
+ * worker's cache, and holding nine families of base64 in memory for a choice
+ * that will land on one of them is not worth the megabyte.
+ *
+ * Best-effort and silent, like every other warming: nobody asked for it.
+ */
+export async function warmAlternateFamilies(currentSvg: string): Promise<void> {
+  const text = extractRenderedText(currentSvg);
+  if (!text.trim()) return;
+
+  const wantedWeights = extractWeights(currentSvg);
+
+  await Promise.all(
+    KNOWN_GOOGLE_FAMILIES.filter((family) => !familiesWithoutFaces.has(family)).map(
+      async (family) => {
+        try {
+          const faces = await facesFor(family, text, wantedWeights);
+
+          await Promise.all(
+            faces
+              .filter((face) => !warmedUrls.has(face.url))
+              .map(async (face) => {
+                const response = await fetch(face.url);
+                // Only a subset that actually arrived is one we can skip next
+                // time; a failed pull is retried the next time the list opens.
+                if (response.ok) warmedUrls.add(face.url);
+              })
+          );
+        } catch {
+          // Offline, or a family this stylesheet does not carry. The export
+          // path reports for itself; nothing here is worth interrupting anyone.
+        }
+      }
+    )
+  );
+}
+
 /** Test seam: clears every cache so a run starts from a known state. */
 export function __resetFontEmbedderCaches(): void {
   familyBlocksCache.clear();
   fontDataUriCache.clear();
   stylesheetRequest = null;
-  failedFamilies.clear();
+  familiesWithoutFaces.clear();
+  warmedUrls.clear();
 }
 
 /** Exported for unit tests. */

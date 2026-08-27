@@ -1,4 +1,4 @@
-package com.favicogen.studio;
+package com.currive.favicogen;
 
 import com.getcapacitor.BridgeActivity;
 

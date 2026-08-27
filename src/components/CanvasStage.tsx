@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ZoomIn,
@@ -15,6 +15,7 @@ import {
 import { LogoConfig, SupportedLanguage } from '../types';
 import { generateSvgString, renderSvgToBlob } from '../utils/canvasRenderer';
 import { downloadBlob, downloadSvg } from '../utils/download';
+import { warmFontsForSvg } from '../utils/fontEmbedder';
 
 interface CanvasStageProps {
   config: LogoConfig;
@@ -46,6 +47,25 @@ export const CanvasStage: React.FC<CanvasStageProps> = ({
   const svgString = useMemo(() => {
     return generateSvgString(config, 512);
   }, [config]);
+
+  /*
+   * Fetch the typefaces this artwork needs while there is still a network to
+   * fetch them with.
+   *
+   * A service worker takes control of a page only after that page has made its
+   * requests, so on a first visit the fonts are loaded outside it and never
+   * enter its cache. A visitor who then loses the network — on a plane, or in
+   * the native shell — exports a file that opens perfectly and has quietly
+   * lost its typeface. Reading them here, from the artwork actually on screen,
+   * is what makes the offline export whole.
+   *
+   * Trailing-edge: a colour slider fires this on every frame, and the artwork
+   * mid-drag is not the artwork anyone exports.
+   */
+  useEffect(() => {
+    const timer = setTimeout(() => void warmFontsForSvg(svgString), 800);
+    return () => clearTimeout(timer);
+  }, [svgString]);
 
   const handleCopySvg = async () => {
     try {
