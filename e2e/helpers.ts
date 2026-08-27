@@ -1,0 +1,106 @@
+import { expect, type Download, type Page } from '@playwright/test';
+
+/**
+ * Shared moves, so a test reads as what it is checking rather than as the
+ * clicking that gets there.
+ */
+
+/** Dismisses the first-run screen and waits for the studio to be drawing. */
+export async function enterStudio(page: Page): Promise<void> {
+  await page.goto('/');
+  await page.getByRole('button', { name: /design one from scratch/i }).click();
+  await expect(page.locator('#logo-svg-canvas-container svg.artboard-svg')).toBeVisible();
+}
+
+/** The live artwork, rasterised in the page and read back as pixels. */
+export async function rasterizeCanvas(page: Page, size = 512) {
+  return page.evaluate(async (px) => {
+    const svg = document.querySelector('#logo-svg-canvas-container svg.artboard-svg');
+    if (!svg) throw new Error('no canvas on the page');
+
+    const markup = new XMLSerializer().serializeToString(svg);
+    const url = URL.createObjectURL(new Blob([markup], { type: 'image/svg+xml' }));
+    const img = new Image();
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = () => reject(new Error('the artwork would not rasterise'));
+      img.src = url;
+    });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = px;
+    canvas.height = px;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('no 2d context');
+    context.drawImage(img, 0, 0, px, px);
+
+    const data = context.getImageData(0, 0, px, px).data;
+    let opaque = 0;
+    let black = 0;
+    const colours = new Map<string, number>();
+
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] < 20) continue;
+      opaque += 1;
+      if (data[i] < 12 && data[i + 1] < 12 && data[i + 2] < 12) black += 1;
+      const key = `${data[i] >> 4},${data[i + 1] >> 4},${data[i + 2] >> 4}`;
+      colours.set(key, (colours.get(key) ?? 0) + 1);
+    }
+
+    return {
+      opaque,
+      black,
+      corner: [data[0], data[1], data[2], data[3]] as number[],
+      distinctColours: colours.size,
+    };
+  }, size);
+}
+
+/** A PNG's real dimensions, straight out of its IHDR. */
+export function pngSize(bytes: Buffer): { width: number; height: number } {
+  const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  if (!bytes.subarray(0, 8).equals(signature)) throw new Error('not a PNG');
+  return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+}
+
+/** Reads a download into memory without leaving a file behind. */
+export async function downloadBytes(download: Download): Promise<Buffer> {
+  const path = await download.path();
+  if (!path) throw new Error(`download ${download.suggestedFilename()} produced no file`);
+  const { readFile } = await import('node:fs/promises');
+  return readFile(path);
+}
+
+/**
+ * The brand name as it currently sits in storage.
+ *
+ * The auto-save is debounced, so a test that reloads immediately after typing
+ * is racing it — and work that never reached storage is work the next visit
+ * cannot restore, which is the thing worth asserting. The project lives in
+ * IndexedDB rather than localStorage; reading the real store is the only way
+ * to know it arrived.
+ */
+export async function savedBrandName(page: Page): Promise<string | null> {
+  return page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase | null>((resolve) => {
+      const request = indexedDB.open('logo_studio', 1);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => resolve(null);
+      request.onupgradeneeded = () => resolve(null);
+    });
+    if (!db) return null;
+
+    try {
+      return await new Promise<string | null>((resolve) => {
+        const read = db
+          .transaction('keyval', 'readonly')
+          .objectStore('keyval')
+          .get('logo_studio_current_project');
+        read.onsuccess = () => resolve((read.result as { text?: string } | undefined)?.text ?? null);
+        read.onerror = () => resolve(null);
+      });
+    } finally {
+      db.close();
+    }
+  });
+}

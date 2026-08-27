@@ -1,0 +1,85 @@
+import { expect, test } from '@playwright/test';
+import { downloadBytes, enterStudio } from './helpers';
+
+/**
+ * Losing the network must not lose the tool.
+ *
+ * Everything the studio does it does locally, so this is a promise the code
+ * can actually keep — and a service worker is the kind of thing that stops
+ * working quietly. Nothing about a missing one is an error: the app simply
+ * goes back to needing a connection, and no one notices until someone is on a
+ * plane.
+ */
+
+test('the worker takes control, and the app survives losing the network', async ({
+  page,
+  context,
+}) => {
+  await enterStudio(page);
+
+  await expect
+    .poll(
+      () =>
+        page.evaluate(async () => {
+          await navigator.serviceWorker.ready;
+          return Boolean(navigator.serviceWorker.controller);
+        }),
+      { timeout: 30_000 }
+    )
+    .toBe(true);
+
+  await context.setOffline(true);
+  await page.reload();
+
+  // Not merely a page that loads: the studio, drawing.
+  await expect(page.locator('#logo-svg-canvas-container svg.artboard-svg')).toBeVisible();
+});
+
+test('an export made offline still carries its typeface', async ({ page, context }) => {
+  // The subtlest version of this failure: the export succeeds, the file opens,
+  // and the typeface is gone. The stylesheet is precached and the subsets are
+  // cached as they are rendered, so what the page has drawn it can embed.
+  await enterStudio(page);
+  await expect
+    .poll(
+      () =>
+        page.evaluate(async () => {
+          await navigator.serviceWorker.ready;
+          return Boolean(navigator.serviceWorker.controller);
+        }),
+      { timeout: 30_000 }
+    )
+    .toBe(true);
+
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.locator('#logo-svg-canvas-container svg.artboard-svg')).toBeVisible();
+
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: /Export SVG/i }).first().click(),
+  ]);
+
+  const svg = (await downloadBytes(download)).toString('utf8');
+  expect(svg).toContain('data:font/woff2;base64,');
+  expect(svg).not.toContain('fonts.gstatic.com');
+});
+
+test('the build stays installable', async ({ page, request }) => {
+  // A manifest and a worker with a fetch handler are the two halves of it.
+  await page.goto('/');
+
+  const manifestHref = await page.locator('link[rel=manifest]').getAttribute('href');
+  expect(manifestHref).toBeTruthy();
+
+  const manifest = await (await request.get(manifestHref!)).json();
+  expect(manifest.name).toBeTruthy();
+  expect(manifest.start_url).toBeTruthy();
+  expect(manifest.display).toBe('standalone');
+
+  const sizes = (manifest.icons as { sizes: string }[]).map((icon) => icon.sizes);
+  expect(sizes).toContain('192x192');
+  expect(sizes).toContain('512x512');
+
+  expect((await request.get('/sw.js')).status()).toBe(200);
+});

@@ -20,7 +20,9 @@
     "sync:native": "npm run build:web && cap sync",
     "open:android": "cap open android",
     "open:ios": "cap open ios",
-    "fetch:fonts": "node scripts/fetch-fonts.mjs"
+    "fetch:fonts": "node scripts/fetch-fonts.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
@@ -50,6 +52,7 @@
   "devDependencies": {
     "@capacitor/cli": "^8.5.0",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.62.1",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "@types/react": "^19",
