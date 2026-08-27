@@ -22,9 +22,10 @@ import {
   rasterizeSvg,
   generateSocialMediaKitZip,
   SOCIAL_BANNER_LAYOUT_IDS,
+  SAFE_AREA_BANNER_LAYOUT,
 } from '../utils/canvasRenderer';
 import { downloadBlob, downloadSvg } from '../utils/download';
-import { hasDocumentedSafeArea } from '../utils/platformAssets';
+import { cropSvgToBand, hasDocumentedSafeArea, safeBandsFor } from '../utils/platformAssets';
 import { Modal } from './Modal';
 
 interface SocialMediaKitModalProps {
@@ -61,6 +62,10 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
     showSafeZone: false,
   });
 
+  // Which crop each banner is being viewed through. 'full' is the artwork as
+  // exported; a device id shows only the part that device keeps.
+  const [cropView, setCropView] = useState<Record<string, string>>({});
+
   // State for downloads and copying
   const [isExportingAll, setIsExportingAll] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -84,6 +89,7 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
     'split-hero': t('socialKitModal.layoutLogoDetail'),
     'minimal-clean': t('socialKitModal.layoutMinimal'),
     'brand-luxury': t('socialKitModal.layoutLuxury'),
+    'youtube-channel': t('socialKitModal.layoutSafeArea'),
   };
 
   // A name alone ("Luxury identity") says nothing about what the button does.
@@ -632,26 +638,82 @@ export const SocialMediaKitModal: React.FC<SocialMediaKitModalProps> = ({
                           </div>
                         )}
 
-                      {/* 16:9 / Banner Preview */}
-                      {isBanner && (
-                        <div className="w-full relative flex items-center justify-center">
-                          <div
-                            className="w-full overflow-hidden"
-                            style={{
-                              aspectRatio: `${preset.width} / ${preset.height}`,
-                              maxHeight: '260px',
-                            }}
-                            dangerouslySetInnerHTML={{
-                              __html: generateSocialBannerSvg(
-                                config,
-                                bannerOptions,
-                                preset.width,
-                                preset.height
-                              ),
-                            }}
-                          />
-                        </div>
-                      )}
+                      {/* 16:9 / Banner Preview, through whichever crop is selected */}
+                      {isBanner && (() => {
+                        const bands = safeBandsFor(preset.width, preset.height);
+                        const viewing = cropView[preset.id] ?? 'full';
+                        const band = bands.find((b) => b.device === viewing);
+                        // Inside a crop the guide would only trace the frame it
+                        // is already showing, so it steps aside.
+                        const svg = generateSocialBannerSvg(
+                          config,
+                          band ? { ...bannerOptions, showSafeZone: false } : bannerOptions,
+                          preset.width,
+                          preset.height
+                        );
+                        const shown = band
+                          ? cropSvgToBand(svg, band, preset.width, preset.height)
+                          : svg;
+                        const ratio = band
+                          ? `${band.width} / ${band.height}`
+                          : `${preset.width} / ${preset.height}`;
+
+                        return (
+                          <div className="w-full relative flex flex-col items-center justify-center gap-2">
+                            <div
+                              className="w-full overflow-hidden [&>svg]:h-full [&>svg]:w-full"
+                              style={{ aspectRatio: ratio, maxHeight: '260px' }}
+                              dangerouslySetInnerHTML={{ __html: shown }}
+                            />
+
+                            {bands.length > 0 && (
+                              <div className="z-10 flex flex-wrap items-center justify-center gap-1">
+                                {[
+                                  { id: 'full', label: t('socialKitModal.viewFull') },
+                                  ...bands.map((b) => ({
+                                    id: b.device,
+                                    label: t(`socialKitModal.device_${b.device}`),
+                                  })),
+                                ].map((choice) => (
+                                  <button
+                                    key={choice.id}
+                                    onClick={() =>
+                                      setCropView((prev) => ({ ...prev, [preset.id]: choice.id }))
+                                    }
+                                    aria-pressed={viewing === choice.id}
+                                    className={`rounded-md border px-2 py-0.5 text-[11px] font-semibold transition-colors ${
+                                      viewing === choice.id
+                                        ? 'border-indigo-500 bg-indigo-600/20 text-indigo-200'
+                                        : 'border-slate-800 bg-slate-900 text-slate-400 hover:border-slate-700'
+                                    }`}
+                                  >
+                                    {choice.label}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+
+                            {bands.length > 0 && bannerOptions.layout !== SAFE_AREA_BANNER_LAYOUT && (
+                              <p className="z-10 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-center text-[11px] font-medium text-amber-300">
+                                {t('socialKitModal.laidOutForFullCanvas', {
+                                  layout: layoutLabels[SAFE_AREA_BANNER_LAYOUT],
+                                })}
+                              </p>
+                            )}
+
+                            {band && (
+                              <p className="z-10 text-center text-[11px] text-slate-400">
+                                {t('socialKitModal.cropNote', {
+                                  width: band.width,
+                                  height: band.height,
+                                  fullWidth: preset.width,
+                                  fullHeight: preset.height,
+                                })}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Footer Actions */}

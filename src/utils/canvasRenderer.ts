@@ -1781,7 +1781,20 @@ export const SOCIAL_BANNER_LAYOUT_IDS = [
   'split-hero',
   'minimal-clean',
   'brand-luxury',
+  'youtube-channel',
 ] as const satisfies readonly SocialBannerOptions['layout'][];
+
+/**
+ * The one composition laid out inside the documented safe band rather than
+ * across the whole canvas.
+ *
+ * The other four scale to the full canvas and centre on it. On a 2560 × 1440
+ * channel header, where only the centre 1546 × 423 survives a phone, that puts
+ * the mark half outside the crop and the wordmark entirely outside it — which
+ * the device preview now shows. This one sizes itself to the band, so it holds
+ * together where the others are cut.
+ */
+export const SAFE_AREA_BANNER_LAYOUT = 'youtube-channel' satisfies SocialBannerOptions['layout'];
 
 export function generateSocialBannerSvg(
   config: LogoConfig,
@@ -2022,6 +2035,21 @@ export function generateSocialBannerSvg(
     const avatarSize = Math.min(180, h * 0.28);
     const avatarScale = avatarSize / 512;
     const avatarHalf = avatarSize / 2;
+    const titleSize = Math.max(28, Math.min(54, w * 0.03));
+    const gap = Math.max(16, avatarSize * 0.22);
+    // The lockup used to start at a flat cx - 500, which centres it only near
+    // 2560 wide and runs it off the left edge of anything under about 1000.
+    // There is no text metric here, so the wordmark is estimated from its
+    // character count at the size it is set — close enough to centre by, and
+    // clamped so the block can never leave the canvas.
+    const titleWidth = title.length * titleSize * 0.55;
+    const blockWidth = avatarSize + gap + titleWidth;
+    const blockX = Math.max(w * 0.04, cx - blockWidth / 2);
+    // The text block hangs from the avatar's centre line; at a small avatar a
+    // flat 30px drop put the wordmark above it.
+    const textDrop = Math.max(12, avatarHalf * 0.36);
+    const lineTwo = titleSize * 0.62;
+    const lineThree = titleSize * 1.18;
 
     layoutContent = `
       ${options.showGlowEffect ? `
@@ -2030,7 +2058,7 @@ export function generateSocialBannerSvg(
       ` : ''}
 
       <!-- Central Safe-Area Container -->
-      <g transform="translate(${cx - 500}, ${cy - avatarHalf})">
+      <g transform="translate(${blockX}, ${cy - avatarHalf})">
         <!-- Channel Avatar with Circular Stroke -->
         <g transform="translate(0, 0)" filter="url(#sb_shadow)">
           <circle cx="${avatarHalf}" cy="${avatarHalf}" r="${avatarHalf + 4}" fill="${accentGlow}" opacity="0.4" />
@@ -2040,21 +2068,21 @@ export function generateSocialBannerSvg(
         </g>
 
         <!-- Channel Info Block -->
-        <g transform="translate(${avatarSize + 40}, ${avatarHalf - 30})">
+        <g transform="translate(${avatarSize + gap}, ${avatarHalf - textDrop})">
           <!-- Title -->
           <g transform="translate(0, 0)">
-            <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="${Math.max(28, Math.min(54, w * 0.03))}" font-weight="900" fill="${textColor}" letter-spacing="-0.5">
+            <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="${titleSize}" font-weight="900" fill="${textColor}" letter-spacing="-0.5">
               ${escapeXml(title)}
             </text>
           </g>
 
           <!-- Handle & Upload Schedule -->
-          <text x="0" y="32" font-family="system-ui, sans-serif" font-size="${Math.max(13, Math.min(20, w * 0.012))}" font-weight="600" fill="${subtextColor}">
+          <text x="0" y="${lineTwo}" font-family="system-ui, sans-serif" font-size="${Math.max(13, Math.min(20, w * 0.012))}" font-weight="600" fill="${subtextColor}">
             ${escapeXml([channelHandle, uploadSchedule].filter(Boolean).join(' • '))}
           </text>
 
           <!-- Tagline -->
-          <text x="0" y="62" font-family="system-ui, sans-serif" font-size="${Math.max(12, Math.min(17, w * 0.01))}" font-weight="400" fill="${subtextColor}" opacity="0.85">
+          <text x="0" y="${lineThree}" font-family="system-ui, sans-serif" font-size="${Math.max(12, Math.min(17, w * 0.01))}" font-weight="400" fill="${subtextColor}" opacity="0.85">
             ${escapeXml(subtitle)}
           </text>
         </g>

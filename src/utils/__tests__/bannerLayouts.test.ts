@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { SOCIAL_BANNER_LAYOUT_IDS, generateSocialBannerSvg } from '../canvasRenderer';
+import {
+  SAFE_AREA_BANNER_LAYOUT,
+  SOCIAL_BANNER_LAYOUT_IDS,
+  generateSocialBannerSvg,
+} from '../canvasRenderer';
+import { safeBandsFor } from '../platformAssets';
 import { DEFAULT_LOGO_CONFIG } from '../templates';
 import type { LogoConfig, SocialBannerOptions } from '../../types';
 
@@ -117,5 +122,90 @@ describe('the luxury composition', () => {
       expect(y).toBeGreaterThan(0);
       expect(y).toBeLessThan(300);
     }
+  });
+});
+
+describe('the safe-area composition', () => {
+  it('is one of the compositions the picker offers', () => {
+    expect(SOCIAL_BANNER_LAYOUT_IDS).toContain(SAFE_AREA_BANNER_LAYOUT);
+  });
+
+  it('is a different picture from every other one', () => {
+    const others = SOCIAL_BANNER_LAYOUT_IDS.filter((id) => id !== SAFE_AREA_BANNER_LAYOUT);
+    const safe = render(SAFE_AREA_BANNER_LAYOUT);
+    for (const id of others) expect(render(id)).not.toBe(safe);
+  });
+
+  it('scales itself to the band, not to the canvas', () => {
+    // The distinguishing fact, and the reason it survives the phone crop: on a
+    // 2560 × 1440 header the others size the mark against the 1440 height and
+    // are cut by the 423-high band, while this one stays well under it.
+    const band = safeBandsFor(2560, 1440).at(-1);
+    expect(band?.height).toBe(423);
+
+    const markHeight = (layout: (typeof SOCIAL_BANNER_LAYOUT_IDS)[number]): number => {
+      const svg = generateSocialBannerSvg(
+        config(),
+        { layout, bgTheme: 'dark', title: 'Nebula' },
+        2560,
+        1440
+      );
+      const scales = [...svg.matchAll(/<g transform="scale\(([\d.]+)\)"/g)].map((m) =>
+        Number(m[1])
+      );
+      return Math.max(...scales) * 512;
+    };
+
+    expect(markHeight(SAFE_AREA_BANNER_LAYOUT)).toBeLessThan(band!.height);
+    expect(markHeight('center-hero')).toBeGreaterThan(band!.height);
+  });
+});
+
+describe('the safe-area lockup’s placement', () => {
+  /**
+   * The lockup's own x on the canvas. Matched on the container comment because
+   * the translates nested inside it are relative to the block, not the canvas —
+   * mixing the two makes the numbers look wrong when the layout is right.
+   */
+  const containerX = (svg: string): number => {
+    const m = /Central Safe-Area Container -->\s*<g transform="translate\((-?[\d.]+),/.exec(svg);
+    expect(m).not.toBeNull();
+    return Number(m![1]);
+  };
+
+  it('never starts off the left edge, at any banner width', () => {
+    // It used to begin at a flat `cx - 500`, which is off-canvas for anything
+    // under about 1000 wide — including the 640-wide picker thumbnail, where
+    // the mark simply was not in the picture.
+    for (const [w, h] of [
+      [640, 240],
+      [800, 300],
+      [1500, 500],
+      [2560, 1440],
+    ]) {
+      const svg = generateSocialBannerSvg(
+        config(),
+        { layout: SAFE_AREA_BANNER_LAYOUT, bgTheme: 'dark', title: 'Nebula', subtitle: 'Tagline' },
+        w,
+        h
+      );
+      expect(containerX(svg)).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('keeps a long brand name inside the phone band', () => {
+    const band = safeBandsFor(2560, 1440).at(-1)!;
+    const svg = generateSocialBannerSvg(
+      config(),
+      {
+        layout: SAFE_AREA_BANNER_LAYOUT,
+        bgTheme: 'dark',
+        title: 'Northwind Technology Group',
+        subtitle: 'Smart technology solutions',
+      },
+      2560,
+      1440
+    );
+    expect(containerX(svg)).toBeGreaterThanOrEqual((2560 - band.width) / 2);
   });
 });

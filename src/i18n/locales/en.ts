@@ -440,6 +440,13 @@ export const en = {
     downloadMockup: 'Download Mockup Image',
   },
   socialKitModal: {
+    layoutSafeArea: 'Safe-area lockup',
+    laidOutForFullCanvas: 'This composition is laid out across the whole canvas, not the safe area — check the Phone view, or pick “{{layout}}”.',
+    viewFull: 'Full artwork',
+    device_desktop: 'Desktop',
+    device_tablet: 'Tablet',
+    device_mobile: 'Phone',
+    cropNote: 'What this device keeps: {{width}} × {{height}} of {{fullWidth}} × {{fullHeight}}.',
     cropCircle: 'Circular avatar crop',
     cropSquare: 'Square post (1:1)',
     noDocumentedSafeArea: 'This platform does not publish a safe area for this size — no guide is drawn.',

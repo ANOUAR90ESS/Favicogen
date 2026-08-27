@@ -440,6 +440,13 @@ export const ar = {
     downloadMockup: 'تحميل صورة المحاكاة',
   },
   socialKitModal: {
+    layoutSafeArea: 'تكوين ضمن منطقة الأمان',
+    laidOutForFullCanvas: 'هذا التكوين موزّع على كامل اللوحة لا على منطقة الأمان — راجع عرض «هاتف»، أو اختر «{{layout}}».',
+    viewFull: 'التصميم كاملاً',
+    device_desktop: 'سطح المكتب',
+    device_tablet: 'لوحي',
+    device_mobile: 'هاتف',
+    cropNote: 'ما يُبقيه هذا الجهاز: {{width}} × {{height}} من {{fullWidth}} × {{fullHeight}}.',
     cropCircle: 'قصّ دائري للصورة الشخصية',
     cropSquare: 'منشور مربّع (1:1)',
     noDocumentedSafeArea: 'هذه المنصّة لا تنشر منطقة آمنة لهذا المقاس — لا يُرسم دليل.',
