@@ -7,8 +7,12 @@ import { smartImportImage } from '../utils/smartImport';
 import { PACKAGE_CATEGORIES, countAssets, countSelected } from '../utils/packagePlan';
 
 interface LandingScreenProps {
-  /** Applies the imported logo and hands over to the studio. */
-  onLogoReady: (patch: Partial<LogoConfig>) => void;
+  /**
+   * Applies the imported logo and hands over to the studio. The file name
+   * comes with it: it is the only thing the visitor has told us to call this,
+   * and the exported files are named after it.
+   */
+  onLogoReady: (patch: Partial<LogoConfig>, filename: string) => void;
   /** Continue to the studio without uploading — design from scratch. */
   onSkip: () => void;
 }
@@ -52,7 +56,7 @@ export const LandingScreen: React.FC<LandingScreenProps> = ({ onLogoReady, onSki
         return;
       }
       const result = await smartImportImage(intake.dataUrl);
-      onLogoReady(result.patch);
+      onLogoReady(result.patch, file.name.replace(/\.[^.]+$/, ''));
     } catch (err) {
       console.error('Import from the landing screen failed:', err);
       setError(t('landing.unreadable'));

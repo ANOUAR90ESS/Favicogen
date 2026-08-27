@@ -345,6 +345,31 @@ export function App() {
     return () => setNativeSaveNotice(null);
   }, [t]);
 
+  /**
+   * Applies an imported logo and settles what the brand is called.
+   *
+   * A blank project is seeded with the sample brand name so the canvas is not
+   * empty on a first visit. Importing a finished logo turns the text layer off
+   * — the picture carries its own wordmark — but the sample name stayed in
+   * `config.text`, and that is what every exported file is named after. People
+   * uploading their own logo were handed `nebula-brand-assets.zip` and a guide
+   * headed with a brand they had never heard of.
+   *
+   * So: if the name is still the untouched sample, it is not theirs. Drop it,
+   * and let the file they chose name the project instead.
+   */
+  const applyImportedLogo = (patch: Partial<LogoConfig>, suggestedName?: string) => {
+    const sampleName = isUntouchedSample(configRef.current.text, SAMPLE_KEYS.text, i18n);
+    const name = (suggestedName || '').trim();
+
+    handleConfigChange({
+      ...patch,
+      id: 'proj_' + Date.now(),
+      ...(name ? { name } : {}),
+      ...(sampleName ? { text: name, tagline: '' } : {}),
+    });
+  };
+
   const handleSmartImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -364,11 +389,7 @@ export function App() {
 
       const result = await smartImportImage(intake.dataUrl, { autoTrim: true });
 
-      handleConfigChange({
-        ...result.patch,
-        id: 'proj_' + Date.now(),
-        name: file.name.replace(/\.[^.]+$/, '') || 'Imported Logo',
-      });
+      applyImportedLogo(result.patch, file.name.replace(/\.[^.]+$/, ''));
 
       setImportStatus(
         result.trimmedPercent > 0
@@ -560,8 +581,8 @@ export function App() {
       {showLanding ? (
         <LazyMount when={showLanding}>
           <LandingScreen
-            onLogoReady={(patch) => {
-              handleConfigChange(patch);
+            onLogoReady={(patch, filename) => {
+              applyImportedLogo(patch, filename);
               setShowLanding(false);
             }}
             onSkip={() => setShowLanding(false)}
