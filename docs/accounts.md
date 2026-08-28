@@ -20,6 +20,63 @@ sites means something is kept for you, and here it does not yet. Syncing saved
 projects to the account is the obvious next step and the reason the layer
 exists.
 
+## The database schema
+
+`supabase/migrations/` holds it. Run the files in order in the Supabase SQL
+editor, or with the Supabase CLI. They are written to be re-runnable.
+
+| file | what it creates |
+|---|---|
+| `0001_projects.sql` | `public.projects`, its limits, and the four row-level security policies |
+| `0002_project_images.sql` | the private `project-images` Storage bucket and its four object policies |
+
+### Why it is shaped this way
+
+**Row-level security is the whole access model, not a hardening pass.** The
+anon key ships inside the browser bundle on purpose — it is publishable, not
+secret — so every rule keeping one person's work from another's is a policy in
+those files. A table with RLS left off is a table anyone on the internet can
+read.
+
+**A design is a row; a bitmap is a file.** `config` is `jsonb`, because the
+shape is a hundred-odd keys that change whenever the studio grows a control and
+a migration per slider is not something anyone keeps up with. But an uploaded
+photograph arrives as a data URL of up to 25 MB, and putting that in the row
+would mean either rejecting every project with a photo in it or a table where
+fifty projects are a gigabyte. So the bitmap goes to Storage under
+`<user id>/<project id>`, and that leading folder is a contract: every object
+policy is written against it.
+
+**The limits are the client's limits, restated where they cannot be edited out
+of the bundle** — fifty projects per account, 512 KB per design, 128 KB per
+thumbnail.
+
+**`updated_at` has no default, deliberately.** It is the device's clock, carried
+across unchanged, because a conflict asks which *edit* came last and not which
+upload did. Defaulting it would quietly substitute the server's clock for the
+answer. `synced_at` is the server's own and a trigger overwrites whatever a
+client sends, since that is the field an incremental pull trusts.
+
+### Verifying it
+
+`supabase/tests/run.sh` starts a throwaway PostgreSQL, applies the migrations
+and then tries to break them: reading another account's projects, writing a row
+under someone else's id, moving a row between accounts, forging `synced_at`,
+exceeding the caps, uploading into another person's Storage folder, and reading
+anything at all while signed out. Eighteen checks, each printing what it
+expected.
+
+It is not wired into CI — it needs a PostgreSQL server and this SQL changes
+rarely — so run it whenever a migration or a policy changes, which is exactly
+when a mistake would be both invisible and total.
+
+Writing those tests found a real flaw in the first draft. The project-limit
+trigger was `security definer`, which made it count rows RLS is meant to hide:
+inserting a row under someone else's id answered *"project limit reached"* for
+a full account and a policy error for an empty one — an oracle telling you
+about another person's data. It is `security invoker` now, so the count sees
+only what the caller may see and a forged insert learns nothing.
+
 ## Turning it on
 
 1. Create a project at supabase.com. The free tier is enough.
@@ -35,7 +92,9 @@ exists.
    Both are read by Vite at **build** time, so setting them only in a runtime
    environment does nothing. Setting one alone leaves accounts off.
 
-4. Under **Authentication → URL Configuration**, add these to *Redirect URLs*
+4. Run `supabase/migrations/0001_projects.sql` and then
+   `0002_project_images.sql` in the SQL editor.
+5. Under **Authentication → URL Configuration**, add these to *Redirect URLs*
    for every origin you deploy to, preview deployments included:
 
    ```
