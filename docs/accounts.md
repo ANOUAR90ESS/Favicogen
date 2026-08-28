@@ -9,16 +9,44 @@ That default is deliberate. The alternative — a sign-in form that accepts a
 password and does nothing with it — is worse than having no sign-in at all,
 because it is a lie told in the one place where people type a real secret.
 
-## What an account currently does
+## What an account does
 
-It authenticates. That is the whole of it today: sign up, confirm an address,
-sign in, sign out, recover a password. **Projects are not synced yet** — they
-live in this browser's IndexedDB whether or not anyone is signed in.
+Sign up, confirm an address, sign in, sign out, recover a password — and carry
+saved projects between devices.
 
-This is written down rather than implied, because "create an account" on most
-sites means something is kept for you, and here it does not yet. Syncing saved
-projects to the account is the obvious next step and the reason the layer
-exists.
+**The device is the original.** Every project lives in this browser's
+IndexedDB and keeps working with no account and no network; the server is a
+copy that lets a second device catch up. Nothing about syncing gates,
+blocks or replaces that, and a sync that fails leaves the device exactly as it
+was.
+
+Sync runs when asked, from the button in **My Saved Designs**. Not on a timer
+and not in the background: this is someone's work, and a write they did not ask
+for is one they cannot anticipate.
+
+### How a conflict is settled
+
+The newer *edit* wins — by the clock of the device that made it, not by when it
+was uploaded. A laptop edited on a plane and opened at home still carries the
+time of the edit, and answering with the upload time would let a stale copy
+overwrite a fresh one.
+
+Edits less than a second apart count as the same edit. Two devices never agree
+on the millisecond, and without that a project ping-pongs between them, each
+upload making the other look stale.
+
+### What it does not do yet
+
+**Deleting a project does not delete it from the server.** On the wire, "this
+is gone from device A" and "device B has one A never saw" are the same shape,
+and telling them apart needs tombstones. Guessing would mean deleting work
+someone still has open — the one mistake this feature must not make. So a
+deleted project comes back on the next sync: visible and annoying, rather than
+silent and final.
+
+**A design too large for a row is reported, not dropped.** The sync says which
+projects it could not carry and why; it never reports success over work that
+did not move.
 
 ## The database schema
 

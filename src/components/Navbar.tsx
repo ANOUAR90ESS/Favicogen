@@ -275,6 +275,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* More Tools Dropdown for Secondary Tools & Policy */}
             <div className="relative" ref={moreMenuRef}>
               <button
+                id="btn-more-menu"
                 onClick={() => setShowMoreMenu(!showMoreMenu)}
                 className="flex items-center gap-1 p-1.5 text-slate-600 hover:text-slate-900 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
                 title={t('nav.moreToolsCompliance')}
@@ -300,6 +301,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </button>
 
                   <button
+                    id="btn-saved-projects"
                     onClick={() => {
                       onOpenSavedProjects();
                       setShowMoreMenu(false);

@@ -1,4 +1,14 @@
 export const en = {
+  sync: {
+    action: 'Sync projects',
+    working: 'Syncing…',
+    done: 'Synced. {{up}} sent, {{down}} received.',
+    upToDate: 'Already up to date.',
+    partial: 'Sent {{up}}, received {{down}}. These could not be synced: {{names}}',
+    offline: 'No connection. The studio works offline; only syncing needs one.',
+    signInToSync: 'Sign in to sync',
+    failed: 'Syncing did not work.',
+  },
   auth: {
     backHome: 'Back to the home page',
     fields: {

@@ -139,16 +139,27 @@ export async function getSavedProjects(): Promise<SavedProjectItem[]> {
   }
 }
 
+/**
+ * Saves a project into the list.
+ *
+ * `updatedAt` is normally now, because normally the caller is a person who has
+ * just edited something. Sync passes the original edit time instead: a project
+ * arriving from another device was edited *there*, and restamping it with the
+ * moment it landed here would make "which edit came last" mean "which device
+ * synced last" — so the copy that was pulled would immediately look newer than
+ * the one it was pulled from, and be pushed straight back over it.
+ */
 export async function saveProjectToList(
   config: LogoConfig,
-  thumbnailSvg?: string
+  thumbnailSvg?: string,
+  updatedAt: number = Date.now()
 ): Promise<StorageResult & { projects: SavedProjectItem[] }> {
   const list = await getSavedProjects();
 
   const item: SavedProjectItem = {
     id: config.id || `proj_${Date.now()}`,
     name: config.text || config.name || '',
-    updatedAt: Date.now(),
+    updatedAt,
     config: { ...config },
     thumbnailSvg,
   };

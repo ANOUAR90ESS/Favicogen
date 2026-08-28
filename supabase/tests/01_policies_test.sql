@@ -91,6 +91,18 @@ insert into public.projects (user_id, client_id, name, config, updated_at)
   values ('11111111-1111-1111-1111-111111111111','ok','Duplicate','{}', now());
 select '12. same client_id twice ........ must have raised the unique above';
 
+-- A row may not point at a file in someone else's folder. Without this the
+-- table would be a place to store a path the Storage policies then refuse to
+-- serve, which fails later and further away than it needs to.
+update public.projects
+  set image_path = '22222222-2222-2222-2222-222222222222/ok' where client_id = 'ok';
+select '12a. image_path in another folder ... must have raised the check above';
+
+update public.projects
+  set image_path = user_id::text || '/' || client_id where client_id = 'ok';
+select '12b. image_path in own folder ....... accepted, ' || count(*) || '   want 1'
+  from public.projects where image_path is not null;
+
 -- ---------------------------------------------------------------------------
 -- Storage: the first folder of the path is the owner, and it is enforced
 -- ---------------------------------------------------------------------------

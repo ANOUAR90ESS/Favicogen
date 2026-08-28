@@ -57,6 +57,27 @@ create table if not exists public.projects (
 comment on table public.projects is
   'One saved logo project per row. Protected entirely by the RLS policies below.';
 
+-- Where the uploaded bitmap went, if there is one.
+--
+-- Added as its own statement rather than inside the create above, so a project
+-- that already ran an earlier version of this file gains the column instead of
+-- silently keeping a table without it — `create table if not exists` does
+-- nothing to a table that exists.
+--
+-- The path is `<user id>/<client project id>`, and the leading folder is what
+-- every Storage policy in 0002 checks. Null means the design has no bitmap,
+-- which is most of them.
+alter table public.projects add column if not exists image_path text;
+
+alter table public.projects
+  drop constraint if exists projects_image_path_shape;
+alter table public.projects
+  add constraint projects_image_path_shape
+  check (
+    image_path is null
+    or image_path = user_id::text || '/' || client_id
+  );
+
 -- ---------------------------------------------------------------------------
 -- Limits
 --

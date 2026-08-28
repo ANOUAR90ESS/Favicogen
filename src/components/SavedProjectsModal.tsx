@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   X,
@@ -17,6 +17,7 @@ import {
   exportProjectAsJson,
 } from '../utils/storage';
 import { generateSvgString } from '../utils/canvasRenderer';
+import { SyncButton } from './SyncButton';
 import { parseLogoConfig } from '../utils/configSchema';
 import { sanitizeSvgDocument } from '../utils/svgSanitizer';
 import { Modal } from './Modal';
@@ -42,7 +43,12 @@ export const SavedProjectsModal: React.FC<SavedProjectsModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Projects live in IndexedDB, so the list is fetched when the modal opens
-  // rather than read synchronously during render.
+  // rather than read synchronously during render. Named, because syncing also
+  // needs to re-read it once it has pulled anything down.
+  const refresh = useCallback(async () => {
+    setProjects(await getSavedProjects());
+  }, []);
+
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
@@ -127,6 +133,13 @@ export const SavedProjectsModal: React.FC<SavedProjectsModalProps> = ({
                 {importError}
               </p>
             )}
+            {/*
+              * Sync sits with the list it syncs. It reloads that list on
+              * success, because a pull that leaves the screen showing what was
+              * there before looks like a sync that did nothing.
+              */}
+            <SyncButton onSynced={() => void refresh()} />
+
             <button
               onClick={() => fileInputRef.current?.click()}
               className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-2xs transition-colors cursor-pointer"
