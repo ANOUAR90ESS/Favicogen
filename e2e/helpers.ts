@@ -69,6 +69,19 @@ export function pngSize(bytes: Buffer): { width: number; height: number } {
   return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
 }
 
+/**
+ * A PNG's colour type, straight out of its IHDR.
+ *
+ * 2 is truecolour with no alpha channel; 6 is RGBA. The distinction is the
+ * whole of Apple's icon rule — it is about the channel existing, not about any
+ * pixel being transparent — and it is invisible to every image viewer.
+ */
+export function pngColourType(bytes: Buffer): number {
+  const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  if (!bytes.subarray(0, 8).equals(signature)) throw new Error('not a PNG');
+  return bytes.readUInt8(25);
+}
+
 /** Reads a download into memory without leaving a file behind. */
 export async function downloadBytes(download: Download): Promise<Buffer> {
   const path = await download.path();
