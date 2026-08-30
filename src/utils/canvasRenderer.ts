@@ -8,6 +8,8 @@ import {
 } from '../types';
 import { ICON_LIBRARY } from './iconLibrary';
 import { embedFontsInSvg } from './fontEmbedder';
+import { fitFontSize } from './textFit';
+import { canEncodeOpaquePng, encodeOpaquePng } from './opaquePng';
 import {
   BRAND_VARIANT_IDS,
   BrandVariantId,
@@ -559,9 +561,26 @@ export function generateSvgString(config: LogoConfig, targetSize = 512): string 
     
     const letterSpacing = config.letterSpacing ? `letter-spacing="${config.letterSpacing}px"` : '';
 
+    /*
+     * The size the controls ask for, capped at one that fits.
+     *
+     * A name longer than the canvas used to be drawn at the requested size and
+     * simply run off both edges — silently, in the App Store icon among others.
+     * The wordmark is centred, so the budget is the narrower of the two gaps to
+     * the edge, doubled; when the icon sits to the left the text starts at 62%
+     * and only the right-hand side is available.
+     */
+    const textBudget = isIconLeft ? s - textX - s * 0.04 : Math.min(textX, s - textX) * 2 - s * 0.04;
+    const fittedTextSize = fitFontSize(
+      rawText,
+      config.fontSize || 42,
+      Math.max(1, textBudget),
+      config.letterSpacing || 0
+    );
+
     if (config.textCurve !== 'straight' && curveDefs) {
       textElement = `
-        <text font-family="${escapeXml(config.fontFamily || 'Cairo')}, system-ui, sans-serif" font-size="${config.fontSize || 42}" font-weight="${config.fontWeight || 700}" fill="${textFill}" ${strokeAttr} ${shadowFilter} ${letterSpacing}>
+        <text font-family="${escapeXml(config.fontFamily || 'Cairo')}, system-ui, sans-serif" font-size="${fittedTextSize}" font-weight="${config.fontWeight || 700}" fill="${textFill}" ${strokeAttr} ${shadowFilter} ${letterSpacing}>
           <textPath href="#${curvePathId}" startOffset="50%" text-anchor="middle">
             ${escapeXml(rawText)}
           </textPath>
@@ -570,7 +589,7 @@ export function generateSvgString(config: LogoConfig, targetSize = 512): string 
     } else {
       const rot = config.textRotation ? `transform="rotate(${config.textRotation} ${textX} ${textY})"` : '';
       textElement = `
-        <text x="${textX}" y="${textY}" text-anchor="${isIconLeft ? 'start' : 'middle'}" dominant-baseline="middle" font-family="${escapeXml(config.fontFamily || 'Cairo')}, system-ui, sans-serif" font-size="${config.fontSize || 42}" font-weight="${config.fontWeight || 700}" fill="${textFill}" ${strokeAttr} ${shadowFilter} ${letterSpacing} ${rot}>
+        <text x="${textX}" y="${textY}" text-anchor="${isIconLeft ? 'start' : 'middle'}" dominant-baseline="middle" font-family="${escapeXml(config.fontFamily || 'Cairo')}, system-ui, sans-serif" font-size="${fittedTextSize}" font-weight="${config.fontWeight || 700}" fill="${textFill}" ${strokeAttr} ${shadowFilter} ${letterSpacing} ${rot}>
           ${escapeXml(rawText)}
         </text>
       `;
@@ -582,8 +601,19 @@ export function generateSvgString(config: LogoConfig, targetSize = 512): string 
   if (config.showTagline && config.tagline) {
     const rawTagline = config.taglineUppercase ? (config.tagline || '').toUpperCase() : (config.tagline || '');
     const tSpacing = config.taglineLetterSpacing ? `letter-spacing="${config.taglineLetterSpacing}px"` : 'letter-spacing="2px"';
+
+    // Same budget, same reason. A tagline is usually the longer of the two.
+    const taglineBudget = isIconLeft
+      ? s - taglineX - s * 0.04
+      : Math.min(taglineX, s - taglineX) * 2 - s * 0.04;
+    const fittedTaglineSize = fitFontSize(
+      rawTagline,
+      config.taglineFontSize || 18,
+      Math.max(1, taglineBudget),
+      config.taglineLetterSpacing ?? 2
+    );
     taglineElement = `
-      <text x="${taglineX}" y="${taglineY}" text-anchor="${isIconLeft ? 'start' : 'middle'}" dominant-baseline="middle" font-family="${escapeXml(config.taglineFontFamily || 'Tajawal')}, system-ui, sans-serif" font-size="${config.taglineFontSize || 18}" font-weight="${config.taglineFontWeight || 500}" fill="${config.taglineColor || '#94a3b8'}" ${tSpacing}>
+      <text x="${taglineX}" y="${taglineY}" text-anchor="${isIconLeft ? 'start' : 'middle'}" dominant-baseline="middle" font-family="${escapeXml(config.taglineFontFamily || 'Tajawal')}, system-ui, sans-serif" font-size="${fittedTaglineSize}" font-weight="${config.taglineFontWeight || 500}" fill="${config.taglineColor || '#94a3b8'}" ${tSpacing}>
         ${escapeXml(rawTagline)}
       </text>
     `;
@@ -766,7 +796,14 @@ export async function rasterizeSvg(
    * no alpha channel; an iOS app icon needs one because Apple requires an icon
    * with no transparency.
    */
-  opaqueBackground?: string
+  opaqueBackground?: string,
+  /**
+   * Writes a PNG with no alpha channel at all, rather than an RGBA one whose
+   * pixels happen to be opaque. Apple's rule is about the channel, not the
+   * pixels — `canvas.toBlob` has no option for it, so the file is encoded by
+   * hand. Ignored for JPEG (which has no alpha) and WebP.
+   */
+  stripAlphaChannel = false
 ): Promise<Blob> {
   // An SVG loaded through <img> renders in an isolated document that cannot
   // reach the page's web fonts, so the bytes have to travel with the markup.
@@ -804,6 +841,23 @@ export async function rasterizeSvg(
 
       const mimeType =
         format === 'jpeg' ? 'image/jpeg' : format === 'webp' ? 'image/webp' : 'image/png';
+
+      if (stripAlphaChannel && format === 'png' && canEncodeOpaquePng()) {
+        const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        void encodeOpaquePng(pixels, canvas.width, canvas.height, opaqueBackground || '#ffffff')
+          .then(resolve)
+          // An engine without CompressionStream, or a failure inside it, still
+          // has to produce the file. An icon carrying an alpha channel is a
+          // risk; a package missing its icon is a broken package.
+          .catch(() => {
+            canvas.toBlob(
+              (b) => (b ? resolve(b) : reject(new Error('Failed to create canvas blob'))),
+              mimeType,
+              quality
+            );
+          });
+        return;
+      }
 
       canvas.toBlob(
         (b) => {
@@ -903,13 +957,40 @@ export function generateHtmlHeadSnippet(brandName = 'My App', themeColor = '#0f1
 }
 
 /**
- * Generates site.webmanifest JSON content
+ * The brand name as a launcher will actually show it.
+ *
+ * Cut on a word boundary where one is close enough to the limit, so "Acme
+ * Robotics International" becomes "Acme Robotics" rather than "Acme Robotic".
+ */
+function shortLauncherName(brandName: string, limit = 12): string {
+  const name = brandName.trim();
+  if (name.length <= limit) return name;
+
+  const cut = name.slice(0, limit);
+  const lastSpace = cut.lastIndexOf(' ');
+  return (lastSpace >= 4 ? cut.slice(0, lastSpace) : cut).trim();
+}
+
+/**
+ * Generates site.webmanifest JSON content.
+ *
+ * `start_url` and `scope` are not decoration. Chrome's installability criteria
+ * require a `start_url`, and without one the file looks complete, validates as
+ * JSON, and quietly leaves the site uninstallable — the "Add to home screen"
+ * prompt simply never appears and nothing says why.
+ *
+ * `short_name` is truncated because the launcher is what displays it: Android
+ * gives roughly twelve characters under an icon before it elides, so a long
+ * brand name shipped whole becomes "Internation…" on the home screen. Cutting
+ * at a word boundary is the difference between a name and a fragment.
  */
 export function generateWebmanifestJson(brandName = 'My App', themeColor = '#0f172a'): string {
   return JSON.stringify(
     {
       name: brandName,
-      short_name: brandName,
+      short_name: shortLauncherName(brandName),
+      start_url: '/',
+      scope: '/',
       icons: [
         {
           src: '/android-chrome-192x192.png',
@@ -1156,7 +1237,8 @@ export async function generateFaviconZip(
       showPhoneMockup: true,
       showGlowEffect: true,
     });
-    const playPng = await rasterizeSvg(playSvg, 1024, 500, 'png');
+    // A store upload as well, so it goes out without an alpha channel.
+    const playPng = await rasterizeSvg(playSvg, 1024, 500, 'png', 0.95, undefined, true);
     const playJpg = await rasterizeSvg(playSvg, 1024, 500, 'jpeg');
     if (organizedFolders) {
       const storeFolder = zip.folder('store_assets');
@@ -1290,7 +1372,11 @@ async function addIosAssets(zip: JSZipLike, config: LogoConfig): Promise<void> {
     IOS_APP_ICON_PX,
     'png',
     0.95,
-    ground
+    ground,
+    // Apple's rule is about the channel, not the pixels: an icon whose pixels
+    // are all opaque is still rejected while the file carries an alpha channel,
+    // and `canvas.toBlob` writes one every time.
+    true
   );
 
   appicon.file(`icon-${IOS_APP_ICON_PX}.png`, icon);
@@ -2518,7 +2604,7 @@ export async function generateBrandPackageZip(
       const folder = like.folder('google-play');
       folder?.file(
         'feature-graphic-1024x500.png',
-        await rasterizeSvg(playSvg, 1024, 500, 'png')
+        await rasterizeSvg(playSvg, 1024, 500, 'png', 0.95, undefined, true)
       );
       folder?.file(
         'feature-graphic-1024x500.jpg',

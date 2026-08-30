@@ -92,3 +92,19 @@ test('an unknown address lands on the landing page rather than nothing', async (
   await page.goto('/this-does-not-exist');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
 });
+
+test('with no account service, the studio offers no sync control at all', async ({ page }) => {
+  // Syncing is the reason the account layer exists, so it is also the thing
+  // most likely to be advertised in a build that cannot do it. A disabled
+  // button with a tooltip is still a promise; there should be nothing here.
+  await page.goto('/studio');
+  await page.getByRole('button', { name: /design one from scratch/i }).click();
+  await expect(page.locator('#logo-svg-canvas-container svg.artboard-svg')).toBeVisible();
+
+  await page.locator('#btn-more-menu').click();
+  await page.locator('#btn-saved-projects').click();
+  await expect(page.getByRole('heading', { name: /saved designs/i })).toBeVisible();
+
+  await expect(page.locator('#btn-sync-projects')).toHaveCount(0);
+  await expect(page.getByText(/sign in to sync/i)).toHaveCount(0);
+});
